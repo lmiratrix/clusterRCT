@@ -1,0 +1,19 @@
+---
+title: "Extimating ATEs for CRTs"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{overview_estimators}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(clusterRCT)
+```
