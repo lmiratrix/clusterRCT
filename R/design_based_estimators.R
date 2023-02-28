@@ -53,9 +53,10 @@ design_based_estimators <- function( formula,
         data = make_canonical_data( formula=formula, data=data,
                                 control_formula = control_formula )
         # Collapse to clusters
-        datagg = aggregate_data( data, control_formula )
+        data_agg = aggregate_data( data, control_formula )
+        control_formula = attr( data_agg, "control_formula" )
     } else {
-        datagg = data
+        data_agg = data
     }
     has_site = "siteID" %in% names( data )
 
@@ -63,10 +64,10 @@ design_based_estimators <- function( formula,
     # Make our weights variable
     suff = ""
     if (weight == "individual") {
-        datagg$.weight <- datagg$n
+        data_agg$.weight <- data_agg$n
         suff = "_indiv"
     } else {
-        datagg$.weight <- 1 / datagg$n
+        data_agg$.weight <- 1 / data_agg$n
         suff = "_clust"
     }
 
@@ -75,16 +76,18 @@ design_based_estimators <- function( formula,
     ATE_int = NA
     if ( has_site ) {
         # Fully interacted model
-        form = make_regression_formula( Yobs = "Ybar", interacted = TRUE )
-        mod = lm_robust( form, data=datagg, weights = .weight,
+        form = make_regression_formula( Yobs = "Ybar", interacted = TRUE,
+                                        control_formula = control_formula )
+        mod = lm_robust( form, data=data_agg, weights = .weight,
                          ci = FALSE, se_type="none" )
-        stwt <- datagg %>% group_by( siteID ) %>%
+        stwt <- data_agg %>% group_by( siteID ) %>%
             summarise( wt = sum( .weight ) )
         ATE_int = get_overall_ATE(mod, stwt$wt )
 
         # fixed effects model
-        form = make_regression_formula( Yobs = "Ybar", FE = TRUE )
-        mod_FE = lm_robust( form, data=datagg, weights = .weight,
+        form = make_regression_formula( Yobs = "Ybar", FE = TRUE,
+                                        control_formula = control_formula )
+        mod_FE = lm_robust( form, data=data_agg, weights = .weight,
                          ci = FALSE, se_type="none" )
         ATE_FE = coef(mod_FE)[ "Z" ]
         tibble(
@@ -96,8 +99,9 @@ design_based_estimators <- function( formula,
         )
     } else {
         # We have to use simple Cluster randomized estimators.
-        form = make_regression_formula( Yobs = "Ybar", FE = FALSE )
-        mod = lm_robust( form, data=datagg, weights = .weight,
+        form = make_regression_formula( Yobs = "Ybar", FE = FALSE,
+                                        control_formula = control_formula )
+        mod = lm_robust( form, data=data_agg, weights = .weight,
                             ci = FALSE, se_type="none" )
         ATE_FE = coef(mod)[ "Z" ]
         tibble(

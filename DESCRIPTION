@@ -1,14 +1,39 @@
 Package: clusterRCT
 Type: Package
-Title: What the Package Does (Title Case)
+Title: ATE Estimation for Cluster Randomized Trials
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Authors@R: 
+    c(person(given = "Luke",
+             family = "Miratrix",
+             role = c("aut", "cre"),
+             email = "lmiratrix@stat.harvard.edu"),
+    person("MDRC", role = "cph"),
+    person("Institute of Education Sciences", role = "fnd")
+      )
+Maintainer: Luke Miratrix <lmiratrix@g.harvard.edu>
+Description: This package is for comparing different approaches for estimating the Average Treatment Effect (ATE) for Cluster Randomized Trials (CRTs).
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
+Depends: 
+    dplyr,
+    lme4,
+    R (>= 3.3.2)
+Imports: 
+    Formula,
+    ggplot2,
+    lmtest,
+    magrittr,
+    MASS,
+    nlme,
+    purrr,
+    rlang,
+    sandwich,
+    survey,
+    arm,
+    msm,
+    tibble,
+    tidyr
 Suggests: 
     knitr,
     rmarkdown,

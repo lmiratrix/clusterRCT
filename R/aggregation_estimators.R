@@ -21,12 +21,12 @@ aggregation_estimators <- function( formula,
     datagg = data
     if ( !aggregated ) {
         datagg = aggregate_data(data, control_formula)
+        control_formula = attr( datagg, "control_formula" )
     }
 
-    form = Ybar ~ 1 + Z
-    if ( "siteID" %in% names( data ) ) {
-        form = Ybar ~ 0 + Z + siteID
-    }
+    form = make_regression_formula( Yobs = "Ybar",
+                                    FE = "siteID" %in% names( data ),
+                                    control_formula = control_formula )
 
     M3 <- lm_robust( form, data=datagg, se_type = "HC2" )
     est3 <- M3$coefficients[["Z"]]

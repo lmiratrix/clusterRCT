@@ -1,7 +1,7 @@
+## code to prepare `fakeCRT` dataset goes here
 
 
-library( testthat )
-
+set.seed( 1039 )
 library( tidyverse )
 library( PUMP )
 
@@ -17,7 +17,7 @@ model.params.list <- list(
     , Xi0 = 0                         # scalar grand mean outcome under no treatment
     , MDES = 0.125            # minimum detectable effect size
     , R2.3 = 0.1              # percent of district variation
-    , ICC.3 = 0.2 # district intraclass correlation
+    , ICC.3 = 0.2             # district intraclass correlation
     , omega.3 = 0.1           # ratio of district effect size variability
     , R2.2 = 0.1              # percent of school variation
     , ICC.2 = 0.2             # school intraclass correlation
@@ -28,25 +28,20 @@ model.params.list <- list(
 
 
 sim.data <- gen_sim_data( d_m = "d3.2_m3ff2rc", model.params.list, Tbar = 0.5 )
+fakeCRT = slice_sample(sim.data, n = nrow(sim.data)*0.5 )
 
 
+library( lme4 )
+M <- lmer( Yobs ~ 1 + T.x + (1|S.id) + (1|D.id), data=fakeCRT )
+arm::display(M)
 
 
-test_that("linear models works", {
-    head( sim.data )
-    lme <- linear_model_estimators( Yobs ~ T.x | S.id | D.id, data=sim.data )
-    lme
-    expect_true( nrow( lme) == 1 )
+v <- (1.06^2 + 0.56^2+ 0.66^2)
+v
+0.19 / v
 
-    head( sim.data )
-    lme_cov <- linear_model_estimators( Yobs ~ T.x | S.id | D.id, data=sim.data,
-                                        control_formula = ~ V.k + X.jk + C.ijk )
-    lme_cov
-    expect_true( lme$ATE_hat != lme_cov$ATE_hat )
+0.66^2 / (1.06^2 + 0.56^2+ 0.66^2)
+0.56^2 / (1.06^2 + 0.56^2+ 0.66^2)
 
 
-    agg = aggregation_estimators( Yobs ~ T.x | S.id | D.id, data=sim.data )
-    agg
-    expect_true( !is.null( agg ) )
-
-})
+usethis::use_data(fakeCRT, overwrite = TRUE)

@@ -23,10 +23,9 @@ MLM_estimators <- function( formula,
     }
 
 
-    form = Y ~ 1 + Z + (1|clusterID)
-    if ( !is.null( data$siteID ) ) {
-        form = Y ~ 0 + Z + siteID + (1|clusterID)
-    }
+    form = make_regression_formula( FE = ("siteID" %in% names(data) ),
+                                    control_formula = control_formula,
+                                    cluster_RE = TRUE )
 
     M1 <- lmerTest::lmer( form, data=data )
 

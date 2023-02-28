@@ -68,16 +68,19 @@ compare_methods <- function(formula,
 
     # aggregate data once
     aggdat = aggregate_data(data, control_formula)
+    control_formula_agg = attr( aggdat, "control_formula" )
 
 
     summary_table <- data.frame()
 
     if (include_DB) {
         db_res_i <- design_based_estimators(formula = NULL, data = aggdat,
-                                            control_formula = control_formula, weight = "individual",
+                                            control_formula = control_formula_agg,
+                                            weight = "individual",
                                             aggregated = TRUE)
         db_res_c <- design_based_estimators(formula = NULL, data = aggdat,
-                                            control_formula = control_formula, weight = "cluster",
+                                            control_formula = control_formula_agg,
+                                            weight = "cluster",
                                             aggregated = TRUE)
 
         summary_table = dplyr::bind_rows( summary_table, db_res_i, db_res_c )
@@ -93,7 +96,7 @@ compare_methods <- function(formula,
 
     if (include_agg) {
         lms <- aggregation_estimators( formula = NULL, data = aggdat,
-                                       control_formula = control_formula,
+                                       control_formula = control_formula_agg,
                                        aggregated = TRUE )
         summary_table = dplyr::bind_rows(summary_table, lms)
     }

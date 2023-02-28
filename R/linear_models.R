@@ -26,10 +26,9 @@ linear_model_estimators <- function( formula,
         data = make_canonical_data( formula=formula, data=data, control_formula=control_formula )
     }
 
-    form = Y ~ 1 + Z
-    if ( !is.null( data$siteID ) ) {
-        form = Y ~ 0 + Z + siteID
-    }
+    needFE = "siteID" %in% names(data)
+    form = make_regression_formula( FE = needFE,
+                                    control_formula = control_formula )
 
     # Linear regression
     M2 <- estimatr::lm_robust( form, data=data, clusters=clusterID )

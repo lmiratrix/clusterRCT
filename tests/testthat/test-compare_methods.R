@@ -1,46 +1,28 @@
 
 
-library( tidyverse )
-library( PUMP )
 
-library( clusterRCT )
-
-model.params.list <- list(
-    M = 1                            # number of outcomes
-    , J = 30                          # number of schools
-    , K = 10                          # number of districts
-    , nbar = 10                       # number of individuals per school
-    , S.id = NULL                     # N-length vector of school assignments
-    , D.id = NULL                     # N-length vector of district assignments
-    , Xi0 = 0                         # scalar grand mean outcome under no treatment
-    , MDES = 0.125            # minimum detectable effect size
-    , R2.3 = 0.1              # percent of district variation
-    , ICC.3 = 0.2 # district intraclass correlation
-    , omega.3 = 0.1           # ratio of district effect size variability
-    , R2.2 = 0.1              # percent of school variation
-    , ICC.2 = 0.2             # school intraclass correlation
-    , omega.2 = 0.1           # ratio of school effect size variability
-    , R2.1 = 0.1    # percent of indiv variation explained
-)
-
-
-
-sim.data <- gen_sim_data( d_m = "d3.2_m3ff2rc", model.params.list, Tbar = 0.5 )
-sim.data = slice_sample(sim.data, n = nrow(sim.data)*0.5 )
-
-
-
-
+data( "fakeCRT" )
 
 test_that("compare methods aggregates as expected", {
 
-    mtab <- compare_methods( Yobs ~ T.x | S.id | D.id, data=sim.data )
+    mtab <- compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
+                             include_method_characteristics = FALSE)
 
     expect_true( is.data.frame(mtab) )
 
+    mtab_cov <-  compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
+                                  control_formula = ~ X.jk + C.ijk, include_method_characteristics = FALSE )
 
-    mtab <- compare_methods( Yobs ~ T.x | S.id , data=sim.data )
+    # Ensure covariate correction changes the estimates!  (I.e.,
+    # control formula is getting propagated)
+    mtab$dels = mtab$ATE_hat - mtab_cov$ATE_hat
+    mtab
+    expect_true( all( mtab$dels != 0 ) )
+
+    mtab <- compare_methods( Yobs ~ T.x | S.id , data=fakeCRT,
+                             include_method_characteristics = FALSE)
 
     expect_true( is.data.frame(mtab) )
+    mtab
 
 })

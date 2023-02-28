@@ -5,9 +5,6 @@
 
 
 
-library( Formula )
-library( tidyverse )
-
 
 
 scat = function( str, ... ) {
@@ -26,24 +23,26 @@ scat = function( str, ... ) {
 #' @return List of three objects: the revised data frame, revised
 #'   control_formula, and final list of names of control variables.
 expand_control_variables <- function( data, control_formula ) {
+    require( formula.tools )
+
     # Get control variables and expand control matrix with dummy variables, etc.
     controls = model.matrix( control_formula, data )
     stopifnot( colnames(controls)[1] == "(Intercept)" )
     controls = controls[,-1, drop=FALSE]
 
-    c.names = make.names( colnames(controls), unique=TRUE )
-    colnames(controls) = c.names
+    c_names = make.names( colnames(controls), unique=TRUE )
+    colnames(controls) = c_names
 
     # Update dataframe to expanded controls
     data = data %>%
         dplyr::select( -all_of( formula.tools::rhs.vars(control_formula) ) ) %>%
         cbind( as.data.frame( controls ) )
 
-    control_formula = as.formula( paste0( "~ ", paste( c.names, collapse = " + " ) ) )
+    control_formula = as.formula( paste0( "~ ", paste( c_names, collapse = " + " ) ) )
 
     return( list( data = data,
-            control_formula = control_formula,
-            c.names = c.names ) )
+                  control_formula = control_formula,
+                  c_names = c_names ) )
 }
 
 
@@ -71,30 +70,33 @@ aggregate_data <- function( data, control_formula = NULL ) {
     # Aggregation to the cluster level
 
     datagg = NA
-    stopifnot( "clusterID" %in% names(data) )
-    stopifnot( "Z" %in% names(data) )
-
+    stopifnot( all( c( "clusterID", "Z", "Yobs" ) %in% names(data) ) )
 
     if ( !is.null( control_formula ) ) {
 
         dd = expand_control_variables( data, control_formula )
         data = dd$data
 
-        my.vars = dd$c.names
+        my.vars = dd$c_names
         datagg <-
             datagg <- data %>%
             group_by( across( any_of( c( "siteID", "clusterID", "Z" ) ) ) ) %>%
-            summarise( Ybar = mean( Y ),
+            summarise( Ybar = mean( Yobs ),
                        n = n(),
                        across( all_of( my.vars ), mean ),
                        .groups = "drop" )
+
+        attr( datagg, "control_formula" ) <- dd$control_formula
+        attr( datagg, "c_names" ) <- my.vars
+
     } else {
         datagg <-
             datagg <- data %>%
             group_by( across( any_of( c( "siteID", "clusterID", "Z" ) ) ) ) %>%
-            summarise( Ybar = mean( Y ),
+            summarise( Ybar = mean( Yobs ),
                        n = n(),
                        .groups = "drop" )
+
     }
 
     J = nrow( datagg )
@@ -125,6 +127,7 @@ aggregate_data <- function( data, control_formula = NULL ) {
 #' @param interacted  TRUE means include treatment by site
 #'   interactions.  Will override FE flag and set FE to true.
 #' @param FE TRUE means include site dummy variables.
+#' @param cluster_RE Add a random effect term for clusterID
 #'
 #' @return Something like "Yobs ~ 1 + Z" or "Yobs ~ 1 + Z + X1 + X2"
 #'
@@ -135,7 +138,10 @@ make_regression_formula = function( Yobs = "Yobs", Z = "Z",
                                     control_formula = NULL,
                                     interacted = FALSE,
                                     FE = FALSE,
-                              data = NULL) {
+                                    cluster_RE = FALSE,
+                                    data = NULL ) {
+
+    require( formula.tools )
 
     if ( interacted ) {
         FE = TRUE
@@ -173,15 +179,19 @@ make_regression_formula = function( Yobs = "Yobs", Z = "Z",
             }
         }
 
-        c.names <- formula.tools::rhs.vars(control_formula)
-        c.names <- paste( c.names, collapse =" + " )
+        c_names <- formula.tools::rhs.vars(control_formula)
+        c_names <- paste( c_names, collapse =" + " )
 
-        new.form <- sprintf( "%s ~ %s + %s + %s", Yobs, stem, txS, c.names)
-        return( as.formula( new.form ) )
+        new.form <- sprintf( "%s ~ %s + %s + %s", Yobs, stem, txS, c_names)
     } else {
         new.form <- sprintf( "%s ~ %s + %s", Yobs, stem, txS )
-        return( as.formula( new.form ) )
     }
+
+    if ( cluster_RE ) {
+        new.form = paste0( new.form, " + (1|", clusterID, ")" )
+    }
+    return( as.formula( new.form ) )
+
 }
 
 
@@ -235,7 +245,7 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
     clusterID = data[[ clusterID ]] # model.part( formula, data=data, rhs=2, drop=TRUE )
     clusterID = as.factor( clusterID )
 
-    new_dat = data.frame( Y = Y, Z = Z, clusterID = clusterID )
+    new_dat = data.frame( Yobs = Y, Z = Z, clusterID = clusterID )
     if ( n_part == 3 ) {
         siteID = data[[ siteID ]]
         new_dat$clusterID = interaction(siteID, clusterID, drop=TRUE)

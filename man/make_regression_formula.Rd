@@ -13,6 +13,7 @@ make_regression_formula(
   control_formula = NULL,
   interacted = FALSE,
   FE = FALSE,
+  cluster_RE = FALSE,
   data = NULL
 )
 }
@@ -34,6 +35,8 @@ of "~ X1 + X2".}
 interactions.  Will override FE flag and set FE to true.}
 
 \item{FE}{TRUE means include site dummy variables.}
+
+\item{cluster_RE}{Add a random effect term for clusterID}
 
 \item{data}{Dataframe holding all variables to be used in formula.}
 }

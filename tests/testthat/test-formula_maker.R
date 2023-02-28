@@ -74,6 +74,38 @@ test_that("formula generator works", {
 
 
 
+
+
+
+test_that("formula generator random effects", {
+
+    dd = data.frame( Y = 1:10, tx = rep(2,10),
+                     c = sample(c("A","B"), 10, replace=TRUE),
+                     SITE = sample( LETTERS[1:4], 10, replace=TRUE ),
+                     x = 1:10,
+                     x2 = sample( c("A","B","C"), 10, replace=TRUE ) )
+    dd
+
+    rr = make_regression_formula( cluster_RE = TRUE )
+    a <- as.character(rr)
+    a
+    expect_true( a == "Yobs ~ 1 + Z + (1 | clusterID)" )
+
+
+    rr = make_regression_formula( siteID = "SITE", FE = TRUE, cluster_RE = TRUE )
+    a <- as.character(rr)
+    a
+    expect_equal( a, "Yobs ~ 0 + Z + SITE + (1 | clusterID)" )
+
+
+})
+
+
+
+
+
+
+
 test_that("making canonical data works", {
 
     odat = data.frame( Y = 1:10, tx = rep(2,10), c = sample(c("A","B"), 10, replace=TRUE),
@@ -85,17 +117,17 @@ test_that("making canonical data works", {
 
     # dat = make_canonical_data(formula=Y ~ tx | c | s, data=odat)
 
-    dat = clusterRCT:::make_canonical_data(formula=Y ~ tx | c | s, data=odat)
+    dat = clusterRCT:::make_canonical_data( formula = Y ~ tx | c | s, data=odat)
 
     dat
     expect_true( ncol(dat) == 4 )
-    expect_equal( names(dat), c( "Y", "Z", "clusterID", "siteID" ) )
+    expect_equal( names(dat), c( "Yobs", "Z", "clusterID", "siteID" ) )
 
 
     dat2 = clusterRCT:::make_canonical_data(formula=Y ~ tx | c | s, data=odat, control_formula = ~ x + x2 )
     head( dat2 )
     expect_true( ncol(dat2) == 6 )
 
-    expect_equal( names(dat2), c( "Y", "Z", "clusterID", "siteID", "x", "x2" ) )
+    expect_equal( names(dat2), c( "Yobs", "Z", "clusterID", "siteID", "x", "x2" ) )
 
 })
