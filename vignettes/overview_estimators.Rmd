@@ -81,3 +81,13 @@ compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
                  include_method_characteristics = FALSE )
 
 ```
+
+
+If we have data with no blocking (district-level grouping) we run like this:
+```{r}
+
+compare_methods( Yobs ~ T.x | S.id, data=fakeCRT,
+                 control_formula = ~ V.k + X.jk + C.ijk,
+                 include_method_characteristics = FALSE )
+
+```

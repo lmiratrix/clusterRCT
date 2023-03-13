@@ -124,10 +124,28 @@ test_that("making canonical data works", {
     expect_equal( names(dat), c( "Yobs", "Z", "clusterID", "siteID" ) )
 
 
-    dat2 = clusterRCT:::make_canonical_data(formula=Y ~ tx | c | s, data=odat, control_formula = ~ x + x2 )
+    dat2 = clusterRCT:::make_canonical_data(formula=Y ~ tx | c | s, data=odat,
+                                            control_formula = ~ x + x2 )
     head( dat2 )
     expect_true( ncol(dat2) == 6 )
 
     expect_equal( names(dat2), c( "Yobs", "Z", "clusterID", "siteID", "x", "x2" ) )
 
 })
+
+
+
+
+test_that("number_controls works", {
+
+    res = clusterRCT:::number_controls( ~ X1  + X2 + X3 )
+    expect_true( res == 3 )
+
+    res = clusterRCT:::number_controls( NULL )
+    expect_true( res == 0 )
+
+    # TODO: What if there are interaction terms in the control
+    # formula??
+} )
+
+

@@ -27,6 +27,7 @@ model.params.list <- list(
 
 
 sim.data <- gen_sim_data( d_m = "d3.2_m3ff2rc", model.params.list, Tbar = 0.5 )
+rm( model.params.list )
 
 
 
@@ -35,6 +36,7 @@ test_that("DB estimators work", {
     head( sim.data )
     table( sim.data$D.id)
     aa = design_based_estimators( Yobs ~ T.x | S.id | D.id, data=sim.data )
+    aa
     expect_true( nrow( aa ) == 2 )
 
     # No site-level.

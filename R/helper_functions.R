@@ -13,6 +13,10 @@ scat = function( str, ... ) {
 
 
 
+two_sided_p <- function( ATE_hat, SE_hat, df ) {
+    2 * pt( -abs(ATE_hat)/SE_hat, df=df )
+}
+
 #### Expand control variables to dummies as needed ####
 
 
@@ -45,6 +49,22 @@ expand_control_variables <- function( data, control_formula ) {
                   c_names = c_names ) )
 }
 
+
+
+number_controls <- function( control_formula ) {
+
+    if ( is.null( control_formula ) ) {
+        return( 0 )
+    }
+
+    if (length(formula.tools::lhs.vars(control_formula)) != 0 |
+        length(formula.tools::rhs.vars(control_formula)) < 1) {
+        stop("The control_formula argument must be of the form ~ X1 + X2 + ... + XN. (nothing on left hand side of ~)")
+    }
+
+    c_names <- formula.tools::rhs.vars(control_formula)
+    return( length( c_names ) )
+}
 
 
 
