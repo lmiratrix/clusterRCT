@@ -36,6 +36,9 @@ get_overall_ATE <- function( mod, weights ) {
 # @param v Degrees of freedom.  Use v=# covariates.
 schochet_variance_formula <- function( adt, v ) {
 
+    require( tidyr )
+    require( dplyr )
+
     stopifnot( !is.null( adt$resid ) )
     stopifnot( !is.null( adt$Z ) )
 
@@ -51,25 +54,26 @@ schochet_variance_formula <- function( adt, v ) {
 
     adtw <- adt %>%
         group_by( siteID, Z ) %>%
-        nest() %>%
+        tidyr::nest() %>%
         ungroup() %>%
-        mutate( m = map_dbl( data, nrow ),
-                totwt = map_dbl( data, ~ sum( .$.weight ) ),
-                s2 = map_dbl( data, calc_s2_partial ) ) %>%
-        group_by( siteID ) %>%
-        mutate( p = m / sum(m) ) %>%
+        dplyr::mutate( m = purrr::map_dbl( data, nrow ),
+                totwt = purrr::map_dbl( data, ~ sum( .$.weight ) ),
+                s2 = purrr::map_dbl( data, calc_s2_partial ) ) %>%
+        dplyr::group_by( siteID ) %>%
+        dplyr::mutate( p = m / sum(m) ) %>%
         ungroup() %>%
-        mutate( q = totwt / sum(totwt) ) %>%
-        group_by( Z ) %>%
-        mutate( wt = totwt / sum(totwt),
+        dplyr::mutate( q = totwt / sum(totwt) ) %>%
+        dplyr::group_by( Z ) %>%
+        dplyr::mutate( wt = totwt / sum(totwt),
                 z = m - v * p * q - 1,
                 s2 = s2 / z ) %>%
         ungroup()
 
     pt2 <- adtw %>%
         dplyr::select( -p, -q, -data ) %>%
-        pivot_wider( names_from = "Z", values_from = c( totwt, s2, m, wt) ) %>%
-        mutate( varD = s2_1 / m_1 + s2_0 / m_0,
+        tidyr::pivot_wider( names_from = "Z",
+                            values_from = c( totwt, s2, m, wt) ) %>%
+        dplyr::mutate( varD = s2_1 / m_1 + s2_0 / m_0,
                 totwt = totwt_0 + totwt_1 )
 
     h = length( unique( adt$siteID ) )
