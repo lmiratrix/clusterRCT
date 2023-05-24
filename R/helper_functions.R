@@ -237,7 +237,8 @@ make_regression_formula = function( Yobs = "Yobs", Z = "Z",
 #'
 #' @noRd
 make_canonical_data <- function(formula, control_formula = NULL, data,
-                                give_default_site = FALSE ) {
+                                give_default_site = FALSE,
+                                drop_missing = TRUE ) {
 
     formula <- as.formula(formula)
     rhs <- formula.tools::rhs.vars( formula )
@@ -289,6 +290,16 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
         new_dat = bind_cols( new_dat, xd )
     }
 
+    nr = nrow( new_dat )
+    if ( sum( is.na( new_dat ) ) > 0 ) {
+        if ( drop_missing ) {
+            new_dat = na.omit(new_dat)
+            drp = nr - nrow( new_dat )
+            warning( glue::glue( "{drp} rows with missing values dropped (of {nr} total rows)." ), call. = FALSE )
+        } else {
+            stop( "Data has missing values; cannot proceed." )
+        }
+    }
 
     # Check for valid treatment variable
     n_levels = length( unique( new_dat$Z ) )

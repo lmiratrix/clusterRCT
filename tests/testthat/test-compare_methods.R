@@ -26,3 +26,38 @@ test_that("compare methods aggregates as expected", {
     mtab
 
 })
+
+
+
+
+
+test_that("missing data does not crash", {
+
+    fake2 = fakeCRT
+    head( fake2 )
+    fake2$Yobs[1:10] = NA
+    fake2$S.id[5:20] = NA
+    fake2$X.jk[(1:30)*2] = NA
+    fake2$T.x[c(1, 5, 17, 61)] = NA
+    fake2$D.id[c( 5, 66 )] = NA
+
+    nrow(fake2)
+
+    mtab <- compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
+                             include_method_characteristics = FALSE)
+
+    expect_true( is.data.frame(mtab) )
+
+    mtab_cov <-  compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
+                                  control_formula = ~ X.jk + C.ijk,
+                                  include_method_characteristics = FALSE )
+    expect_true( is.data.frame(mtab_cov) )
+
+
+    # Check if missingness drops all tx in a district, we are still ok
+    fake2$T.x[ is.na( fake2$D.id ) | is.na( fake2$T.x ) | (fake2$D.id == 1 & fake2$T.x == 0) ] = NA
+    mtab_cov <-  compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
+                                  control_formula = ~ X.jk + C.ijk,
+                                  include_method_characteristics = FALSE )
+    expect_true( is.data.frame(mtab_cov) )
+})
