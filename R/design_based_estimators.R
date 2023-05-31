@@ -164,7 +164,8 @@ design_based_estimators <- function( formula,
         data_agg$.weight <- data_agg$n
         suff = "_indiv"
     } else {
-        data_agg$.weight <- 1 / data_agg$n
+        # data_agg$.weight <- 1 / data_agg$n
+        data_agg$.weight <- 1
         suff = "_clust"
     }
 
