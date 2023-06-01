@@ -65,8 +65,7 @@ schochet_variance_formula <- function( adt, v ) {
         dplyr::mutate( q = totwt / sum(totwt) ) %>%
         dplyr::group_by( Z ) %>%
         dplyr::mutate( wt = totwt / sum(totwt),
-                z = m - v * p * q - 1,
-                s2 = s2 / z ) %>%
+                s2 = s2 / (m - v * p * q - 1) ) %>%
         ungroup()
 
     pt2 <- adtw %>%
