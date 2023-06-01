@@ -28,10 +28,15 @@ one_run <- function() {
                         Z = randomizr::cluster_ra(clusters = sid),
                         Yobs = ifelse( Z == 1, Y1, Y0 ) )
 
-    c1 <- compare_methods( Yobs ~ Z | sid, data=sim.data,
-                           include_method_characteristics = FALSE )
+    c1 <- clusterRCT::compare_methods( Yobs ~ Z | sid, data=sim.data,
+                                       include_method_characteristics = FALSE )
 
-    c1$tau = mean( sim.data$Y1 - sim.data$Y0 )
+    c1$tau_indiv = mean( sim.data$Y1 - sim.data$Y0 )
+    c1$tau_clust = sim.data %>%
+        group_by(sid) %>%
+        summarize(tau = mean(Y1-Y0)) %>%
+        summarize(tau = mean(tau)) %>%
+        pull(tau)
 
     c1
 }
@@ -39,13 +44,14 @@ one_run <- function() {
 one_run()
 
 
-rps = map_df( 1:20, ~ one_run(), .id = "runID" )
+rps = map_df( 1:100, ~ one_run(), .id = "runID" )
 
 head( rps )
 
 
 rps %>% group_by( method ) %>%
-    summarise( tau = mean( tau ),
+    summarise( tau_indiv = mean( tau_indiv ),
+               tau_clust = mean( tau_clust ),
                EATE = mean( ATE_hat ),
                SE = sd( ATE_hat ),
                ESE_hat = sqrt( mean( SE_hat^2 ) ) ) %>%
