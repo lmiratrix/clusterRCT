@@ -58,6 +58,17 @@ rps %>% group_by( method ) %>%
     mutate( calib = sqrt( ESE_hat^2 / SE^2 ) )
 
 
+# RESULTS:
+# # A tibble: 6 x 7
+#   method       tau_indiv tau_clust  EATE    SE ESE_hat calib
+#   <glue>           <dbl>     <dbl> <dbl> <dbl>   <dbl> <dbl>
+# 1 DB_clust         0.373     0.219 0.196 0.308   0.301 0.977
+# 2 DB_indiv         0.373     0.219 0.368 0.319   0.316 0.989
+# 3 LR (agg)         0.373     0.219 0.196 0.308   0.301 0.977
+# 4 LR (agg, wt)     0.373     0.219 0.368 0.319   0.321 1.01
+# 5 LR w/ CRSE       0.373     0.219 0.368 0.319   0.321 1.01
+# 6 MLM              0.373     0.219 0.200 0.307   0.300 0.978
+
 
 
 
