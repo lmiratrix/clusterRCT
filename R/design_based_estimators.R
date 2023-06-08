@@ -76,9 +76,9 @@ schochet_variance_formula <- function( adt, v ) {
                 totwt = totwt_0 + totwt_1 )
 
     h = length( unique( adt$siteID ) )
-    pt2$totwt = pt2$totwt / sum(pt2$totwt)
+    pt2$totwt = pt2$totwt / sum(pt2$totwt)   # normalize weights to avoid overflow
 
-    SE_ATE <- weighted.mean( pt2$varD, w = pt2$totwt^2) / ( (h*mean(pt2$totwt) )^2 )
+    SE_ATE <- with(pt2, sum(varD*totwt^2) / (h*mean(totwt))^2)
 
     list( SE_hat = sqrt( SE_ATE ),
           df = nrow(adt) - 2*h - 1 )
