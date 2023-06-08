@@ -94,22 +94,20 @@ schochet_FE_variance_formula <- function( adt, v ) {
     stopifnot( !is.null( adt$resid ) )
     stopifnot( !is.null( adt$Z ) )
 
-    adt <- adt %>%
-        group_by( siteID ) %>%
-        mutate( p = mean(Z),
-                Ztilde = Z - p,
-                m = n(),
-                wbar = mean(.weight) ) %>%
-        ungroup() %>%
-        mutate( numers = .weight^2 * Ztilde^2 * resid^2,
-                denoms = (m * p * (1-p) * wbar)^2 ) %>%
-        ungroup()
-
     m = nrow(adt)
     h = length( unique(adt$siteID) )
 
-    SE_ATE = sqrt( (m / (m - h - v - 1)) * sum( adt$numers ) / sum( adt$denoms ) )
-    df = nrow(adt) - v - h - 1
+    SE_ATE <- adt %>%
+        group_by( siteID ) %>%
+        summarize( p_b = mean(Z),
+                   m_b = n(),
+                   wbar_b = mean(.weight),
+                   num = sum(.weight^2 * (Z-p_b)^2 * resid^2)) %>%
+        summarize(SE_ATE = sqrt( m / (m-h-v-1) * sum(num) /
+                                     sum(m_b*p_b*(1-p_b)*wbar_b)^2 )) %>%
+        pull(SE_ATE)
+
+    df = m - v - h - 1
 
     list( SE_hat = SE_ATE, df = df )
 }
