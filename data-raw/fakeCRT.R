@@ -26,7 +26,7 @@ model.params.list <- list(
 )
 
 
-
+``
 sim.data <- gen_sim_data( d_m = "d3.2_m3ff2rc", model.params.list, Tbar = 0.5 )
 fakeCRT = slice_sample(sim.data, n = nrow(sim.data)*0.5 )
 

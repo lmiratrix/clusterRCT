@@ -39,13 +39,14 @@ one_run <- function() {
 one_run()
 
 
-rps = map_df( 1:20, ~ one_run(), .id = "runID" )
+rps = map_df( 1:100, ~ one_run(), .id = "runID" )
 
 head( rps )
 
 
 rps %>% group_by( method ) %>%
-    summarise( tau = mean( tau ),
+    summarise( Etau = mean( tau ),
+               sdtau = sd( tau ),
                EATE = mean( ATE_hat ),
                SE = sd( ATE_hat ),
                ESE_hat = sqrt( mean( SE_hat^2 ) ) ) %>%

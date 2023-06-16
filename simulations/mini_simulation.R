@@ -46,7 +46,7 @@ one_run <- function() {
 one_run()
 
 
-rps = map_df( 1:20, ~ one_run(), .id = "runID" )
+rps = map_df( 1:50, ~ one_run(), .id = "runID" )
 
 head( rps )
 
