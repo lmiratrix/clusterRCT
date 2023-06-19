@@ -38,7 +38,7 @@ one_run <- function() {
 
     sim.data <- gen_sim_data( d_m = "d3.2_m3ff2rc", model.params.list, Tbar = 0.5 )
 
-    c1 <- compare_methods( Yobs ~ T.x | S.id | D.id, data=sim.data, include_method_characteristics = FALSE )
+    c1 <- clusterRCT::compare_methods( Yobs ~ T.x | S.id | D.id, data=sim.data, include_method_characteristics = FALSE )
 
     c1
 }

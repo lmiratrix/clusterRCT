@@ -43,21 +43,25 @@ test_that("missing data does not crash", {
 
     nrow(fake2)
 
-    mtab <- compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
-                             include_method_characteristics = FALSE)
+    expect_warning( mtab <- compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
+                             include_method_characteristics = FALSE) )
 
     expect_true( is.data.frame(mtab) )
 
-    mtab_cov <-  compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
+    expect_warning( mtab_cov <-  compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
                                   control_formula = ~ X.jk + C.ijk,
-                                  include_method_characteristics = FALSE )
+                                  include_method_characteristics = FALSE ) )
     expect_true( is.data.frame(mtab_cov) )
 
 
-    # Check if missingness drops all tx in a district, we are still ok
+    # Check if missingness drops all tx in a district, we stop.
     fake2$T.x[ is.na( fake2$D.id ) | is.na( fake2$T.x ) | (fake2$D.id == 1 & fake2$T.x == 0) ] = NA
-    mtab_cov <-  compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
+
+    #make_site_table( Yobs ~ T.x | S.id | D.id, data=fake2,
+    #                 control_formula = ~ X.jk + C.ijk )
+
+    expect_warning( expect_error( compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
                                   control_formula = ~ X.jk + C.ijk,
-                                  include_method_characteristics = FALSE )
-    expect_true( is.data.frame(mtab_cov) )
+                                  include_method_characteristics = FALSE ) ) )
+    #expect_true( is.data.frame(mtab_cov) )
 })

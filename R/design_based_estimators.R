@@ -65,8 +65,7 @@ schochet_variance_formula <- function( adt, v ) {
         dplyr::mutate( q = totwt / sum(totwt) ) %>%
         dplyr::group_by( Z ) %>%
         dplyr::mutate( wt = totwt / sum(totwt),
-                z = m - v * p * q - 1,
-                s2 = s2 / z ) %>%
+                s2 = s2 / (m - v * p * q - 1) ) %>%
         ungroup()
 
     pt2 <- adtw %>%
@@ -77,9 +76,9 @@ schochet_variance_formula <- function( adt, v ) {
                 totwt = totwt_0 + totwt_1 )
 
     h = length( unique( adt$siteID ) )
-    pt2$totwt = pt2$totwt / sum(pt2$totwt)
+    pt2$totwt = pt2$totwt / sum(pt2$totwt)   # normalize weights to avoid overflow
 
-    SE_ATE <- weighted.mean( pt2$varD, w = pt2$totwt^2) / ( (h*mean(pt2$totwt) )^2 )
+    SE_ATE <- with(pt2, sum(varD*totwt^2) / (h*mean(totwt))^2)
 
     list( SE_hat = sqrt( SE_ATE ),
           df = nrow(adt) - 2*h - 1 )
@@ -95,22 +94,20 @@ schochet_FE_variance_formula <- function( adt, v ) {
     stopifnot( !is.null( adt$resid ) )
     stopifnot( !is.null( adt$Z ) )
 
-    adt <- adt %>%
-        group_by( siteID ) %>%
-        mutate( p = mean(Z),
-                Ztilde = Z - p,
-                m = n(),
-                wbar = mean(.weight) ) %>%
-        ungroup() %>%
-        mutate( numers = .weight^2 * Ztilde^2 * resid^2,
-                denoms = (m * p * (1-p) * wbar)^2 ) %>%
-        ungroup()
-
     m = nrow(adt)
     h = length( unique(adt$siteID) )
 
-    SE_ATE = sqrt( (m / (m - h - v - 1)) * sum( adt$numers ) / sum( adt$denoms ) )
-    df = nrow(adt) - v - h - 1
+    SE_ATE <- adt %>%
+        group_by( siteID ) %>%
+        summarize( p_b = mean(Z),
+                   m_b = n(),
+                   wbar_b = mean(.weight),
+                   num = sum(.weight^2 * (Z-p_b)^2 * resid^2)) %>%
+        summarize(SE_ATE = sqrt( m / (m-h-v-1) * sum(num) /
+                                     sum(m_b*p_b*(1-p_b)*wbar_b)^2 )) %>%
+        pull(SE_ATE)
+
+    df = m - v - h - 1
 
     list( SE_hat = SE_ATE, df = df )
 }
@@ -164,7 +161,8 @@ design_based_estimators <- function( formula,
         data_agg$.weight <- data_agg$n
         suff = "_indiv"
     } else {
-        data_agg$.weight <- 1 / data_agg$n
+        # data_agg$.weight <- 1 / data_agg$n
+        data_agg$.weight <- 1
         suff = "_clust"
     }
 

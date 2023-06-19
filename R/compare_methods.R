@@ -58,13 +58,8 @@ compare_methods <- function(formula,
     }
 
     n <- nrow( data )
-    #Quick check that input is correct
-    if (is.numeric(data$Z) == FALSE ) {
-        stop("Treatment indicator should be vector of ones and zeros")
-    }
-    if ((sum(data$Z == 1) + sum(data$Z == 0)) != n) {
-        stop("Treatment indicator should be vector of ones and zeros")
-    }
+    check_data_integrity( data )
+
 
     # aggregate data once
     aggdat = aggregate_data(data, control_formula)

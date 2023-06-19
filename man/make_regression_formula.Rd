@@ -2,7 +2,7 @@
 % Please edit documentation in R/helper_functions.R
 \name{make_regression_formula}
 \alias{make_regression_formula}
-\title{Make a canonical regression formula (no FE), possibly with control
+\title{Make a canonical regression formula, possibly with control
 variables.}
 \usage{
 make_regression_formula(
@@ -44,6 +44,6 @@ interactions.  Will override FE flag and set FE to true.}
 Something like "Yobs ~ 1 + Z" or "Yobs ~ 1 + Z + X1 + X2"
 }
 \description{
-Make a canonical regression formula (no FE), possibly with control
+Make a canonical regression formula, possibly with control
 variables.
 }

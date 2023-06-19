@@ -26,15 +26,23 @@ model.params.list <- list(
 )
 
 
-``
 sim.data <- gen_sim_data( d_m = "d3.2_m3ff2rc", model.params.list, Tbar = 0.5 )
 fakeCRT = slice_sample(sim.data, n = nrow(sim.data)*0.5 )
-
+head( fakeCRT )
+k = length( unique( fakeCRT$S.id ) )
+k
+uu = unique( fakeCRT$S.id )
+levels(uu)
+cids = sample( uu, 200, prob = 50 + as.numeric( uu ) )
+fakeCRT = filter( fakeCRT, S.id %in% cids )
 
 library( lme4 )
 M <- lmer( Yobs ~ 1 + T.x + (1|S.id) + (1|D.id), data=fakeCRT )
 arm::display(M)
 
+fakeCRT$S.id = droplevels( fakeCRT$S.id )
+
+describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data=fakeCRT )
 
 v <- (1.06^2 + 0.56^2+ 0.66^2)
 v
