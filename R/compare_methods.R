@@ -53,6 +53,31 @@ compare_methods <- function(formula,
                             include_method_characteristics = TRUE ) {
 
     if ( !is.null( formula ) ) {
+
+        lhs_vars <- formula.tools::lhs.vars(formula)
+        if (length(lhs_vars) > 1) {
+            res <- purrr::map(
+                lhs_vars,
+                function(v) {
+                    # see https://stackoverflow.com/questions/37824625/how-to-modify-the-left-side-of-a-formula
+                    outcome <- as.name(v)
+                    formula1 <- as.formula(bquote(.(outcome) ~ .(formula.tools::rhs(formula))))
+                    res <- compare_methods(
+                        formula1,
+                        data = data,
+                        control_formula = control_formula,
+                        weight = weight,
+                        include_MLM = include_MLM,
+                        include_DB = include_DB,
+                        include_LM = include_LM,
+                        include_agg = include_agg,
+                        include_method_characteristics = include_method_characteristics) %>%
+                        dplyr::mutate(outcome = v, .before=method)
+                }) %>%
+                purrr::list_rbind()
+            return(res)
+        }
+
         data = make_canonical_data( formula=formula, data=data,
                                     control_formula = control_formula )
     }
