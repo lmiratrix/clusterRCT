@@ -192,26 +192,32 @@ calc_covariate_R2s <- function( data, pooled = FALSE ) {
 
 #' Make table of statistics by district
 #'
-#' Given individual/school/district data of a blocked, cluster RCT, calculate statistics for each block (district).
+#' Given individual/school/district data of a blocked, cluster RCT,
+#' calculate statistics for each block (district).
 #'
+#' @param check_data_integrity TRUE means runs some checks and give
+#'   errors if data fails them (e.g., incorrectly processed treatment
+#'   vector.). FALSE means calculate statistics without these checks.
 #' @export
 make_site_table <- function(  formula = NULL,
                               data = NULL,
-                              control_formula = NULL ) {
+                              control_formula = NULL,
+                              check_data_integrity = FALSE ) {
 
     data = make_canonical_data( formula=formula, data=data,
                                 control_formula = control_formula )
 
+    if ( check_data_integrity ) {
+        check_data_integrity( data )
+    }
+
     n <- nrow( data )
-    check_data_integrity( data )
 
     K = length( unique( data$siteID ) )
 
     sizes = data %>%
         group_by( siteID, clusterID, Z ) %>%
         summarise( n = n(), .groups = "drop" )
-
-
 
     sstat = sizes %>% group_by( siteID ) %>%
         summarise( J = n(),

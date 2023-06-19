@@ -56,6 +56,8 @@ test_that("check missing data doesn't crash", {
                                          data=fakeCRT, control_formula = ~ X.jk ) )
 
     fakeCRT$D.id[ 70:150 ] = NA
+
+
     expect_warning( clusterRCT:::make_canonical_data( Yobs ~ T.x | S.id | D.id,
                                                       data=fakeCRT, control_formula = ~ X.jk ) )
 

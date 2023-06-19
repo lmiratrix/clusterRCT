@@ -57,9 +57,11 @@ test_that("missing data does not crash", {
     # Check if missingness drops all tx in a district, we stop.
     fake2$T.x[ is.na( fake2$D.id ) | is.na( fake2$T.x ) | (fake2$D.id == 1 & fake2$T.x == 0) ] = NA
 
-    #make_site_table( Yobs ~ T.x | S.id | D.id, data=fake2,
-    #                 control_formula = ~ X.jk + C.ijk )
+    expect_warning( tt <- make_site_table( Yobs ~ T.x | S.id | D.id, data=fake2,
+                     control_formula = ~ X.jk + C.ijk ) )
+    expect_true( tt$p.tx[[1]] == 1 )
 
+    # Will crash when trying to analyze.
     expect_warning( expect_error( compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
                                   control_formula = ~ X.jk + C.ijk,
                                   include_method_characteristics = FALSE ) ) )
