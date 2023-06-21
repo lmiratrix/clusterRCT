@@ -1,11 +1,5 @@
 
 
-
-library( tidyverse )
-library( PUMP )
-
-library( clusterRCT )
-
 model.params.list <- list(
     M = 1                            # number of outcomes
     , J = 30                          # number of schools
@@ -26,7 +20,7 @@ model.params.list <- list(
 
 
 
-sim.data <- gen_sim_data( d_m = "d3.2_m3ff2rc", model.params.list, Tbar = 0.5 )
+sim.data <- PUMP::gen_sim_data( d_m = "d3.2_m3ff2rc", model.params.list, Tbar = 0.5 )
 rm( model.params.list )
 
 

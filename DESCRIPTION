@@ -33,7 +33,13 @@ Imports:
     arm,
     msm,
     tibble,
-    tidyr
+    tidyr,
+    estimatr,
+    formula.tools,
+    glue,
+    lmerTest,
+    PUMP,
+    randomizr
 Suggests: 
     knitr,
     rmarkdown,
