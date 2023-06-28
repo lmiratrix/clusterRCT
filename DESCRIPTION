@@ -34,7 +34,12 @@ Imports:
     msm,
     tibble,
     tidyr,
-    estimatr
+    estimatr,
+    formula.tools,
+    glue,
+    lmerTest,
+    PUMP,
+    randomizr
 Suggests: 
     knitr,
     rmarkdown,

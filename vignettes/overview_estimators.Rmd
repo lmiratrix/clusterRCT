@@ -8,7 +8,6 @@ vignette: >
 ---
 
 ```{r, include = FALSE}
-library( tidyverse )
 library( clusterRCT )
 library( estimatr )
 library( lme4 )
