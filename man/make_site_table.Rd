@@ -4,8 +4,19 @@
 \alias{make_site_table}
 \title{Make table of statistics by district}
 \usage{
-make_site_table(formula = NULL, data = NULL, control_formula = NULL)
+make_site_table(
+  formula = NULL,
+  data = NULL,
+  control_formula = NULL,
+  check_data_integrity = FALSE
+)
+}
+\arguments{
+\item{check_data_integrity}{TRUE means runs some checks and give
+errors if data fails them (e.g., incorrectly processed treatment
+vector.). FALSE means calculate statistics without these checks.}
 }
 \description{
-Given individual/school/district data of a blocked, cluster RCT, calculate statistics for each block (district).
+Given individual/school/district data of a blocked, cluster RCT,
+calculate statistics for each block (district).
 }

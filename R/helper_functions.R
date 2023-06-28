@@ -425,49 +425,49 @@ check_data_integrity <- function( formula = NULL, data ) {
     }
 
     if ( is.null( data$Yobs ) ) {
-        stop( "No outcome" )
+        stop( "No outcome", call.=FALSE )
     }
     if ( is.null( data$Z ) ) {
-        stop( "No treatment assignment vector" )
+        stop( "No treatment assignment vector", call.=FALSE )
     }
     if ( is.null( data$clusterID ) ) {
-        stop( "No clustering ID" )
+        stop( "No clustering ID", call.=FALSE )
     }
 
     if ( !is.numeric( data$Yobs ) ) {
-        stop( "Outcome is not numeric" )
+        stop( "Outcome is not numeric", call.=FALSE )
     }
 
     if (is.numeric(data$Z) == FALSE ) {
-        stop("Treatment indicator should be vector of ones and zeros")
+        stop("Treatment indicator should be vector of ones and zeros", call.=FALSE)
     }
 
     n = nrow( data )
     if ((sum(data$Z == 1) + sum(data$Z == 0)) != n) {
-        stop("Treatment indicator should be vector of ones and zeros")
+        stop("Treatment indicator should be vector of ones and zeros", call.=FALSE)
     }
 
 
     sts <- data %>% group_by( siteID ) %>%
         summarise( ptx = mean( Z ) )
     if ( any( sts$ptx == 0 | sts$ptx == 1 ) ) {
-        stop( "Some sites have all treated or all control units" )
+        stop( "Some sites have all treated or all control units", call.=FALSE )
     }
 
     ntx = sum(data$Z)
     if ( ntx == 0 || ntx ==n ) {
-        stop( "Can't have all treated or all control across dataset" )
+        stop( "Can't have all treated or all control across dataset", call.=FALSE )
     }
 
 
     if ( !is_nested( data$clusterID, data$siteID ) ) {
-        stop( "SiteID not fully nested in Cluster ID" )
+        stop( "SiteID not fully nested in Cluster ID", call.=FALSE )
     }
 
     ptx = data %>% group_by( clusterID ) %>%
         summarize( ptx = mean( Z ) )
     if ( any( ptx$ptx != 0 & ptx$ptx != 1 ) ) {
-        stop( "Treatment variation within clusters: not a cluster RCT" )
+        stop( "Treatment variation within clusters: not a cluster RCT", call.=FALSE )
     }
 
     return( TRUE )

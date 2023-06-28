@@ -33,7 +33,8 @@ Imports:
     arm,
     msm,
     tibble,
-    tidyr
+    tidyr,
+    estimatr
 Suggests: 
     knitr,
     rmarkdown,
