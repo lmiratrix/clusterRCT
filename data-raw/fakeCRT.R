@@ -51,5 +51,8 @@ v
 0.66^2 / (1.06^2 + 0.56^2+ 0.66^2)
 0.56^2 / (1.06^2 + 0.56^2+ 0.66^2)
 
+head( fakeCRT )
+fakeCRT$X = sample( LETTERS[1:4], nrow(fakeCRT), replace=TRUE )
+fakeCRT = as_tibble(fakeCRT )
 
 usethis::use_data(fakeCRT, overwrite = TRUE)

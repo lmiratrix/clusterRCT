@@ -8,7 +8,7 @@ aggregate_data(data, control_formula = NULL)
 }
 \arguments{
 \item{data}{Dataframe with 'clusterID' and 'Z' as columns.
-'siteID' optional column.}
+'siteID' optional column.  This is data in the "canonical form".}
 }
 \value{
 tibble of cluster-aggregated data, including Ybar, n,

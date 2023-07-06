@@ -62,3 +62,43 @@ test_that("check missing data doesn't crash", {
                                                       data=fakeCRT, control_formula = ~ X.jk ) )
 
 })
+
+
+
+test_that( "error messages look good", {
+
+    data( fakeCRT )
+    #head( fakeCRT )
+
+    # The following error messages should all list the missing variables.
+    expect_error( compare_methods( Yobs ~ Z | S.id, data = fakeCRT ) )
+    expect_error( compare_methods( Yobs2 ~ Z | S.id, data = fakeCRT ) )
+    expect_error( compare_methods( Yobs ~ Z | S.id | boo, data = fakeCRT,
+                     control_formula = ~ doggy ) )
+    expect_error( compare_methods( Yobs ~ T.x | S.id | D.id, data = fakeCRT,
+                     control_formula = ~ doggy ) )
+    cc <- compare_methods( Yobs ~ T.x | S.id | D.id, data = fakeCRT,
+                     control_formula = ~ X )
+    expect_true( is.data.frame(cc) )
+})
+
+
+
+
+
+
+test_that( "combining blocks works", {
+
+    data(fakeCRT)
+    fakeCRT$T.x[ fakeCRT$D.id == 2 ] = 1
+    fakeCRT$T.x[ fakeCRT$D.id == 9 ] = 0
+    fakeCRT <- rename( fakeCRT,
+                       alt.id = D.id )
+    expect_error( compare_methods( Yobs ~ T.x | S.id | alt.id, data=fakeCRT ) )
+
+    a = pool_singleton_blocks( Yobs ~ T.x | S.id | alt.id, data=fakeCRT  )
+    tb = table( a$T.x, a$alt.id )
+    expect_true( all( tb > 0 ) )
+
+    #cc = compare_methods(Yobs ~ T.x | S.id | alt.id, data=a)
+})

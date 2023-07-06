@@ -4,9 +4,6 @@
 
 
 
-
-
-
 scat = function( str, ... ) {
     dots = list( ... )
     nulls = sapply( dots, is.null )
@@ -23,6 +20,8 @@ scat = function( str, ... ) {
     }
     cat( sprintf( str, ... ) )
 }
+
+
 
 # To go with glue, e.g., catn( glue::glue( "blah" ) )
 #
@@ -106,7 +105,7 @@ number_controls <- function( control_formula ) {
 #' or level-3 covariates)
 #'
 #' @param data  Dataframe with 'clusterID' and 'Z' as columns.
-#'   'siteID' optional column.
+#'   'siteID' optional column.  This is data in the "canonical form".
 #'
 #' @return tibble of cluster-aggregated data, including Ybar, n,
 #'   siteID, clusterID, and Z
@@ -152,8 +151,6 @@ aggregate_data <- function( data, control_formula = NULL ) {
 
 
 
-
-#### Functions to help process control functions  ####
 
 
 #' Make a canonical regression formula, possibly with control
@@ -240,12 +237,69 @@ make_regression_formula = function( Yobs = "Yobs", Z = "Z",
 
 
 
+#### Make canconical data and process variable name arguments ####
+
+
+#' Process formula to get variable names
+#'
+#'
+deconstruct_var_formula <- function( formula, data ) {
+    formula <- as.formula(formula)
+    rhs <- formula.tools::rhs.vars( formula )
+    parts <- strsplit( rhs, split=" \\| " )[[1]]
+    n_part <- length( parts )
+    outcome <- formula.tools::lhs.vars(formula)
+    if ( (  n_part != 2 && n_part != 3 ) ||
+         (length(outcome) != 1 || length(rhs) != 1) ) {
+        stop("The formula argument must be of the form outcome ~ treatment | clusterID or outcome ~ treatment | clusterID | siteID.", call. = FALSE )
+    }
+
+    clusterID = parts[[2]]
+    siteID = NULL
+    if ( n_part == 3 ) {
+        siteID = parts[[3]]
+    }
+    main.vars = c( outcome, parts )
+    if (!is.null( data ) && any(!(main.vars %in% colnames(data)))) {
+        missing_vars = setdiff( main.vars, colnames(data) )
+        missing_vars = paste0( missing_vars, collapse = ", " )
+        stop( glue::glue( "The following outcome, treatment variables, or cluster variables in formula are not present in your data: {missing_vars}") )
+    }
 
 
 
+    list( outcome = outcome,
+          Z = parts[[1]],
+          clusterID = clusterID,
+          siteID = siteID )
+}
+
+#' Get variables listed in control_formula formula.
+#'
+#' @return list of variable names
+deconstruct_control_formula <- function( control_formula, data ) {
+
+    if(length(formula.tools::lhs.vars(control_formula)) != 0 |
+       length(formula.tools::rhs.vars(control_formula)) < 1) {
+        stop("The control_formula argument must be of the form ~ X1 + X2 + ... + XN. (nothing on left hand side of ~)")
+    }
+    control.vars <- formula.tools::get.vars(control_formula, data = data)
+    if (any(!(control.vars %in% colnames(data)))) {
+        missing_vars = setdiff( control.vars, colnames(data) )
+        missing_vars = paste0( missing_vars, collapse = ", " )
+        stop( glue::glue( "Following variables in control_formula are not present in your data: {missing_vars}") )
+    }
+
+    if ( any( control.vars %in% c( "Y", "Z", "clusterID", "siteID" ) ) ) {
+        stop( "Control variables with canonical names of Y, Z, clusterID, or siteID are not allowed." )
+    }
+
+    return( control.vars )
+}
 
 
-#' Make canoncial data for analysis
+
+#' Make canonical data for analysis
 #'
 #' Given a formula, assemble dataframe of outcome, treatment, and any
 #' clustering variables all with canonical names (Y, Z, clusterID,
@@ -282,52 +336,22 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
         return( data )
     }
 
-    formula <- as.formula(formula)
-    rhs <- formula.tools::rhs.vars( formula )
-    parts <- strsplit( rhs, split=" \\| " )[[1]]
-    n_part <- length( parts )
-    outcome <- formula.tools::lhs.vars(formula)
-    if ( (  n_part != 2 && n_part != 3 ) ||
-         (length(outcome) != 1 || length(rhs) != 1) ) {
-        stop("The formula argument must be of the form outcome ~ treatment | clusterID or outcome ~ treatment | clusterID | siteID.")
-        #stop( "Need cluster ID (and possibly site ID) in formula, e.g. , e.g., Y ~ Z | clusterID or Y ~ Z | clusterID | siteID" )
-    }
+    parts = deconstruct_var_formula(formula, data)
 
-    clusterID = parts[[2]]
-    siteID = NULL
-    if ( n_part == 3 ) {
-        siteID = parts[[3]]
-    }
-    main.vars = c( outcome, parts )
-    if (any(!(main.vars %in% colnames(data)))) {
-        stop("Outcome, treatment variables, or cluster variables in formula are not present in your data.")
-    }
-
-    Y = data[[ outcome ]] # model.part( formula, data=data, lhs=1, drop = TRUE)
-    Z = data[[ parts[[1]] ]] # model.part( formula, data=data, rhs=1, drop = TRUE)
-    clusterID = data[[ clusterID ]] # model.part( formula, data=data, rhs=2, drop=TRUE )
+    Y = data[[ parts$outcome ]] # model.part( formula, data=data, lhs=1, drop = TRUE)
+    Z = data[[ parts$Z ]] # model.part( formula, data=data, rhs=1, drop = TRUE)
+    clusterID = data[[ parts$clusterID ]] # model.part( formula, data=data, rhs=2, drop=TRUE )
     clusterID = as.factor( clusterID )
 
     new_dat = data.frame( Yobs = Y, Z = Z, clusterID = clusterID )
-    if ( n_part == 3 ) {
-        siteID = data[[ siteID ]]
+    if ( !is.null( parts$siteID ) ) {
+        siteID = data[[ parts$siteID ]]
         new_dat$clusterID = interaction(siteID, clusterID, drop=TRUE)
         new_dat$siteID = as.factor( siteID )
     }
 
     if ( !is.null( control_formula ) ) {
-        if(length(formula.tools::lhs.vars(control_formula)) != 0 |
-           length(formula.tools::rhs.vars(control_formula)) < 1) {
-            stop("The control_formula argument must be of the form ~ X1 + X2 + ... + XN. (nothing on left hand side of ~)")
-        }
-        control.vars <- formula.tools::get.vars(control_formula, data = data)
-        if (any(!(control.vars %in% colnames(data)))) {
-            stop("Some variables in control_formula are not present in your data.")
-        }
-
-        if ( any( control.vars %in% colnames(new_dat) ) ) {
-            stop( "Control variables with canonical names of Y, Z, clusterID, or siteID are not allowed." )
-        }
+        control.vars = deconstruct_control_formula(control_formula, data)
         xd = data %>% dplyr::select( dplyr::all_of( control.vars ) )
         new_dat = bind_cols( new_dat, xd )
     }
@@ -350,7 +374,7 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
     }
     if ( n_levels > 2 ) {
         stop( sprintf( "Identified treatment variable '%s' has more than two values. Did you swap treatment and block?",
-                       parts[[1]] ) )
+                       parts$Z ) )
     }
 
     if ( give_default_site && is.null( new_dat$siteID ) ) {
@@ -360,6 +384,37 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
     return( new_dat )
 }
 
+
+
+#' Combine all tx or all co blocks
+#'
+#' Given dataset with some blocks that are all treated or all control,
+#' replace the block ID with canonical new block ID shared by all such
+#' blocks.
+#'
+#' @return data with the siteID column modified.
+#' @export
+#'
+pool_singleton_blocks <- function( formula, data ) {
+
+    parts = deconstruct_var_formula(formula, data)
+    S.id = data[[parts$siteID]]
+
+    S.id = as.character(S.id)
+    is_fac = is.factor(S.id)
+
+    tb = table( data[[parts$Z]], S.id )
+    zros = apply( tb, 2, min )
+    nms = colnames(tb)[ zros == 0]
+    S.id[ S.id %in% nms ] = ".pooled"
+
+    if ( is_fac ) {
+        S.id = as.factor(S.id)
+    }
+    data[[parts$siteID]] = S.id
+
+    return( data )
+}
 
 
 
