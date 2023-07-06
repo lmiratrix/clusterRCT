@@ -100,5 +100,23 @@ test_that( "combining blocks works", {
     tb = table( a$T.x, a$alt.id )
     expect_true( all( tb > 0 ) )
 
+    aa = a %>% group_by( alt.id ) %>%
+        summarise( n = n(),
+                   nu = length( unique( S.id ) ) )
+    expect_true( aa$nu[[1]] == 2 )
+    cnt = sum( fakeCRT$alt.id %in% c( "2", "9" ) )
+    expect_true( aa$n[[1]] == cnt)
+
+    a = pool_singleton_blocks( Yobs ~ T.x | S.id | alt.id, data=fakeCRT, pool_clusters = FALSE  )
+    tb = table( a$T.x, a$alt.id )
+    expect_true( all( tb > 0 ) )
+
+    aa = a %>% group_by( alt.id ) %>%
+        summarise( n = n(),
+                   nu = length( unique( S.id ) ) )
+    expect_true( aa$nu[[1]] > 2 )
+    expect_true( aa$n[[1]] == cnt)
+
+
     #cc = compare_methods(Yobs ~ T.x | S.id | alt.id, data=a)
 })

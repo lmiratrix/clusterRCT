@@ -392,10 +392,15 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
 #' replace the block ID with canonical new block ID shared by all such
 #' blocks.
 #'
+#' Also, depending on pool_clusters, pool the clusters in each of
+#' these identified blocks into single clusters.
+#'
+#' @param pool_clusters Pool clusters in 100% tx or 100% co blocks
+#'   into single cluster.
 #' @return data with the siteID column modified.
 #' @export
 #'
-pool_singleton_blocks <- function( formula, data ) {
+pool_singleton_blocks <- function( formula, data, pool_clusters = TRUE ) {
 
     parts = deconstruct_var_formula(formula, data)
     S.id = data[[parts$siteID]]
@@ -406,6 +411,20 @@ pool_singleton_blocks <- function( formula, data ) {
     tb = table( data[[parts$Z]], S.id )
     zros = apply( tb, 2, min )
     nms = colnames(tb)[ zros == 0]
+
+    if ( pool_clusters ) {
+        cid = data[[ parts$clusterID ]]
+        is_fac_cid = is.factor(cid)
+        cid = as.character(cid)
+        for ( n in nms ) {
+            cid[ S.id == n ] = paste0( ".", n )
+        }
+        if ( is_fac_cid ) {
+            cid = as.factor(cid)
+        }
+        data[[ parts$clusterID ]] = cid
+    }
+
     S.id[ S.id %in% nms ] = ".pooled"
 
     if ( is_fac ) {
