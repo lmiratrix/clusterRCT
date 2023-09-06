@@ -4,7 +4,11 @@
 \alias{pool_singleton_blocks}
 \title{Combine all tx or all co blocks}
 \usage{
-pool_singleton_blocks(formula, data)
+pool_singleton_blocks(formula, data, pool_clusters = TRUE)
+}
+\arguments{
+\item{pool_clusters}{Pool clusters in 100% tx or 100% co blocks
+into single cluster.}
 }
 \value{
 data with the siteID column modified.
@@ -13,4 +17,8 @@ data with the siteID column modified.
 Given dataset with some blocks that are all treated or all control,
 replace the block ID with canonical new block ID shared by all such
 blocks.
+}
+\details{
+Also, depending on pool_clusters, pool the clusters in each of
+these identified blocks into single clusters.
 }

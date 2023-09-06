@@ -360,21 +360,22 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
     if ( sum( is.na( new_dat ) ) > 0 ) {
         if ( drop_missing ) {
             new_dat = na.omit(new_dat)
+            new_dat <- new_dat %>%
+                mutate( across( where( is.factor ), droplevels ) )
             drp = nr - nrow( new_dat )
             warning( glue::glue( "{drp} rows with missing values dropped (of {nr} total rows)." ), call. = FALSE )
         } else {
-            stop( "Data has missing values; cannot proceed." )
+            warning( "Data has missing values.", call. = FALSE )
         }
     }
 
     # Check for valid treatment variable
-    n_levels = length( unique( new_dat$Z ) )
+    n_levels = length( unique( new_dat$Z[ !is.na( new_dat$Z ) ] ) )
     if ( n_levels == 1 ) {
         warning( glue::glue( "Only single level in treatment variable {parts[[1]]}" ) )
     }
     if ( n_levels > 2 ) {
-        stop( sprintf( "Identified treatment variable '%s' has more than two values. Did you swap treatment and block?",
-                       parts$Z ) )
+        stop( glue::glue( "Identified treatment variable '{parts$Z}' has more than two values. Did you swap treatment and block?" ))
     }
 
     if ( give_default_site && is.null( new_dat$siteID ) ) {
@@ -491,7 +492,8 @@ check_data_integrity <- function( formula = NULL, data ) {
         if ( is.data.frame(formula) ) {
             data = formula
         } else {
-            data = make_canonical_data( formula, data )
+            data = make_canonical_data( formula=formula,
+                                        data=data )
         }
     }
     if ( is.null( data$siteID) ) {
@@ -535,7 +537,7 @@ check_data_integrity <- function( formula = NULL, data ) {
 
 
     if ( !is_nested( data$clusterID, data$siteID ) ) {
-        stop( "SiteID not fully nested in Cluster ID", call.=FALSE )
+        stop( "SiteID not fully nested in ClusterID", call.=FALSE )
     }
 
     ptx = data %>% group_by( clusterID ) %>%

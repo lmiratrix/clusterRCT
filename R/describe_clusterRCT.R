@@ -13,13 +13,17 @@ describe_clusterRCT <- function( formula = NULL,
                                  control_formula = NULL ) {
 
     data = make_canonical_data( formula=formula, data=data,
-                                control_formula = control_formula )
+                                control_formula = control_formula,
+                                drop_missing = FALSE )
 
     cnames = NULL
     if ( !is.null( control_formula ) ) {
         cnames = setdiff( colnames(data), c("Yobs", "Z", "clusterID", "siteID" ) )
     }
 
+    # count up missing data and report, then drop all missing data
+    miss = colSums(is.na(data))
+    data = na.omit(data)
     K = length( unique( data$siteID ) )
 
     sizes = data %>%
@@ -72,7 +76,7 @@ describe_clusterRCT <- function( formula = NULL,
     S.ICC = S.ICC / tvar
 
     stats <- tibble( n = nrow(data) )
-    stats = cbind( stats, cstat, sstat )
+    stats = bind_cols( stats, cstat, sstat )
     stats$cluster_ICC = C.ICC
     stats$site_ICC = S.ICC
     stats$sdY0 = sd( data$Yobs[ data$Z == 0] )
@@ -83,6 +87,10 @@ describe_clusterRCT <- function( formula = NULL,
     # R2 values
     if ( !is.null( cnames ) ) {
         stats <- bind_cols( stats, calc_covariate_R2s(data) )
+    }
+
+    if ( sum( miss ) > 0 ) {
+        stats$.missing = list( miss )
     }
 
     stats
@@ -260,7 +268,7 @@ print.clusterRCTstats <- function( x, ... ) {
               x$site_ICC,
               x$tx.avg, x$tx.cv,
               x$tx.25, x$tx.75, x$tx.IQR)
-        if ( !is.null( x$R2.3 ) ) {
+        if ( hasName( x, "R2.3" ) ) {
             scat( "\tR2.3: %.2f (%d fixed effects)\n", x$R2.3, x$K)
         }
     }
@@ -269,17 +277,23 @@ print.clusterRCTstats <- function( x, ... ) {
           x$nbar, x$ncv,
           x$n.25, x$n.75, x$n.IQR,
           x$cluster_ICC )
-    if ( !is.null( x$R2.2 ) ) {
+    if ( hasName( x, "R2.2" ) ) {
         scat( "\tR2.2: %.2f (%d covariates)\n", x$R2.2, x$ncov.2)
     }
 
 
     scat( "Unit Statistics:\n\tprop clusters tx: %.2f\n\tstddev( Y0 ): %.2f\n",
           x$p.tx, x$sdY0 )
-    if ( !is.null( x$R2.1 ) ) {
+    if ( hasName( x, "R2.1" ) ) {
         scat( "\tR2.1: %.2f (%d covariates)\n", x$R2.1, x$ncov.1)
     }
 
+    if ( ".missing" %in% names(x) ) {
+        scat( "missing data counts:\n" )
+        print( x$.missing[[1]] )
+    }
+
+    invisible( x )
 
 }
 
@@ -305,6 +319,7 @@ is.clusterRCTstats = function( x ) {
 #' @param x the clusterRCTstats object to covert
 #' @family clusterRCTstats
 as.data.frame.clusterRCTstats = function( x ) {
+    x$.missing = NULL
     class(x) = "list"
     as.data.frame( x )
 }

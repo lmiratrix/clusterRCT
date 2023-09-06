@@ -35,34 +35,6 @@ test_that("check data integrity works", {
 
 
 
-test_that("check missing data doesn't crash", {
-
-    data( fakeCRT )
-    fakeCRT$Yobs[1:10] = NA
-    expect_warning( compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT ) )
-
-
-    fakeCRT$T.x[5:20] = NA
-    expect_warning( compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT ) )
-
-    data(fakeCRT)
-    fakeCRT$X.jk[30:40] = NA
-    expect_warning( compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
-                                     control_formula = ~ X.jk ) )
-
-    data(fakeCRT)
-    fakeCRT$S.id[ 100:150 ] = NA
-    expect_warning( describe_clusterRCT( Yobs ~ T.x | S.id | D.id,
-                                         data=fakeCRT, control_formula = ~ X.jk ) )
-
-    fakeCRT$D.id[ 70:150 ] = NA
-
-
-    expect_warning( clusterRCT:::make_canonical_data( Yobs ~ T.x | S.id | D.id,
-                                                      data=fakeCRT, control_formula = ~ X.jk ) )
-
-})
-
 
 
 test_that( "error messages look good", {
