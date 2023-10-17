@@ -25,7 +25,7 @@ aggregation_estimators <- function( formula,
     }
 
     form = make_regression_formula( Yobs = "Ybar",
-                                    FE = "siteID" %in% names( data ),
+                                    FE = "blockID" %in% names( data ),
                                     control_formula = control_formula )
 
     M3 <- lm_robust( form, data=datagg, se_type = "HC2" )

@@ -58,7 +58,7 @@ test_that("missing data does not crash", {
     # Check if missingness drops all tx in a district, we stop.
     fake2$T.x[ is.na( fake2$D.id ) | is.na( fake2$T.x ) | (fake2$D.id == 1 & fake2$T.x == 0) ] = NA
 
-    expect_warning( tt <- make_site_table( Yobs ~ T.x | S.id | D.id, data=fake2,
+    expect_warning( tt <- make_block_table( Yobs ~ T.x | S.id | D.id, data=fake2,
                                            control_formula = ~ X.jk + C.ijk ) )
     expect_true( tt$p.tx[[1]] == 1 )
 

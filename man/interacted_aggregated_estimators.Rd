@@ -12,17 +12,14 @@ NULL, data is assumed to be in canonical form (see vignette for
 further discussion).}
 }
 \value{
-Dataframe of the different versions of this estimator (person and
-  site weighted)
+Dataframe of the different weighting versions of this
+  estimator (by number of schools (clusters) or simple average)
 }
 \description{
-These linear models have siteID by treatment interaction terms.  The final ATE
-estimates are then weighted average of the block (site) specific ATE
-estimates.
+These linear models have siteID by treatment interaction terms.
+The final ATE estimates are then weighted average of the block
+(site) specific ATE estimates.
 }
 \details{
-#' If siteID passed, it will weight the RA blocks within site and then average
-these site estimates.
-
 SEs come from the overall variance-covariance matrix.
 }

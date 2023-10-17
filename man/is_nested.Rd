@@ -4,18 +4,18 @@
 \alias{is_nested}
 \title{Check if one grouping variable nested in another}
 \usage{
-is_nested(clusterID, siteID)
+is_nested(clusterID, blockID)
 }
 \arguments{
 \item{clusterID}{List of clusterIDs}
 
-\item{siteID}{List of siteIDs}
+\item{blockID}{List of blockIDs}
 }
 \value{
-TRUE if nested, FALSE otherwise.  If siteID NULL, always
+TRUE if nested, FALSE otherwise.  If blockID NULL, always
   return TRUE.
 }
 \description{
-Checks if clusterID nested in siteID, so each clusterID value
-appears in only one siteID value.
+Checks if clusterID nested in blockID, so each clusterID value
+appears in only one blockID value.
 }

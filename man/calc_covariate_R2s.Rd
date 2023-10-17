@@ -2,7 +2,7 @@
 % Please edit documentation in R/describe_clusterRCT.R
 \name{calc_covariate_R2s}
 \alias{calc_covariate_R2s}
-\title{Calculate R2 of level 1, level 2, and district.}
+\title{Calculate R2 of level 1, level 2, and block.}
 \usage{
 calc_covariate_R2s(data, pooled = FALSE)
 }
@@ -14,9 +14,9 @@ remove systematic shift of average treatment effect.  If FALSE,
 subset to control observations only.}
 }
 \description{
-District is always the fixed effects for district.  No covariates
-allowed at that level.  In all models district fixed effects are
+block is always the fixed effects for block.  No covariates
+allowed at that level.  In all models block fixed effects are
 included, so level 2 covarites R2 are additional explanatory power
-beyond their representing district differences (e.g., they are
-considered district centered).
+beyond their representing block differences (e.g., they are
+considered block centered).
 }

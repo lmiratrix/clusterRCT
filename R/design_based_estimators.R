@@ -53,13 +53,13 @@ schochet_variance_formula <- function( adt, v ) {
     }
 
     adtw <- adt %>%
-        group_by( siteID, Z ) %>%
+        group_by( blockID, Z ) %>%
         tidyr::nest() %>%
         ungroup() %>%
         dplyr::mutate( m = purrr::map_dbl( data, nrow ),
                 totwt = purrr::map_dbl( data, ~ sum( .$.weight ) ),
                 s2 = purrr::map_dbl( data, calc_s2_partial ) ) %>%
-        dplyr::group_by( siteID ) %>%
+        dplyr::group_by( blockID ) %>%
         dplyr::mutate( p = m / sum(m) ) %>%
         ungroup() %>%
         dplyr::mutate( q = totwt / sum(totwt) ) %>%
@@ -75,7 +75,7 @@ schochet_variance_formula <- function( adt, v ) {
         dplyr::mutate( varD = s2_1 / m_1 + s2_0 / m_0,
                 totwt = totwt_0 + totwt_1 )
 
-    h = length( unique( adt$siteID ) )
+    h = length( unique( adt$blockID ) )
     pt2$totwt = pt2$totwt / sum(pt2$totwt)   # normalize weights to avoid overflow
 
     SE_ATE <- with(pt2, sum(varD*totwt^2) / (h*mean(totwt))^2)
@@ -95,10 +95,10 @@ schochet_FE_variance_formula <- function( adt, v ) {
     stopifnot( !is.null( adt$Z ) )
 
     m = nrow(adt)
-    h = length( unique(adt$siteID) )
+    h = length( unique(adt$blockID) )
 
     SE_ATE <- adt %>%
-        group_by( siteID ) %>%
+        group_by( blockID ) %>%
         summarize( p_b = mean(Z),
                    m_b = n(),
                    wbar_b = mean(.weight),
@@ -152,7 +152,7 @@ design_based_estimators <- function( formula,
     } else {
         data_agg = data
     }
-    has_site = "siteID" %in% names( data )
+    has_block = "blockID" %in% names( data )
 
 
     # Make our weights variable
@@ -168,16 +168,16 @@ design_based_estimators <- function( formula,
 
     v = number_controls(control_formula)
 
-    # site level stuff: only if we have a siteID do we fit an
-    # interacted model or allow for fixed effects for each site.
+    # block level stuff: only if we have a blockID do we fit an
+    # interacted model or allow for fixed effects for each block.
     ATE_int = NA
-    if ( has_site ) {
+    if ( has_block ) {
 
         # Fully interacted model
         form = make_regression_formula( Yobs = "Ybar", interacted = TRUE,
                                         control_formula = control_formula )
         mod = lm( form, data=data_agg, weights = .weight )
-        stwt <- data_agg %>% group_by( siteID ) %>%
+        stwt <- data_agg %>% group_by( blockID ) %>%
             summarise( wt = sum( .weight ) )
         ATE_int = get_overall_ATE( mod, stwt$wt )
 
@@ -207,7 +207,7 @@ design_based_estimators <- function( formula,
         mod = lm( form, data=data_agg, weights = .weight )
         ATE_FE = coef(mod)[ "Z" ]
 
-        data_agg$siteID = "Ind"
+        data_agg$blockID = "Ind"
         data_agg$resid = residuals( mod )
         SE = schochet_variance_formula(data_agg, v = v )
 
@@ -263,24 +263,24 @@ middleton_aronow_estimator <- function( formula,
     } else {
         data_agg = data
     }
-    has_site = "siteID" %in% names( data )
+    has_block = "blockID" %in% names( data )
 
-    if ( !has_site ) {
-        data_agg$siteID = "Uni"
+    if ( !has_block ) {
+        data_agg$blockID = "Uni"
     }
-    n_site = length( unique( data_agg$siteID ) )
+    n_block = length( unique( data_agg$blockID ) )
 
     M = nrow( data_agg )
     m_t = sum( data_agg$Z )
 
-    tots <- data_agg %>% group_by( siteID ) %>%
+    tots <- data_agg %>% group_by( blockID ) %>%
         mutate( Ytot = Ybar * n ) %>%
         summarise( YT_1 = mean( Ytot[Z==1] ),
                    YT_0 = mean( Ytot[Z==0] ),
                    M = n(),
                    N = sum( n ),
                    ATE_hat = (M/N) * (YT_1 - YT_0) )
-    stopifnot( nrow( tots ) == n_site )
+    stopifnot( nrow( tots ) == n_block )
 
     #ATE_hat <- (M / N) * ( tots$YT[[2]] - tots$YT[[1]] )
 
@@ -294,16 +294,16 @@ middleton_aronow_estimator <- function( formula,
         suff = "_clust"
     }
 
-    # site level stuff: only if we have a siteID do we fit an
-    # interacted model or allow for fixed effects for each site.
+    # block level stuff: only if we have a blockID do we fit an
+    # interacted model or allow for fixed effects for each block.
     ATE_int = NA
-    if ( has_site ) {
+    if ( has_block ) {
         # Fully interacted model
         form = make_regression_formula( Yobs = "Ybar", interacted = TRUE,
                                         control_formula = control_formula )
         mod = lm_robust( form, data=data_agg, weights = .weight,
                          ci = FALSE, se_type="none" )
-        stwt <- data_agg %>% group_by( siteID ) %>%
+        stwt <- data_agg %>% group_by( blockID ) %>%
             summarise( wt = sum( .weight ) )
         ATE_int = get_overall_ATE(mod, stwt$wt )
 

@@ -9,7 +9,7 @@ make_regression_formula(
   Yobs = "Yobs",
   Z = "Z",
   clusterID = "clusterID",
-  siteID = "siteID",
+  blockID = "blockID",
   control_formula = NULL,
   interacted = FALSE,
   FE = FALSE,
@@ -25,16 +25,16 @@ make_regression_formula(
 \item{clusterID}{Name of cluster ID variable (assumed to exist in
 data)}
 
-\item{siteID}{Name of site ID variable (assumed to exist in data,
+\item{blockID}{Name of block ID variable (assumed to exist in data,
 if this is not null).}
 
 \item{control_formula}{What variables to control for, in the form
 of "~ X1 + X2".}
 
-\item{interacted}{TRUE means include treatment by site
+\item{interacted}{TRUE means include treatment by block
 interactions.  Will override FE flag and set FE to true.}
 
-\item{FE}{TRUE means include site dummy variables.}
+\item{FE}{TRUE means include block dummy variables.}
 
 \item{cluster_RE}{Add a random effect term for clusterID}
 

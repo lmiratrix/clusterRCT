@@ -105,10 +105,10 @@ number_controls <- function( control_formula ) {
 #' or level-3 covariates)
 #'
 #' @param data  Dataframe with 'clusterID' and 'Z' as columns.
-#'   'siteID' optional column.  This is data in the "canonical form".
+#'   'blockID' optional column.  This is data in the "canonical form".
 #'
 #' @return tibble of cluster-aggregated data, including Ybar, n,
-#'   siteID, clusterID, and Z
+#'   blockID, clusterID, and Z
 aggregate_data <- function( data, control_formula = NULL ) {
     # Aggregation to the cluster level
 
@@ -123,7 +123,7 @@ aggregate_data <- function( data, control_formula = NULL ) {
         my.vars = dd$c_names
         datagg <-
             datagg <- data %>%
-            group_by( across( any_of( c( "siteID", "clusterID", "Z" ) ) ) ) %>%
+            group_by( across( any_of( c( "blockID", "clusterID", "Z" ) ) ) ) %>%
             summarise( Ybar = mean( Yobs ),
                        n = n(),
                        across( all_of( my.vars ), mean ),
@@ -135,7 +135,7 @@ aggregate_data <- function( data, control_formula = NULL ) {
     } else {
         datagg <-
             datagg <- data %>%
-            group_by( across( any_of( c( "siteID", "clusterID", "Z" ) ) ) ) %>%
+            group_by( across( any_of( c( "blockID", "clusterID", "Z" ) ) ) ) %>%
             summarise( Ybar = mean( Yobs ),
                        n = n(),
                        .groups = "drop" )
@@ -160,14 +160,14 @@ aggregate_data <- function( data, control_formula = NULL ) {
 #' @param Z Name of treatment variable (assumed to exist in data)
 #' @param clusterID Name of cluster ID variable (assumed to exist in
 #'   data)
-#' @param siteID Name of site ID variable (assumed to exist in data,
+#' @param blockID Name of block ID variable (assumed to exist in data,
 #'   if this is not null).
 #' @param control_formula What variables to control for, in the form
 #'   of "~ X1 + X2".
 #' @param data Dataframe holding all variables to be used in formula.
-#' @param interacted  TRUE means include treatment by site
+#' @param interacted  TRUE means include treatment by block
 #'   interactions.  Will override FE flag and set FE to true.
-#' @param FE TRUE means include site dummy variables.
+#' @param FE TRUE means include block dummy variables.
 #' @param cluster_RE Add a random effect term for clusterID
 #'
 #' @return Something like "Yobs ~ 1 + Z" or "Yobs ~ 1 + Z + X1 + X2"
@@ -175,7 +175,7 @@ aggregate_data <- function( data, control_formula = NULL ) {
 #' @export
 make_regression_formula = function( Yobs = "Yobs", Z = "Z",
                                     clusterID = "clusterID",
-                                    siteID = "siteID",
+                                    blockID = "blockID",
                                     control_formula = NULL,
                                     interacted = FALSE,
                                     FE = FALSE,
@@ -190,8 +190,8 @@ make_regression_formula = function( Yobs = "Yobs", Z = "Z",
 
     # Formula types
     # Yobs ~ 1 + Z + X
-    # Yobs ~ 0 + siteID + Z + X
-    # Yobs ~ 0 + siteID + Z:siteID + X
+    # Yobs ~ 0 + blockID + Z + X
+    # Yobs ~ 0 + blockID + Z:blockID + X
 
     stem = "1"
     if ( FE ) {
@@ -200,11 +200,11 @@ make_regression_formula = function( Yobs = "Yobs", Z = "Z",
 
     txS = "Z"
     if ( interacted ) {
-        txS = paste0( Z, ":", siteID )
+        txS = paste0( Z, ":", blockID )
     }
 
     if ( FE || interacted ) {
-        txS = paste0( txS, " + ", siteID )
+        txS = paste0( txS, " + ", blockID )
     }
 
     if( !is.null( control_formula ) ) {
@@ -251,13 +251,13 @@ deconstruct_var_formula <- function( formula, data ) {
     outcome <- formula.tools::lhs.vars(formula)
     if ( (  n_part != 2 && n_part != 3 ) ||
          (length(outcome) != 1 || length(rhs) != 1) ) {
-        stop("The formula argument must be of the form outcome ~ treatment | clusterID or outcome ~ treatment | clusterID | siteID.", call. = FALSE )
+        stop("The formula argument must be of the form outcome ~ treatment | clusterID or outcome ~ treatment | clusterID | blockID.", call. = FALSE )
     }
 
     clusterID = parts[[2]]
-    siteID = NULL
+    blockID = NULL
     if ( n_part == 3 ) {
-        siteID = parts[[3]]
+        blockID = parts[[3]]
     }
     main.vars = c( outcome, parts )
     if (!is.null( data ) && any(!(main.vars %in% colnames(data)))) {
@@ -271,7 +271,7 @@ deconstruct_var_formula <- function( formula, data ) {
     list( outcome = outcome,
           Z = parts[[1]],
           clusterID = clusterID,
-          siteID = siteID )
+          blockID = blockID )
 }
 
 #' Get variables listed in control_formula formula.
@@ -290,8 +290,8 @@ deconstruct_control_formula <- function( control_formula, data ) {
         stop( glue::glue( "Following variables in control_formula are not present in your data: {missing_vars}") )
     }
 
-    if ( any( control.vars %in% c( "Y", "Z", "clusterID", "siteID" ) ) ) {
-        stop( "Control variables with canonical names of Y, Z, clusterID, or siteID are not allowed." )
+    if ( any( control.vars %in% c( "Y", "Z", "clusterID", "blockID" ) ) ) {
+        stop( "Control variables with canonical names of Y, Z, clusterID, or blockID are not allowed." )
     }
 
     return( control.vars )
@@ -303,7 +303,7 @@ deconstruct_control_formula <- function( control_formula, data ) {
 #'
 #' Given a formula, assemble dataframe of outcome, treatment, and any
 #' clustering variables all with canonical names (Y, Z, clusterID,
-#' siteID)
+#' blockID)
 #'
 #' Some notes on weird behavior to help implement default arguments in rest of package.
 #'
@@ -314,18 +314,18 @@ deconstruct_control_formula <- function( control_formula, data ) {
 #' stored in formula, and is in canonical form, and return it (after
 #' verifying it is a data.frame)
 #'
-#' @param formula Notation for Y ~ Z | clusterID | siteID (| siteID is
+#' @param formula Notation for Y ~ Z | clusterID | blockID (| blockID is
 #'   optional).
 #' @param data Dataframe to pull data from.
 #' @return canonical dataframe.
 #'
 #' @return Dataset with now-canonical variable names, and no
 #'   extraneous variables.  Canonical datanames are (Y, Z, clusterID,
-#'   siteID).
+#'   blockID).
 #'
 #' @noRd
 make_canonical_data <- function(formula, control_formula = NULL, data,
-                                give_default_site = FALSE,
+                                give_default_block = FALSE,
                                 drop_missing = TRUE ) {
 
     if ( !exists( "data" ) || is.null( data ) ) {
@@ -344,10 +344,10 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
     clusterID = as.factor( clusterID )
 
     new_dat = data.frame( Yobs = Y, Z = Z, clusterID = clusterID )
-    if ( !is.null( parts$siteID ) ) {
-        siteID = data[[ parts$siteID ]]
-        new_dat$clusterID = interaction(siteID, clusterID, drop=TRUE)
-        new_dat$siteID = as.factor( siteID )
+    if ( !is.null( parts$blockID ) ) {
+        blockID = data[[ parts$blockID ]]
+        new_dat$clusterID = interaction(blockID, clusterID, drop=TRUE)
+        new_dat$blockID = as.factor( blockID )
     }
 
     if ( !is.null( control_formula ) ) {
@@ -378,8 +378,8 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
         stop( glue::glue( "Identified treatment variable '{parts$Z}' has more than two values. Did you swap treatment and block?" ))
     }
 
-    if ( give_default_site && is.null( new_dat$siteID ) ) {
-        new_dat$siteID = "Sall"
+    if ( give_default_block && is.null( new_dat$blockID ) ) {
+        new_dat$blockID = "Sall"
     }
 
     return( new_dat )
@@ -398,13 +398,13 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
 #'
 #' @param pool_clusters Pool clusters in 100% tx or 100% co blocks
 #'   into single cluster.
-#' @return data with the siteID column modified.
+#' @return data with the blockID column modified.
 #' @export
 #'
 pool_singleton_blocks <- function( formula, data, pool_clusters = TRUE ) {
 
     parts = deconstruct_var_formula(formula, data)
-    S.id = data[[parts$siteID]]
+    S.id = data[[parts$blockID]]
 
     S.id = as.character(S.id)
     is_fac = is.factor(S.id)
@@ -431,7 +431,7 @@ pool_singleton_blocks <- function( formula, data, pool_clusters = TRUE ) {
     if ( is_fac ) {
         S.id = as.factor(S.id)
     }
-    data[[parts$siteID]] = S.id
+    data[[parts$blockID]] = S.id
 
     return( data )
 }
@@ -460,22 +460,22 @@ pool_singleton_blocks <- function( formula, data, pool_clusters = TRUE ) {
 
 #' Check if one grouping variable nested in another
 #'
-#' Checks if clusterID nested in siteID, so each clusterID value
-#' appears in only one siteID value.
+#' Checks if clusterID nested in blockID, so each clusterID value
+#' appears in only one blockID value.
 #'
-#' @param siteID List of siteIDs
+#' @param blockID List of blockIDs
 #' @param clusterID List of clusterIDs
 #'
-#' @return TRUE if nested, FALSE otherwise.  If siteID NULL, always
+#' @return TRUE if nested, FALSE otherwise.  If blockID NULL, always
 #'   return TRUE.
 #' @export
-is_nested <- function( clusterID, siteID ) {
+is_nested <- function( clusterID, blockID ) {
 
-    if ( is.null( siteID ) ) {
+    if ( is.null( blockID ) ) {
         return( TRUE )
     }
 
-    blk = tapply( siteID, clusterID, function( x ) { length( unique( x ) ) } )
+    blk = tapply( blockID, clusterID, function( x ) { length( unique( x ) ) } )
     return ( all( blk == 1 ) )
 }
 
@@ -496,8 +496,8 @@ check_data_integrity <- function( formula = NULL, data ) {
                                         data=data )
         }
     }
-    if ( is.null( data$siteID) ) {
-        data$siteID = "single_site"
+    if ( is.null( data$blockID) ) {
+        data$blockID = "single_block"
     }
 
     if ( is.null( data$Yobs ) ) {
@@ -524,10 +524,10 @@ check_data_integrity <- function( formula = NULL, data ) {
     }
 
 
-    sts <- data %>% group_by( siteID ) %>%
+    sts <- data %>% group_by( blockID ) %>%
         summarise( ptx = mean( Z ) )
     if ( any( sts$ptx == 0 | sts$ptx == 1 ) ) {
-        stop( "Some sites have all treated or all control units", call.=FALSE )
+        stop( "Some blocks have all treated or all control units", call.=FALSE )
     }
 
     ntx = sum(data$Z)
@@ -536,7 +536,7 @@ check_data_integrity <- function( formula = NULL, data ) {
     }
 
 
-    if ( !is_nested( data$clusterID, data$siteID ) ) {
+    if ( !is_nested( data$clusterID, data$blockID ) ) {
         stop( "SiteID not fully nested in ClusterID", call.=FALSE )
     }
 

@@ -11,7 +11,7 @@ pool_singleton_blocks(formula, data, pool_clusters = TRUE)
 into single cluster.}
 }
 \value{
-data with the siteID column modified.
+data with the blockID column modified.
 }
 \description{
 Given dataset with some blocks that are all treated or all control,

@@ -43,3 +43,23 @@ test_that("linear models works", {
     expect_true( !is.null( agg ) )
 
 })
+
+
+test_that("interacted linear models works", {
+
+    data( fakeCRT )
+    fakeCRT
+
+    e2 <- interacted_linear_model_estimators( Yobs ~ T.x | S.id | D.id, control_formula = ~ X.jk + C.ijk,
+                                              data = fakeCRT )
+    expect_true( is.data.frame(e2) )
+    expect_true( !is.null( e2$method ) )
+
+    e1 <- interacted_linear_model_estimators( Yobs ~ T.x | S.id | D.id,
+                                              data = fakeCRT )
+    expect_true( nrow(e1) == 3 )
+
+    e0 <- interacted_linear_model_estimators( Yobs ~ T.x | S.id,
+                                              data = fakeCRT )
+    expect_true( nrow( e0 ) == 0 )
+})

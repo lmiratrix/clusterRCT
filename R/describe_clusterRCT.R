@@ -18,16 +18,16 @@ describe_clusterRCT <- function( formula = NULL,
 
     cnames = NULL
     if ( !is.null( control_formula ) ) {
-        cnames = setdiff( colnames(data), c("Yobs", "Z", "clusterID", "siteID" ) )
+        cnames = setdiff( colnames(data), c("Yobs", "Z", "clusterID", "blockID" ) )
     }
 
     # count up missing data and report, then drop all missing data
     miss = colSums(is.na(data))
     data = na.omit(data)
-    K = length( unique( data$siteID ) )
+    K = length( unique( data$blockID ) )
 
     sizes = data %>%
-        group_by( siteID, clusterID, Z ) %>%
+        group_by( blockID, clusterID, Z ) %>%
         summarise( n = n(), .groups = "drop" )
 
     cstat = sizes %>%
@@ -39,7 +39,7 @@ describe_clusterRCT <- function( formula = NULL,
                    n.IQR = n.75 - n.25,
                    p.tx = mean(Z) )
 
-    sstat = sizes %>% group_by( siteID ) %>%
+    sstat = sizes %>% group_by( blockID ) %>%
         summarise( J = n(),
                    n = sum(n),
                    p.tx = mean(Z) ) %>%
@@ -49,8 +49,8 @@ describe_clusterRCT <- function( formula = NULL,
                    J.25 = quantile( J, 0.25 ),
                    J.75 = quantile( J, 0.75 ),
                    J.IQR = J.75 - J.25,
-                   n_site = mean(n),
-                   n_site_cv = sd( n ) / n_site,
+                   n_block = mean(n),
+                   n_block_cv = sd( n ) / n_block,
                    tx.avg = mean( p.tx ),
                    tx.cv = sd( p.tx ) / tx.avg,
                    tx.25 = quantile( p.tx, 0.25 ),
@@ -59,9 +59,9 @@ describe_clusterRCT <- function( formula = NULL,
 
 
     library( lme4 )
-    form = Yobs ~ 1 + Z + (1 | siteID ) + (1 | clusterID )
+    form = Yobs ~ 1 + Z + (1 | blockID ) + (1 | clusterID )
     #if ( !is.null( control_formula ) ) {
-    #    form = update( control_formula, Yobs ~ . + 1 + Z + (1 | siteID ) + (1 | clusterID ) )
+    #    form = update( control_formula, Yobs ~ . + 1 + Z + (1 | blockID ) + (1 | clusterID ) )
     #}
     M = lmer( form, data=data )
     #arm::display(M)
@@ -69,7 +69,7 @@ describe_clusterRCT <- function( formula = NULL,
     a = VarCorr( M )
 
     C.ICC = as.numeric( a$clusterID )
-    S.ICC = as.numeric( a$siteID )
+    S.ICC = as.numeric( a$blockID )
     sigma = sigma( M )
     tvar = (C.ICC + S.ICC + sigma)
     C.ICC = C.ICC / tvar
@@ -78,7 +78,7 @@ describe_clusterRCT <- function( formula = NULL,
     stats <- tibble( n = nrow(data) )
     stats = bind_cols( stats, cstat, sstat )
     stats$cluster_ICC = C.ICC
-    stats$site_ICC = S.ICC
+    stats$block_ICC = S.ICC
     stats$sdY0 = sd( data$Yobs[ data$Z == 0] )
 
     class( stats ) <- c( "clusterRCTstats", class( stats ) )
@@ -97,13 +97,13 @@ describe_clusterRCT <- function( formula = NULL,
 }
 
 
-#' Calculate R2 of level 1, level 2, and district.
+#' Calculate R2 of level 1, level 2, and block.
 #'
-#' District is always the fixed effects for district.  No covariates
-#' allowed at that level.  In all models district fixed effects are
+#' block is always the fixed effects for block.  No covariates
+#' allowed at that level.  In all models block fixed effects are
 #' included, so level 2 covarites R2 are additional explanatory power
-#' beyond their representing district differences (e.g., they are
-#' considered district centered).
+#' beyond their representing block differences (e.g., they are
+#' considered block centered).
 #'
 #' @importFrom purrr map_dbl
 #' @param data in canonical form.
@@ -114,19 +114,19 @@ describe_clusterRCT <- function( formula = NULL,
 calc_covariate_R2s <- function( data, pooled = FALSE ) {
 
     # Covert covariates to numerical, if they are not already.
-    dm = model.matrix( Yobs ~ . - clusterID - siteID, data=data ) %>%
+    dm = model.matrix( Yobs ~ . - clusterID - blockID, data=data ) %>%
         as.data.frame() %>%
         dplyr::select( -`(Intercept)` )
 
     cnames = colnames(dm)
 
     dm$clusterID = data$clusterID
-    dm$siteID = data$siteID
+    dm$blockID = data$blockID
 
     # Add group means and group mean-centered versions of all
     # covariates
     result <- dm %>%
-        group_by(siteID, clusterID) %>%
+        group_by(blockID, clusterID) %>%
         mutate(
             across( everything(),
                     list(mn = ~ mean(.),
@@ -148,16 +148,16 @@ calc_covariate_R2s <- function( data, pooled = FALSE ) {
 
     # Two ways of calculating R2 values.
     if ( pooled ) {
-        Msite = lm( Yobs ~ Z_mn*siteID, data=result )
-        R2.site = summary(Msite)$adj.r.squared
+        Mblock = lm( Yobs ~ Z_mn*blockID, data=result )
+        R2.block = summary(Mblock)$adj.r.squared
 
         cents = result %>% dplyr::select( !ends_with( "_mn" ) )
         cents$Z_mn = result$Z_mn
-        M = lm( Yobs ~ . + Z_mn*siteID - clusterID, data=cents )
+        M = lm( Yobs ~ . + Z_mn*blockID - clusterID, data=cents )
         R2.cent = summary(M)$adj.r.squared
 
         mns = result %>% dplyr::select( !ends_with("_cent" ) )
-        Mmn = lm( Yobs ~ . + Z_mn*siteID - clusterID, data=mns )
+        Mmn = lm( Yobs ~ . + Z_mn*blockID - clusterID, data=mns )
         R2.mn = summary( Mmn )$adj.r.squared
 
         Mtx = lm( Yobs ~ Z_mn, data=result )
@@ -165,18 +165,18 @@ calc_covariate_R2s <- function( data, pooled = FALSE ) {
         tx.R2 = sTx$r.squared
         rat = 1 / (1 - sTx$r.squared)
 
-        tibble( R2.1 = (R2.cent - R2.site)*rat,
+        tibble( R2.1 = (R2.cent - R2.block)*rat,
                 ncov.1 = ncov.1,
-                R2.2 = (R2.mn - R2.site)*rat,
+                R2.2 = (R2.mn - R2.block)*rat,
                 ncov.2 = ncov.2,
-                R2.3 = (R2.site - tx.R2)*rat,
+                R2.3 = (R2.block - tx.R2)*rat,
                 R2.adj.rat = rat )
     } else {
         resCo = dplyr::filter( result, Z_mn == 0 )
         resCo$Z_mn = NULL
 
-        Msite = lm( Yobs ~ siteID, data=resCo )
-        R2.site = summary(Msite)$adj.r.squared
+        Mblock = lm( Yobs ~ blockID, data=resCo )
+        R2.block = summary(Mblock)$adj.r.squared
 
         cents = resCo %>% dplyr::select( !ends_with( "_mn" ) )
         M = lm( Yobs ~ . - clusterID, data=cents )
@@ -188,26 +188,26 @@ calc_covariate_R2s <- function( data, pooled = FALSE ) {
         summary( Mmn )
         R2.mn = summary( Mmn )$adj.r.squared
 
-        tibble( R2.1 = R2.cent - R2.site,
+        tibble( R2.1 = R2.cent - R2.block,
                 ncov.1 = ncov.1,
-                R2.2 = R2.mn - R2.site,
+                R2.2 = R2.mn - R2.block,
                 ncov.2 = ncov.2,
-                R2.3 = R2.site )
+                R2.3 = R2.block )
     }
 }
 
 
 
-#' Make table of statistics by district
+#' Make table of statistics by block
 #'
-#' Given individual/school/district data of a blocked, cluster RCT,
-#' calculate statistics for each block (district).
+#' Given individual/school/block data of a blocked, cluster RCT,
+#' calculate statistics for each block (block).
 #'
 #' @param check_data_integrity TRUE means runs some checks and give
 #'   errors if data fails them (e.g., incorrectly processed treatment
 #'   vector.). FALSE means calculate statistics without these checks.
 #' @export
-make_site_table <- function(  formula = NULL,
+make_block_table <- function(  formula = NULL,
                               data = NULL,
                               control_formula = NULL,
                               check_data_integrity = FALSE ) {
@@ -221,13 +221,13 @@ make_site_table <- function(  formula = NULL,
 
     n <- nrow( data )
 
-    K = length( unique( data$siteID ) )
+    K = length( unique( data$blockID ) )
 
     sizes = data %>%
-        group_by( siteID, clusterID, Z ) %>%
+        group_by( blockID, clusterID, Z ) %>%
         summarise( n = n(), .groups = "drop" )
 
-    sstat = sizes %>% group_by( siteID ) %>%
+    sstat = sizes %>% group_by( blockID ) %>%
         summarise( J = n(),
                    nbar = mean(n),
                    ncv = sd(n) / nbar,
@@ -255,17 +255,17 @@ print.clusterRCTstats <- function( x, ... ) {
     if (  is.null( x$K ) || x$K == 1 ) {
         scat( "Cluster RCT: %d units in %d clusters\n", x$n, x$J )
     } else {
-        scat( "Cluster RCT: %d units in %d clusters across %d sites\n",
+        scat( "Cluster RCT: %d units in %d clusters across %d blocks\n",
               x$n, x$J, x$K )
     }
 
 
     if ( !is.null( x$K ) && x$K != 1 ) {
-        scat( "Site Statistics:\n\tAvg units/site: %.2f (coef var %.2f)\n\tAvg clusters/site: %.2f (coef var %.2f)\n\t25-75 Quantiles: %.1f -- %.1f w/ IQR = %.1f\n\tICC: %.2f\n\tAvg tx: %.2f (coef var %.2f)\n\t25-75 Quantile tx: %.2f -- %.2f w/ IQR %.2f\n",
-              x$n_site, x$n_site_cv,
+        scat( "Site Statistics:\n\tAvg units/block: %.2f (coef var %.2f)\n\tAvg clusters/block: %.2f (coef var %.2f)\n\t25-75 Quantiles: %.1f -- %.1f w/ IQR = %.1f\n\tICC: %.2f\n\tAvg tx: %.2f (coef var %.2f)\n\t25-75 Quantile tx: %.2f -- %.2f w/ IQR %.2f\n",
+              x$n_block, x$n_block_cv,
               x$Jbar, x$Jcv,
               x$J.25, x$J.75, x$J.IQR,
-              x$site_ICC,
+              x$block_ICC,
               x$tx.avg, x$tx.cv,
               x$tx.25, x$tx.75, x$tx.IQR)
         if ( hasName( x, "R2.3" ) ) {
@@ -327,6 +327,20 @@ as.data.frame.clusterRCTstats = function( x ) {
 
 
 
+
+count_block_sizes <- function( clusterID, blockID ) {
+    tt = tibble( cid = clusterID, bid = blockID )
+    t2 <- tt %>%
+        #group_by( cid, bid ) %>%
+        #summarize( n = n(), .groups = "drop" ) %>%
+        group_by( bid ) %>%
+        summarize( n_stud = n(),
+                   J = length( unique( cid ) ) )
+
+    t2
+}
+
+
 #### Testing code ####
 
 if ( FALSE ) {
@@ -341,16 +355,16 @@ if ( FALSE ) {
 
     model.params.list <- list(
         M = 1                            # number of outcomes
-        , J = 30                          # number of schools
-        , K = 10                          # number of districts
+        , J = 30                          # number of clusters
+        , K = 10                          # number of blocks
         , nbar = 10                       # number of individuals per school
         , S.id = NULL                     # N-length vector of school assignments
-        , D.id = NULL                     # N-length vector of district assignments
+        , D.id = NULL                     # N-length vector of block assignments
         , Xi0 = 0                         # scalar grand mean outcome under no treatment
         , MDES = 0.125            # minimum detectable effect size
-        , R2.3 = 0.1              # percent of district variation
-        , ICC.3 = 0.2             # district intraclass correlation
-        , omega.3 = 0.2           # ratio of district effect size variability
+        , R2.3 = 0.1              # percent of block variation
+        , ICC.3 = 0.2             # block intraclass correlation
+        , omega.3 = 0.2           # ratio of block effect size variability
         , R2.2 = 0.1              # percent of school variation
         , ICC.2 = 0.2             # school intraclass correlation
         , omega.2 = 0.0          # ratio of school effect size variability
@@ -398,7 +412,7 @@ if ( FALSE ) {
     head(dd)
     skimr::skim(dd)
 
-    make_site_table(  Y ~ Z | cid | sid, data=dd )
+    make_block_table(  Y ~ Z | cid | sid, data=dd )
     describe_clusterRCT( Y ~ Z | cid | sid, data=dd)
 
 

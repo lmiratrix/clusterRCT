@@ -33,7 +33,7 @@ test_that("DB estimators work", {
     aa
     expect_true( nrow( aa ) == 2 )
 
-    # No site-level.
+    # No block-level.
     sim.data$D.id = NULL
     bb = design_based_estimators( Yobs ~ T.x | S.id, data=sim.data )
     bb

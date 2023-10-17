@@ -19,7 +19,7 @@ compare_methods(
 }
 \arguments{
 \item{data}{frame holding Y, Z, B and (possibly a column with name
-specified by siteID).}
+specified by blockID).}
 
 \item{control_formula}{What variables to control for, in the form
 of "~ X1 + X2".}
@@ -46,8 +46,8 @@ name in data)}
 
 \item{B}{vector of block ids (or column name in data)}
 
-\item{siteID}{site ids (variable name as string if data frame
-passed) (if randomization blocks are nested in site).}
+\item{blockID}{block ids (variable name as string if data frame
+passed) (if randomization blocks are nested in block).}
 }
 \value{
 Dataframe of point estimates and standard errors for each

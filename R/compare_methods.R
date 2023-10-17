@@ -21,10 +21,10 @@ method_characteristics <- function() {
 #' @param Z vector of assignment indicators (1==treated) (or column
 #'   name in data)
 #' @param B vector of block ids (or column name in data)
-#' @param siteID site ids (variable name as string if data frame
-#'   passed) (if randomization blocks are nested in site).
+#' @param blockID block ids (variable name as string if data frame
+#'   passed) (if randomization blocks are nested in block).
 #' @param data frame holding Y, Z, B and (possibly a column with name
-#'   specified by siteID).
+#'   specified by blockID).
 #' @param include_MLM Include MLM estimators
 #' @param include_DB Include Design-Based estimators (taken from
 #'   RCTYes documentation and prior literature).

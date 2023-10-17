@@ -23,7 +23,7 @@ MLM_estimators <- function( formula,
     }
 
 
-    form = make_regression_formula( FE = ("siteID" %in% names(data) ),
+    form = make_regression_formula( FE = ("blockID" %in% names(data) ),
                                     control_formula = control_formula,
                                     cluster_RE = TRUE )
 
