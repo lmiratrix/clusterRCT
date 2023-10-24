@@ -109,6 +109,8 @@ number_controls <- function( control_formula ) {
 #'
 #' @return tibble of cluster-aggregated data, including Ybar, n,
 #'   blockID, clusterID, and Z
+#'
+#' @export
 aggregate_data <- function( data, control_formula = NULL ) {
     # Aggregation to the cluster level
 

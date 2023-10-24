@@ -131,9 +131,6 @@ compare_methods <- function(formula,
     if (include_method_characteristics) {
         mc <- method_characteristics()
 
-        if (!is.null(control_formula)) {
-            mc$method <- paste0(mc$method, "-adj")
-        }
         summary_table <- merge( summary_table, mc, by = "method",
                                 all.x = TRUE, all.y = FALSE)
     }

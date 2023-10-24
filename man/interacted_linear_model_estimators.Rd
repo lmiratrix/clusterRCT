@@ -15,6 +15,10 @@ interacted_linear_model_estimators(
 \item{formula}{Formula for outcome and treatment and nesting.  If
 NULL, data is assumed to be in canonical form (see vignette for
 further discussion).}
+
+\item{use_full_vcov}{TRUE/FALSE. When calculating standard errors,
+should the full variance-covariance matrix of the block-level
+estimates be used, or just the diagonal of standard errors?}
 }
 \description{
 Estimate district-average effects using an interacted FE model and

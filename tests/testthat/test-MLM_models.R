@@ -28,7 +28,33 @@ test_that("MLM estimation works", {
     md = MLM_estimators( Yobs ~ T.x | S.id | D.id, data = sim.data )
     md
 
-    expect_true( nrow( md ) == 1 )
-    expect_true( md$p_value < 1 )
+    expect_true( is.data.frame( md ) )
+    expect_true( all( md$p_value <= 1 ) )
+    expect_true( all( md$SE_hat > 0 ) )
 
+    md = MLM_estimators( Yobs ~ T.x | S.id, data = sim.data )
+    expect_true( md$method == "MLM-NoFE" )
+
+    sim.data$Yobs[ sim.data$T.x == 1 ] = sim.data$Yobs[ sim.data$T.x == 1 ] + 0.3
+    md = MLM_estimators( Yobs ~ T.x | S.id | D.id, data = sim.data )
+    md
+    expect_true( all( md$p_value <= 0.05 ) )
+
+})
+
+
+test_that( "warning suppression works", {
+    data( fakeCRT )
+    mtab_cov = NA
+
+    mtab_cov <-  MLM_estimators( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
+                                  control_formula = ~ X.jk + C.ijk )
+
+    mtab_cov2 = NA
+    w <- capture_warnings( mtab_cov2 <- MLM_estimators( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
+                                 control_formula = ~ X.jk + C.ijk,
+                                 suppress_warnings = FALSE ) )
+    expect_true( length( w ) == 3 )
+
+    expect_equal( mtab_cov, mtab_cov2 )
 })
