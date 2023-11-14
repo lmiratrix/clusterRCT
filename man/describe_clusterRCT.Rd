@@ -4,11 +4,27 @@
 \alias{describe_clusterRCT}
 \title{Describe a cluster RCT dataset}
 \usage{
-describe_clusterRCT(formula = NULL, data = NULL, control_formula = NULL)
+describe_clusterRCT(
+  formula = NULL,
+  data = NULL,
+  control_formula = NULL,
+  warn_missing = TRUE
+)
 }
 \arguments{
-\item{formula}{}
+\item{data}{frame holding Y, Z, B and (possibly a column with name
+specified by blockID).}
+
+\item{control_formula}{What variables to control for, in the form
+of "~ X1 + X2".}
 }
 \description{
-Calculate various statistics describing total clusters, etc.
+Calculate various statistics describing total clusters, etc.  If
+formula is NULL, data assumed to be in canonical form.
+}
+\details{
+Will patch data via patch_data() to handle missing values.
+}
+\seealso{
+[patch_data_set()]
 }

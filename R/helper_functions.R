@@ -52,8 +52,12 @@ two_sided_p <- function( ATE_hat, SE_hat, df ) {
 expand_control_variables <- function( data, control_formula ) {
     require( formula.tools )
 
+    n = nrow(data)
     # Get control variables and expand control matrix with dummy variables, etc.
-    controls = model.matrix( control_formula, data )
+    # This preserves rows with missing values.  Weird code, but is how it has to be.
+    controls = model.matrix(control_formula, model.frame(control_formula, data, na.action=na.pass))
+
+    stopifnot( nrow(controls) == n )
     stopifnot( colnames(controls)[1] == "(Intercept)" )
     controls = controls[,-1, drop=FALSE]
 
@@ -328,7 +332,8 @@ deconstruct_control_formula <- function( control_formula, data ) {
 #' @noRd
 make_canonical_data <- function(formula, control_formula = NULL, data,
                                 give_default_block = FALSE,
-                                drop_missing = TRUE ) {
+                                drop_missing = TRUE,
+                                warn_missing = TRUE ) {
 
     if ( !exists( "data" ) || is.null( data ) ) {
         if ( is.data.frame(formula) ) {
@@ -365,9 +370,14 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
             new_dat <- new_dat %>%
                 mutate( across( where( is.factor ), droplevels ) )
             drp = nr - nrow( new_dat )
-            warning( glue::glue( "{drp} rows with missing values dropped (of {nr} total rows)." ), call. = FALSE )
+            if ( warn_missing ) {
+                warning( glue::glue( "{drp} rows with missing values dropped (of {nr} total rows)." ),
+                         call. = FALSE )
+            }
         } else {
-            warning( "Data has missing values.", call. = FALSE )
+            if ( warn_missing ) {
+                warning( "Data has missing values.", call. = FALSE )
+            }
         }
     }
 

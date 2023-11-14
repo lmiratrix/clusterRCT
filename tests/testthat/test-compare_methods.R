@@ -1,5 +1,9 @@
 
 
+if ( FALSE ) {
+    library( testthat )
+
+}
 
 data( "fakeCRT" )
 
@@ -7,7 +11,7 @@ test_that("compare methods aggregates as expected", {
 
     mtab <- compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
                              include_method_characteristics = FALSE)
-
+    mtab
     expect_true( is.data.frame(mtab) )
 
     mtab_cov <-  compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,

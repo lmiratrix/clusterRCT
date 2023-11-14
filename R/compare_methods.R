@@ -34,6 +34,10 @@ method_characteristics <- function() {
 #'   aggregated at the cluster level.
 #' @param control_formula What variables to control for, in the form
 #'   of "~ X1 + X2".
+#' @param patch_data If TRUE impute all missing covariates with mean
+#'   imputation (adding dummy variables as needed) via the
+#'   `patch_data()` method.  Will drop all rows with missing outcome,
+#'   treatment, or clustering info.  If FALSE do not do this.
 #' @param include_method_characteristics Include details of the
 #'   methods (target estimands and sampling framework assumed) in the
 #'   return value.
@@ -50,6 +54,7 @@ compare_methods <- function(formula,
                             include_DB = TRUE,
                             include_LM = TRUE,
                             include_agg = TRUE,
+                            patch_data = TRUE,
                             include_method_characteristics = TRUE ) {
 
     if ( !is.null( formula ) ) {
@@ -129,6 +134,7 @@ compare_methods <- function(formula,
 
     # Add info on the methods (e.g., what estimand they are targeting)
     if (include_method_characteristics) {
+        summary_table$weight = NULL
         mc <- method_characteristics()
 
         summary_table <- merge( summary_table, mc, by = "method",

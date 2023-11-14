@@ -14,6 +14,7 @@ compare_methods(
   include_DB = TRUE,
   include_LM = TRUE,
   include_agg = TRUE,
+  patch_data = TRUE,
   include_method_characteristics = TRUE
 )
 }
@@ -34,6 +35,11 @@ Huber-White SEs, etc.)}
 
 \item{include_agg}{Include estimators applied to aggregated data,
 aggregated at the cluster level.}
+
+\item{patch_data}{If TRUE impute all missing covariates with mean
+imputation (adding dummy variables as needed) via the
+`patch_data()` method.  Will drop all rows with missing outcome,
+treatment, or clustering info.  If FALSE do not do this.}
 
 \item{include_method_characteristics}{Include details of the
 methods (target estimands and sampling framework assumed) in the

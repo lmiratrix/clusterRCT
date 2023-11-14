@@ -3,27 +3,57 @@
 
 #' Describe a cluster RCT dataset
 #'
-#' Calculate various statistics describing total clusters, etc.
+#' Calculate various statistics describing total clusters, etc.  If
+#' formula is NULL, data assumed to be in canonical form.
 #'
-#' @param formula
+#' Will patch data via patch_data() to handle missing values.
+#'
+#' @inheritParams compare_methods
+#' @seealso [patch_data_set()]
 #'
 #' @export
 describe_clusterRCT <- function( formula = NULL,
                                  data = NULL,
-                                 control_formula = NULL ) {
+                                 control_formula = NULL,
+                                 warn_missing = TRUE ) {
 
-    data = make_canonical_data( formula=formula, data=data,
-                                control_formula = control_formula,
-                                drop_missing = FALSE )
+    if ( !is.null( formula ) ) {
+        # Deal with multiple outcomes
+        lhs_vars <- formula.tools::lhs.vars(formula)
+        if (length(lhs_vars) > 1) {
+            res <- purrr::map(
+                lhs_vars,
+                function(v) {
+                    # see https://stackoverflow.com/questions/37824625/how-to-modify-the-left-side-of-a-formula
+                    outcome <- as.name(v)
+                    formula1 <- as.formula(bquote(.(outcome) ~ .(formula.tools::rhs(formula))))
+                    res <- describe_clusterRCT(
+                        formula1,
+                        data = data,
+                        control_formula = control_formula ) %>%
+                        dplyr::mutate(outcome = v, .before=n)
+                }) %>%
+                purrr::list_rbind()
+            return(res)
+        } else {
+            data = make_canonical_data( formula=formula, data=data,
+                                        control_formula = control_formula,
+                                        drop_missing = FALSE,
+                                        warn_missing = warn_missing )
+        }
+    }
 
     cnames = NULL
     if ( !is.null( control_formula ) ) {
         cnames = setdiff( colnames(data), c("Yobs", "Z", "clusterID", "blockID" ) )
     }
 
-    # count up missing data and report, then drop all missing data
+    # count up missing data and report, then patch dataset.
     miss = colSums(is.na(data))
-    data = na.omit(data)
+
+    data = patch_data_set( NULL, data=data, control_formula = control_formula )
+    control_formula = attr( data, "control_formula" )
+
     K = length( unique( data$blockID ) )
 
     sizes = data %>%
@@ -172,6 +202,9 @@ calc_covariate_R2s <- function( data, pooled = FALSE ) {
                 R2.3 = (R2.block - tx.R2)*rat,
                 R2.adj.rat = rat )
     } else {
+        # This is the way we default to!
+
+        # Look at control observations only.
         resCo = dplyr::filter( result, Z_mn == 0 )
         resCo$Z_mn = NULL
 
@@ -208,9 +241,9 @@ calc_covariate_R2s <- function( data, pooled = FALSE ) {
 #'   vector.). FALSE means calculate statistics without these checks.
 #' @export
 make_block_table <- function(  formula = NULL,
-                              data = NULL,
-                              control_formula = NULL,
-                              check_data_integrity = FALSE ) {
+                               data = NULL,
+                               control_formula = NULL,
+                               check_data_integrity = FALSE ) {
 
     data = make_canonical_data( formula=formula, data=data,
                                 control_formula = control_formula )
@@ -251,6 +284,11 @@ make_block_table <- function(  formula = NULL,
 #'
 print.clusterRCTstats <- function( x, ... ) {
     stopifnot( is.clusterRCTstats(x) )
+
+    if ( nrow( x ) > 1 ) {
+        rr <- print.data.frame( x, ... )
+        return( rr )
+    }
 
     if (  is.null( x$K ) || x$K == 1 ) {
         scat( "Cluster RCT: %d units in %d clusters\n", x$n, x$J )
@@ -321,7 +359,10 @@ is.clusterRCTstats = function( x ) {
 as.data.frame.clusterRCTstats = function( x ) {
     x$.missing = NULL
     class(x) = "list"
-    as.data.frame( x )
+    x <- as.data.frame( x )
+    rownames(x) = 1:nrow(x)
+
+    x
 }
 
 
@@ -378,7 +419,13 @@ if ( FALSE ) {
     data = filter( data, !( S.id %in% dd ) )
     data <- clusterRCT:::make_canonical_data( Yobs ~ T.x | S.id | D.id, data=data )
     head( data )
-    describe_clusterRCT( data )
+    dd <- describe_clusterRCT( data )
+    class( dd )
+    dd2 = dd
+
+    b = bind_rows( dd, dd2 )
+    class(b)
+    as.data.frame(b)
 
     data( "fakeCRT" )
     head( fakeCRT )
@@ -426,7 +473,7 @@ if ( FALSE ) {
         ungroup()
 
     data = clusterRCT:::make_canonical_data( Y ~ Z | cid | sid, data=dd,
-                                            control_formula = ~ X1 + X2 + X3 + X4 )
+                                             control_formula = ~ X1 + X2 + X3 + X4 )
     head( data )
 
 

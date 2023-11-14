@@ -9,4 +9,8 @@
 library(testthat)
 library(clusterRCT)
 
+library( tidyverse )
+library( formula.tools )
+library( lmerTest )
+
 test_check("clusterRCT")

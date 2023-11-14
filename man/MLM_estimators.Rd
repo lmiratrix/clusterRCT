@@ -4,7 +4,12 @@
 \alias{MLM_estimators}
 \title{Cluster RCT with multi-level modeling}
 \usage{
-MLM_estimators(formula, data = NULL, control_formula = NULL)
+MLM_estimators(
+  formula,
+  data = NULL,
+  control_formula = NULL,
+  suppress_warnings = TRUE
+)
 }
 \arguments{
 \item{formula}{Formula for outcome and treatment and nesting.  If
