@@ -33,10 +33,24 @@ test_that("compare methods aggregates as expected", {
 })
 
 
+test_that("categorical covariates handled", {
+
+    data( fakeCRT )
+    cc <- compare_methods( Yobs ~ T.x | S.id | D.id, data = fakeCRT,
+                           patch_data = FALSE, include_MLM = FALSE,
+                           control_formula = ~ X )
+    expect_true( is.data.frame(cc) )
+
+    cc <- compare_methods( Yobs ~ T.x | S.id | D.id, data = fakeCRT,
+                           patch_data = TRUE, include_MLM = FALSE,
+                           control_formula = ~ X )
+    expect_true( is.data.frame(cc) )
+
+})
 
 
 
-test_that("missing data does not crash", {
+test_that("missing data handled as desired", {
 
     fake2 = fakeCRT
     head( fake2 )
@@ -49,15 +63,28 @@ test_that("missing data does not crash", {
     nrow(fake2)
 
     expect_warning( mtab <- compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
+                                             patch_data = FALSE,
                                              include_method_characteristics = FALSE) )
 
     expect_true( is.data.frame(mtab) )
 
     expect_warning( mtab_cov <-  compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
                                                   control_formula = ~ X.jk + C.ijk,
+                                                  patch_data = FALSE,
                                                   include_method_characteristics = FALSE ) )
     expect_true( is.data.frame(mtab_cov) )
 
+    mtab_cov
+
+    mtab_cov2 <-  compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
+                                  control_formula = ~ X.jk + C.ijk,
+                                  include_method_characteristics = FALSE,
+                                  warn_missing = FALSE )
+
+    expect_true( is.data.frame(mtab_cov2) )
+
+    # Kept more data, lower standard errors!
+    expect_true( mean( mtab_cov2$SE_hat ) < mean( mtab_cov$SE_hat ) )
 
     # Check if missingness drops all tx in a district, we stop.
     fake2$T.x[ is.na( fake2$D.id ) | is.na( fake2$T.x ) | (fake2$D.id == 1 & fake2$T.x == 0) ] = NA
@@ -69,6 +96,13 @@ test_that("missing data does not crash", {
     # Will crash when trying to analyze.
     expect_warning( expect_error( compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
                                                    control_formula = ~ X.jk + C.ijk,
+                                                   patch_data = FALSE,
                                                    include_method_characteristics = FALSE ) ) )
+
+    # Patching data will not help with all tx or all co blocks.
+    expect_error( compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
+                     control_formula = ~ X.jk + C.ijk,
+                     patch_data = TRUE, warn_missing = FALSE,
+                     include_method_characteristics = FALSE ) )
     #expect_true( is.data.frame(mtab_cov) )
 })

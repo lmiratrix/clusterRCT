@@ -57,7 +57,7 @@ test_that("patch data works", {
                              control_formula = ~ X + R + Q + W + RR )
     expect_true( nrow( ptch3 ) > nrow(ptch2) )
 
-    ptch4 <- patch_data_set( Y ~ T.x | S.id, data=data )
+    ptch4 <- patch_data_set( Y ~ T.x | S.id, data=data, warn_missing = FALSE )
     ptch4
     expect_true( nrow( ptch3 ) == nrow(ptch4) )
     expect_true( ncol( ptch4 ) == 3 )

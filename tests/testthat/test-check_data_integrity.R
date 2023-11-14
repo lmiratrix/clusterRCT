@@ -50,6 +50,7 @@ test_that( "error messages look good", {
     expect_error( compare_methods( Yobs ~ T.x | S.id | D.id, data = fakeCRT,
                      control_formula = ~ doggy ) )
     cc <- compare_methods( Yobs ~ T.x | S.id | D.id, data = fakeCRT,
+                           patch_data = FALSE,
                      control_formula = ~ X )
     expect_true( is.data.frame(cc) )
 })

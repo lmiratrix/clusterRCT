@@ -311,18 +311,22 @@ deconstruct_control_formula <- function( control_formula, data ) {
 #' clustering variables all with canonical names (Y, Z, clusterID,
 #' blockID)
 #'
-#' Some notes on weird behavior to help implement default arguments in rest of package.
+#' Some notes on weird behavior to help implement default arguments in
+#' rest of package.
 #'
-#' 1) If formula is NULL, then assume data is already in canonical form,
-#' and return it.
+#' 1) If formula is NULL, then assume data is already in canonical
+#' form, and return it.
 #'
 #' 2) If formula is not NULL, and data is NULL, then assume data is
 #' stored in formula, and is in canonical form, and return it (after
 #' verifying it is a data.frame)
 #'
-#' @param formula Notation for Y ~ Z | clusterID | blockID (| blockID is
-#'   optional).
+#' @param formula Notation for Y ~ Z | clusterID | blockID (| blockID
+#'   is optional).
 #' @param data Dataframe to pull data from.
+#' @param patch_data If TRUE patch data using patch_data_set() after
+#'   converting to canonical form.  Overrides drop_missing flag.
+#'
 #' @return canonical dataframe.
 #'
 #' @return Dataset with now-canonical variable names, and no
@@ -333,7 +337,16 @@ deconstruct_control_formula <- function( control_formula, data ) {
 make_canonical_data <- function(formula, control_formula = NULL, data,
                                 give_default_block = FALSE,
                                 drop_missing = TRUE,
-                                warn_missing = TRUE ) {
+                                warn_missing = TRUE,
+                                patch_data = FALSE ) {
+
+    if ( patch_data ) {
+        new_dat <- patch_data_set(formula, data, control_formula, warn_missing=warn_missing)
+        if ( give_default_block && is.null( new_dat$blockID ) ) {
+            new_dat$blockID = "Sall"
+        }
+        return( new_dat )
+    }
 
     if ( !exists( "data" ) || is.null( data ) ) {
         if ( is.data.frame(formula) ) {

@@ -39,7 +39,7 @@ describe_clusterRCT <- function( formula = NULL,
             data = make_canonical_data( formula=formula, data=data,
                                         control_formula = control_formula,
                                         drop_missing = FALSE,
-                                        warn_missing = warn_missing )
+                                        warn_missing = FALSE )
         }
     }
 
@@ -51,7 +51,8 @@ describe_clusterRCT <- function( formula = NULL,
     # count up missing data and report, then patch dataset.
     miss = colSums(is.na(data))
 
-    data = patch_data_set( NULL, data=data, control_formula = control_formula )
+    data = patch_data_set( NULL, data=data, control_formula = control_formula,
+                           warn_missing = warn_missing )
     control_formula = attr( data, "control_formula" )
 
     K = length( unique( data$blockID ) )

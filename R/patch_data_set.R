@@ -26,12 +26,14 @@
 #' @export
 patch_data_set <- function( formula = NULL,
                             data = NULL,
-                            control_formula = NULL) {
+                            control_formula = NULL,
+                            warn_missing = FALSE ) {
 
     if ( !is.null(formula) ) {
         data = make_canonical_data( formula=formula, data=data,
                                 control_formula = control_formula,
-                                drop_missing = FALSE, warn_missing = FALSE )
+                                drop_missing = FALSE,
+                                warn_missing = FALSE )
     }
 
     mod_data = NULL
@@ -41,6 +43,9 @@ patch_data_set <- function( formula = NULL,
         control_formula = mod_data$control_formula
     }
 
+    any_missing = FALSE
+    n = nrow(data)
+
     data = filter( data,
                    !is.na( Z ), !is.na( Yobs ),
                    !is.na( clusterID ) )
@@ -48,7 +53,14 @@ patch_data_set <- function( formula = NULL,
         data <- filter( data, !is.na( blockID ) )
     }
 
+    if ( nrow(data) < n ) {
+        any_missing = "dropped"
+    }
+
     if ( is.null( control_formula ) ) {
+        if ( warn_missing && (any_missing != FALSE )) {
+            warning( "Missing data dropped in patch_data_set" )
+        }
         return( data )
     }
 
@@ -59,6 +71,8 @@ patch_data_set <- function( formula = NULL,
 
     which_miss = which( miss > 0 )
     if ( length( which_miss ) > 0 ) {
+        any_missing = ifelse( is.na( any_missing ), "dropped and imputed", "imputed" )
+
         missInd = 0 + is.na( data[ , which_miss, drop=FALSE ] )
         colnames(missInd) = paste0( colnames(missInd) , "_mi" )
         qr = qr( missInd )
@@ -71,13 +85,17 @@ patch_data_set <- function( formula = NULL,
         data <- bind_cols(data, missInd)
 
         mod_data$control_formula <- update( mod_data$control_formula,
-                                            as.formula( paste0( ". ~ . + ", paste( colnames(missInd), collapse = " + " ) ) ) )
+                                            as.formula( paste0( " ~ . + ", paste( colnames(missInd), collapse = " + " ) ) ) )
     }
 
     if ( !is.null( mod_data ) ) {
         attr( data, "control_formula" ) <- mod_data$control_formula
     } else {
         attr( data, "control_formula" ) <- NULL
+    }
+
+    if ( warn_missing && (any_missing != FALSE) ) {
+        warning( paste0( "Missing data ", any_missing, " in patch_data_set" ), call. = FALSE )
     }
 
     data

@@ -4,7 +4,12 @@
 \alias{patch_data_set}
 \title{Fill in missing values and convert to canonical form}
 \usage{
-patch_data_set(formula = NULL, data = NULL, control_formula = NULL)
+patch_data_set(
+  formula = NULL,
+  data = NULL,
+  control_formula = NULL,
+  warn_missing = FALSE
+)
 }
 \description{
 This method will fill in means for all missing covariate values and
@@ -17,4 +22,12 @@ group).
 \details{
 It will drop missing data indicators that are colinear with prior
 missing data indicators.
+
+If there are categorical covariates, then it will convert those to
+dummy variables regardless of missingness.  The `control_formula`
+attribute handed back will give the updated control_formula in this
+case.
+
+This attribute will also have all missing value indicators added in
+as covariates.
 }

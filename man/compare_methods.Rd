@@ -14,6 +14,7 @@ compare_methods(
   include_DB = TRUE,
   include_LM = TRUE,
   include_agg = TRUE,
+  warn_missing = TRUE,
   patch_data = TRUE,
   include_method_characteristics = TRUE
 )

@@ -54,6 +54,7 @@ compare_methods <- function(formula,
                             include_DB = TRUE,
                             include_LM = TRUE,
                             include_agg = TRUE,
+                            warn_missing = TRUE,
                             patch_data = TRUE,
                             include_method_characteristics = TRUE ) {
 
@@ -76,22 +77,33 @@ compare_methods <- function(formula,
                         include_DB = include_DB,
                         include_LM = include_LM,
                         include_agg = include_agg,
-                        include_method_characteristics = include_method_characteristics) %>%
+                        include_method_characteristics = include_method_characteristics,
+                        patch_data = patch_data, warn_missing = warn_missing ) %>%
                         dplyr::mutate(outcome = v, .before=method)
                 }) %>%
                 purrr::list_rbind()
             return(res)
         }
 
+
         data = make_canonical_data( formula=formula, data=data,
-                                    control_formula = control_formula )
+                                    control_formula = control_formula,
+                                    warn_missing = warn_missing, patch_data = patch_data )
+        if ( patch_data ) {
+            control_formula = attr( data, "control_formula" )
+        }
+
+    } else if ( patch_data ) {
+        data = patch_data_set( NULL, data, control_formula = control_formula,
+                               warn_missing = warn_missing )
+        control_formula = attr( data, "control_formula" )
     }
 
     n <- nrow( data )
     check_data_integrity( data )
 
 
-    # aggregate data once
+    # aggregate data once for efficiency.
     aggdat = aggregate_data(data, control_formula)
     control_formula_agg = attr( aggdat, "control_formula" )
 

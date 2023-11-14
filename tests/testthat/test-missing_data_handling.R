@@ -26,6 +26,8 @@ if ( FALSE ) {
 }
 
 
+
+
 test_that("check missing data doesn't crash", {
 
     data( fakeCRT )
@@ -34,20 +36,20 @@ test_that("check missing data doesn't crash", {
     fakeCRT$Yobs2 = fakeCRT$Yobs + rnorm( nrow(fakeCRT ) )
     fakeCRT$Yobs2[5:20] = NA
 
-    # These are not capturing warnings right?
-    expect_warning( expect_warning( cm <- compare_methods( Yobs2 + Yobs ~ T.x | S.id | D.id, data=fakeCRT ) ) )
-    expect_warning( expect_warning( compare_methods( Yobs2 | Yobs ~ T.x | S.id | D.id, data=fakeCRT ) ) )
+    expect_warning( cm3 <- describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data=fakeCRT ) )
 
-    expect_warning( describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data=fakeCRT ) )
+    cm <- compare_methods( Yobs2 + Yobs ~ T.x | S.id | D.id, data=fakeCRT, include_MLM = FALSE, warn_missing = FALSE )
+
 
     fakeCRT$T.x[5:20] = NA
-    expect_warning( compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT ) )
+    expect_warning( compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT, include_MLM = FALSE, warn_missing = TRUE ) )
 
     expect_warning( describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data=fakeCRT ) )
 
     data(fakeCRT)
     fakeCRT$X.jk[30:40] = NA
     expect_warning( compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
+                                     include_MLM = FALSE,
                                      control_formula = ~ X.jk ) )
 
     data(fakeCRT)
