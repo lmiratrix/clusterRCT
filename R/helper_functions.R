@@ -3,6 +3,13 @@
 ##
 
 
+#' Print out a status message for the package.
+#'
+#' @export
+package_status <- function() {
+    cat( "The status of this package is:\nThis method was last updated nov 17, 2023.\nGit version of the code you are looking at may be beyond that, but is not before it.\n")
+}
+
 
 scat = function( str, ... ) {
     dots = list( ... )
