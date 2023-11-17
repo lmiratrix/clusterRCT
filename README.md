@@ -15,4 +15,7 @@ Core methods are `compare_methods()` which compares the estimates from a collect
 The research reported here was partially supported by the Institute of Education Sciences, U.S. Department of Education, through Grant R305D220046.
 The opinions expressed are those of the authors and do not represent views of the Institute or the U.S. Department of Education.
 
+## Fake Version Tag
+
+The version of this code is at least 0.001 as of Nov 17, 2023.
 
