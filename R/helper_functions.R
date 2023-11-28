@@ -355,6 +355,8 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
         return( new_dat )
     }
 
+    # If formula is NULL, or is a dataset, then assume we already are
+    # canonical and just return.
     if ( !exists( "data" ) || is.null( data ) ) {
         if ( is.data.frame(formula) ) {
             return( formula )
@@ -419,55 +421,47 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
 
 
 
-#' Combine all tx or all co blocks
+#' Identify all tx and all co blocks
 #'
-#' Given dataset with some blocks that are all treated or all control,
-#' replace the block ID with canonical new block ID shared by all such
-#' blocks.
+#' Identify blocks that are all tx or all co.  Rows with missing
+#' treatment indicators are dropped.  Rows with missing block
+#' identifiers are considered all unique blocks and thus put into the
+#' table of results.
 #'
-#' Also, depending on pool_clusters, pool the clusters in each of
-#' these identified blocks into single clusters.
+#' @return Dataframe of block IDs corresponding to all tx or all co
+#'   blocks along with number of units and tx status.  Returns NULL if
+#'   nothing.
 #'
-#' @param pool_clusters Pool clusters in 100% tx or 100% co blocks
-#'   into single cluster.
-#' @return data with the blockID column modified.
 #' @export
-#'
-pool_singleton_blocks <- function( formula, data, pool_clusters = TRUE ) {
+identify_singleton_blocks <- function( formula, data ) {
 
     parts = deconstruct_var_formula(formula, data)
-    S.id = data[[parts$blockID]]
+    blockID = data[[parts$blockID]]
 
-    S.id = as.character(S.id)
-    is_fac = is.factor(S.id)
+    blockID = as.character(blockID)
+    Z = data[[parts$Z]]
+    tb = table( Z, blockID, useNA = "always" )
+    zros = apply( tb[-3,], 2, min )
 
-    tb = table( data[[parts$Z]], S.id )
-    zros = apply( tb, 2, min )
-    nms = colnames(tb)[ zros == 0]
-
-    if ( pool_clusters ) {
-        cid = data[[ parts$clusterID ]]
-        is_fac_cid = is.factor(cid)
-        cid = as.character(cid)
-        for ( n in nms ) {
-            cid[ S.id == n ] = paste0( ".", n )
-        }
-        if ( is_fac_cid ) {
-            cid = as.factor(cid)
-        }
-        data[[ parts$clusterID ]] = cid
+    if ( sum( is.na(blockID) & !is.na(Z) ) == 0 ) {
+        zros[ length(zros) ] = 1
+    } else {
+        zros[ length(zros) ] = 0
     }
 
-    S.id[ S.id %in% nms ] = ".pooled"
-
-    if ( is_fac ) {
-        S.id = as.factor(S.id)
+    if ( sum( zros == 0 ) == 0 ) {
+        return( NULL )
     }
-    data[[parts$blockID]] = S.id
+    nms = colnames(tb)[ zros == 0 ]
 
-    return( data )
+    n = apply( tb[ 1:2, zros == 0 ], 2, sum )
+    n_tx = tb[ 2, zros == 0 ]
+    ptx = n_tx / n
+    tb <- tibble( blockID = nms,
+            pTx = as.numeric( ptx ),
+            n = as.numeric( n ) )
+    tb
 }
-
 
 
 
@@ -502,6 +496,12 @@ pool_singleton_blocks <- function( formula, data, pool_clusters = TRUE ) {
 #'   return TRUE.
 #' @export
 is_nested <- function( clusterID, blockID ) {
+    if ( is.factor(clusterID) ) {
+        clusterID = droplevels(clusterID)
+    }
+    if ( is.factor(blockID) ) {
+        blockID = droplevels(blockID)
+    }
 
     if ( is.null( blockID ) ) {
         return( TRUE )
@@ -555,16 +555,16 @@ check_data_integrity <- function( formula = NULL, data ) {
         stop("Treatment indicator should be vector of ones and zeros", call.=FALSE)
     }
 
+    ntx = sum(data$Z)
+    if ( ntx == 0 || ntx ==n ) {
+        stop( "Can't have all treated or all control across dataset", call.=FALSE )
+    }
+
 
     sts <- data %>% group_by( blockID ) %>%
         summarise( ptx = mean( Z ) )
     if ( any( sts$ptx == 0 | sts$ptx == 1 ) ) {
         stop( "Some blocks have all treated or all control units", call.=FALSE )
-    }
-
-    ntx = sum(data$Z)
-    if ( ntx == 0 || ntx ==n ) {
-        stop( "Can't have all treated or all control across dataset", call.=FALSE )
     }
 
 

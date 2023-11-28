@@ -63,13 +63,25 @@ test_that( "error messages look good", {
 test_that( "combining blocks works", {
 
     data(fakeCRT)
+    a = identify_singleton_blocks( Yobs ~ T.x |  S.id | D.id, data=fakeCRT  )
+    expect_true( is.null( a ) )
+
     fakeCRT$T.x[ fakeCRT$D.id == 2 ] = 1
     fakeCRT$T.x[ fakeCRT$D.id == 9 ] = 0
     fakeCRT <- rename( fakeCRT,
                        alt.id = D.id )
-    expect_error( compare_methods( Yobs ~ T.x | S.id | alt.id, data=fakeCRT ) )
+    expect_error( compare_methods( Yobs ~ T.x | S.id | alt.id, data=fakeCRT,
+                                   handle_singleton_blocks = "fail" ) )
 
-    a = pool_singleton_blocks( Yobs ~ T.x | S.id | alt.id, data=fakeCRT  )
+
+    # Now try to identify bad blocks
+    a = identify_singleton_blocks( Yobs ~ T.x | S.id | alt.id, data=fakeCRT  )
+    expect_true( is.data.frame(a) )
+    expect_equal( a$pTx, c(1,0) )
+
+    # And now patch!
+    a = patch_singleton_blocks( Yobs ~ T.x | S.id | alt.id, data=fakeCRT,
+                                drop_data = FALSE, warn_missing = FALSE )
     tb = table( a$T.x, a$alt.id )
     expect_true( all( tb > 0 ) )
 
@@ -80,7 +92,9 @@ test_that( "combining blocks works", {
     cnt = sum( fakeCRT$alt.id %in% c( "2", "9" ) )
     expect_true( aa$n[[1]] == cnt)
 
-    a = pool_singleton_blocks( Yobs ~ T.x | S.id | alt.id, data=fakeCRT, pool_clusters = FALSE  )
+    a = patch_singleton_blocks( Yobs ~ T.x | S.id | alt.id, data=fakeCRT,
+                                drop_data = FALSE,
+                               pool_clusters = FALSE, warn_missing = FALSE  )
     tb = table( a$T.x, a$alt.id )
     expect_true( all( tb > 0 ) )
 
@@ -90,6 +104,10 @@ test_that( "combining blocks works", {
     expect_true( aa$nu[[1]] > 2 )
     expect_true( aa$n[[1]] == cnt)
 
+
+    a = patch_singleton_blocks( Yobs ~ T.x | S.id | alt.id, data=fakeCRT,
+                                drop_data = TRUE, warn_missing = FALSE )
+    expect_true( nrow( fakeCRT ) > nrow(a) )
 
     #cc = compare_methods(Yobs ~ T.x | S.id | alt.id, data=a)
 })

@@ -80,6 +80,23 @@ test_that("patch data works", {
     expect_equal( rhs.vars(a5),
                   c( "X", "R", "Q", "W", "RRB", "RRC",
                      "X_mi", "R_mi", "Q_mi", "RRB_mi" ) )
+
+
+
+    # Testing canonical data version works
+    head( ptch5 )
+    nrow(ptch5)
+    pp = patch_data_set( data=ptch5,
+                         control_formula = ~ X + R + Q )
+    expect_equal( nrow(ptch5), nrow(pp) )
+
+    ptch5$Q[1:5] = NA
+    ptch5$Z[1:2] = NA
+    ptch5$Q_mi = NULL
+    pp = patch_data_set( data=ptch5,
+                         control_formula = ~ X + R + Q )
+    expect_equal( nrow(pp), nrow(ptch5) - 2 )
+
 })
 
 
@@ -100,3 +117,35 @@ test_that("patch data works with no missing data", {
 
 } )
 
+
+
+test_that( "tiny examples", {
+    # demo of the patch method itself
+    data( "fakeBrokeCRT" )
+    dset = fakeBrokeCRT[11:30,] %>%
+        dplyr::select(  -V.k, -X.jk )
+    dset$C.ijk[1:3] = NA
+    dset$X[19:20] = NA
+    dset
+
+    expect_warning( patch_data_set( Yobs ~ T.x | S.id | D.id, data=dset,
+                    warn_missing = TRUE ) )
+    expect_warning( pp <- patch_data_set( Yobs ~ T.x | S.id | D.id, data=dset,
+                    control_formula = ~ C.ijk + X,
+                    warn_missing = TRUE ) )
+    expect_equal( nrow( pp ), 15 )
+
+    # from colin
+    data( fakeCRT )
+    testdata <- fakeCRT %>%
+
+        mutate(Yobs_miss = ifelse(S.id == 10, NA, Yobs))
+
+
+
+    cc <- compare_methods( Yobs_miss ~ T.x | S.id | D.id, data=testdata,
+
+                     include_method_characteristics = FALSE, warn_missing = FALSE )
+    expect_true( is.data.frame(cc) )
+
+})

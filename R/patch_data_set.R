@@ -3,7 +3,7 @@
 # Patch a dataset with mean imputation of the covariates
 
 
-#' Fill in missing values and convert to canonical form
+#' Fill in missing values and convert data to canonical form
 #'
 #' This method will fill in means for all missing covariate values and
 #' return a dataset where rows with missing outcome, cluster or block
@@ -12,7 +12,7 @@
 #' covariates to a set of dummy variables (dropping the reference
 #' group).
 #'
-#' It will drop missing data indicators that are colinear with prior
+#' It will drop missing data indicators that are co-linear with prior
 #' missing data indicators.
 #'
 #' If there are categorical covariates, then it will convert those to
@@ -31,9 +31,9 @@ patch_data_set <- function( formula = NULL,
 
     if ( !is.null(formula) ) {
         data = make_canonical_data( formula=formula, data=data,
-                                control_formula = control_formula,
-                                drop_missing = FALSE,
-                                warn_missing = FALSE )
+                                    control_formula = control_formula,
+                                    drop_missing = FALSE,
+                                    warn_missing = FALSE )
     }
 
     mod_data = NULL
@@ -49,8 +49,15 @@ patch_data_set <- function( formula = NULL,
     data = filter( data,
                    !is.na( Z ), !is.na( Yobs ),
                    !is.na( clusterID ) )
+    if ( is.factor(data$clusterID) ) {
+        data$clusterID = droplevels(data$clusterID)
+    }
+
     if ( "blockID" %in% colnames(data) ) {
         data <- filter( data, !is.na( blockID ) )
+        if ( is.factor(data$blockID) ) {
+            data$blockID = droplevels(data$blockID)
+        }
     }
 
     if ( nrow(data) < n ) {
@@ -59,7 +66,8 @@ patch_data_set <- function( formula = NULL,
 
     if ( is.null( control_formula ) ) {
         if ( warn_missing && (any_missing != FALSE )) {
-            warning( "Missing data dropped in patch_data_set" )
+            warning( glue::glue( "{n - nrow(data)} rows with missing data dropped (of {n} total rows) in patch_data_set" ),
+                     call. = FALSE )
         }
         return( data )
     }
@@ -70,12 +78,16 @@ patch_data_set <- function( formula = NULL,
     miss = colSums(is.na(data))
 
     which_miss = which( miss > 0 )
+    n_imputed = 0
     if ( length( which_miss ) > 0 ) {
-        any_missing = ifelse( is.na( any_missing ), "dropped and imputed", "imputed" )
+        any_missing = ifelse( any_missing == FALSE, "imputed", "dropped and imputed" )
 
         missInd = 0 + is.na( data[ , which_miss, drop=FALSE ] )
         colnames(missInd) = paste0( colnames(missInd) , "_mi" )
         qr = qr( missInd )
+
+        n_imputed = sum( missInd )
+
         missInd <- missInd[ , qr$pivot[ 1:qr$rank ], drop=FALSE ] %>%
             as.data.frame()
 
@@ -95,11 +107,108 @@ patch_data_set <- function( formula = NULL,
     }
 
     if ( warn_missing && (any_missing != FALSE) ) {
-        warning( paste0( "Missing data ", any_missing, " in patch_data_set" ), call. = FALSE )
+        if ( n_imputed > 0 ) {
+            warning( glue::glue( "Missing data {any_missing} in patch_data_set. {n-nrow(data)} rows of {n} dropped.  {n_imputed} values imputed." ),
+                 call. = FALSE )
+        } else {
+            warning( glue::glue( "Missing data {any_missing} in patch_data_set. {n-nrow(data)} rows of {n} dropped." ),
+                     call. = FALSE )
+        }
     }
+
 
     data
 }
+
+
+
+
+
+#' Drop or combine all-tx or all-co blocks
+#'
+#' Given dataset with some blocks that are all treated or all control,
+#' drop those blocks or replace the block ID with canonical new block
+#' ID shared by all such blocks.
+#'
+#' Missing values in the block ID are all considered singletons.
+#'
+#' Also, depending on pool_clusters, pool the clusters in each of
+#' these identified blocks into single clusters.
+#'
+#' @param drop_data Drop the troublesome blocks if TRUE, pool them if
+#'   FALSE.
+#' @param pool_clusters If pooling blocks rather than dropping them,
+#'   also pool clusters in 100% tx or 100% co blocks into single
+#'   cluster.
+#' @param warn_missing Say something if anything happens.
+#' @return data with the blockID column modified or troublesome rows
+#'   of data missing.
+#' @export
+#'
+patch_singleton_blocks <- function( formula = NULL, data,
+                                    drop_data = TRUE,
+                                    pool_clusters = TRUE,
+                                    warn_missing = TRUE ) {
+
+
+    if ( is.null( formula ) ) {
+        formula = Yobs ~ Z | clusterID | blockID
+    }
+
+    missing = identify_singleton_blocks( formula, data )
+    if ( is.null( missing ) ) {
+        return( data )
+    }
+
+    parts = deconstruct_var_formula(formula, data)
+
+    drp = is.na( data[[ as.character(parts$blockID) ]] ) | ( data[[ as.character(parts$blockID) ]] %in% missing$blockID )
+    if ( drop_data ) {
+        if ( warn_missing ) {
+            warning( glue::glue( "Dropping all-tx and/or all-co blocks. {sum(drp)} of {length(drp)} rows of data dropped." ),
+                 call. = FALSE )
+        }
+        data = data[ !drp, ]
+        if ( is.factor( data[[ parts$blockID ]] ) ) {
+            data[parts$blockID] = droplevels( data[[parts$blockID]] )
+        }
+        return( data )
+    }
+
+    if ( warn_missing ) {
+        warning( glue::glue( "Pooling all-tx and/or all-co blocks into singleton block. {sum(drp)} rows of data affected." ),
+             call. = FALSE )
+    }
+
+    S.id = data[[parts$blockID]]
+    is_fac = is.factor(S.id)
+    S.id = as.character(S.id)
+
+    if ( pool_clusters ) {
+        cid = data[[ parts$clusterID ]]
+        is_fac_cid = is.factor(cid)
+        cid = as.character(cid)
+        for ( n in missing$blockID ) {
+            cid[ S.id == n ] = paste0( ".", n )
+        }
+        if ( is_fac_cid ) {
+            cid = as.factor(cid)
+        }
+        data[[ parts$clusterID ]] = cid
+    }
+
+    S.id[ S.id %in% missing$blockID ] = ".pooled"
+
+    if ( is_fac ) {
+        S.id = as.factor(S.id)
+    }
+    data[[parts$blockID]] = S.id
+
+    return( data )
+}
+
+
+
 
 
 
@@ -108,10 +217,10 @@ patch_data_set <- function( formula = NULL,
 if ( FALSE ) {
 
     data <- tribble( ~ X, ~ R, ~ Q, ~ W,
-                   1,  2, 3, 4,
-                   NA, 2, 4, 5,
-                   NA, NA,4, 6,
-                   2,  3, NA, 7)
+                     1,  2, 3, 4,
+                     NA, 2, 4, 5,
+                     NA, NA,4, 6,
+                     2,  3, NA, 7)
 
     data$T.x = c( 1, 1, 0, 0 )
     data$S.id = c( 10, 5, 10, 5 )
@@ -129,7 +238,7 @@ if ( FALSE ) {
     data
 
     ptch <- patch_data_set( Y ~ T.x | S.id | D.id, data=data,
-                    control_formula = ~ X + R + Q + W + RR )
+                            control_formula = ~ X + R + Q + W + RR )
     ptch
 
 
@@ -164,4 +273,13 @@ if ( FALSE ) {
     data <- clusterRCT:::make_canonical_data( Yobs ~ T.x | S.id | D.id, data=fakeCRT )
     head( data )
 
+
+
+    data( "fakeBrokeCRT" )
+    fakeBrokeCRT
+    patch_singleton_blocks( Yobs ~ T.x | S.id | D.id, data= fakeBrokeCRT )
+
 }
+
+
+

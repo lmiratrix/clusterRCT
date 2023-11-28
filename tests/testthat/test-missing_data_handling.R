@@ -42,7 +42,8 @@ test_that("check missing data doesn't crash", {
 
 
     fakeCRT$T.x[5:20] = NA
-    expect_warning( compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT, include_MLM = FALSE, warn_missing = TRUE ) )
+    expect_warning( compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
+                                     include_MLM = FALSE, warn_missing = TRUE ) )
 
     expect_warning( describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data=fakeCRT ) )
 
@@ -63,6 +64,38 @@ test_that("check missing data doesn't crash", {
     expect_warning( clusterRCT:::make_canonical_data( Yobs ~ T.x | S.id | D.id,
                                                       data=fakeCRT, control_formula = ~ X.jk ) )
 
+})
+
+
+test_that( "patching and missing data works", {
+
+    data( "fakeBrokeCRT" )
+
+    table( Z = fakeBrokeCRT$T.x, Did = fakeBrokeCRT$D.id, useNA = "always" )
+
+    p = patch_singleton_blocks( Yobs ~ T.x | S.id | D.id, data = fakeBrokeCRT,
+                                warn_missing = FALSE )
+    head(p)
+    table( p$T.x, p$D.id )
+    pA = patch_data_set( Yobs ~ T.x | S.id | D.id, data=p )
+    nrow( pA )
+    tb <- table( pA$Z, pA$blockID )
+    tb
+    expect_true( sum( tb == 0 ) > 0 )
+
+    head( pA )
+    table( pA$blockID, pA$Z )
+
+    p2 = clusterRCT:::make_canonical_data( Yobs ~ T.x | S.id | D.id, data = fakeBrokeCRT,
+                                           warn_missing = FALSE, patch_data = TRUE )
+    head( p2 )
+    p3 = patch_singleton_blocks( Yobs ~ Z | clusterID | blockID, data=p2,
+                                 warn_missing = FALSE )
+    nrow( p3 )
+
+
+    #expect_equal( nrow(pA), nrow(p3) )
+    expect_true( nrow(pA) > nrow(p3) )
 })
 
 

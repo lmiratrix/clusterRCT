@@ -56,7 +56,10 @@ compare_methods <- function(formula,
                             include_agg = TRUE,
                             warn_missing = TRUE,
                             patch_data = TRUE,
+                            handle_singleton_blocks = c( "drop", "pool", "fail" ),
                             include_method_characteristics = TRUE ) {
+
+    handle_singleton_blocks = match.arg(handle_singleton_blocks)
 
     if ( !is.null( formula ) ) {
 
@@ -78,7 +81,9 @@ compare_methods <- function(formula,
                         include_LM = include_LM,
                         include_agg = include_agg,
                         include_method_characteristics = include_method_characteristics,
-                        patch_data = patch_data, warn_missing = warn_missing ) %>%
+                        patch_data = patch_data,
+                        handle_singleton_blocks = handle_singleton_blocks,
+                        warn_missing = warn_missing ) %>%
                         dplyr::mutate(outcome = v, .before=method)
                 }) %>%
                 purrr::list_rbind()
@@ -98,6 +103,15 @@ compare_methods <- function(formula,
                                warn_missing = warn_missing )
         control_formula = attr( data, "control_formula" )
     }
+
+
+    # handle singleton blocks
+    if ( ("blockID" %in% names(data)) && handle_singleton_blocks != "fail" ) {
+        data = patch_singleton_blocks( Yobs ~ Z | clusterID | blockID, data=data,
+                                       drop_data = handle_singleton_blocks == "drop",
+                                       warn_missing = warn_missing )
+    }
+
 
     n <- nrow( data )
     check_data_integrity( data )

@@ -2,7 +2,7 @@
 % Please edit documentation in R/patch_data_set.R
 \name{patch_data_set}
 \alias{patch_data_set}
-\title{Fill in missing values and convert to canonical form}
+\title{Fill in missing values and convert data to canonical form}
 \usage{
 patch_data_set(
   formula = NULL,
@@ -20,7 +20,7 @@ covariates to a set of dummy variables (dropping the reference
 group).
 }
 \details{
-It will drop missing data indicators that are colinear with prior
+It will drop missing data indicators that are co-linear with prior
 missing data indicators.
 
 If there are categorical covariates, then it will convert those to

@@ -53,6 +53,9 @@ describe_clusterRCT <- function( formula = NULL,
 
     data = patch_data_set( NULL, data=data, control_formula = control_formula,
                            warn_missing = warn_missing )
+    data = patch_singleton_blocks(NULL, data=data,
+                                  warn_missing = warn_missing )
+
     control_formula = attr( data, "control_formula" )
 
     K = length( unique( data$blockID ) )

@@ -56,3 +56,27 @@ fakeCRT$X = sample( LETTERS[1:4], nrow(fakeCRT), replace=TRUE )
 fakeCRT = as_tibble(fakeCRT )
 
 usethis::use_data(fakeCRT, overwrite = TRUE)
+
+table( fakeCRT$D.id )
+
+
+fakeCRT$T.x[ fakeCRT$D.id == 2 ] = 1
+fakeCRT$T.x[ fakeCRT$D.id == 9 ] = 0
+nrow(fakeCRT)
+mss = sample( nrow(fakeCRT), 100 )
+
+table( fakeCRT$S.id, fakeCRT$D.id )
+
+fakeCRT$Yobs[mss[1:50]] = NA
+fakeCRT$D.id[ fakeCRT$D.id == 3 ] = NA
+fakeCRT$S.id[ fakeCRT$S.id %in% c(164, 80, 192 ) ] = NA
+fakeCRT$X[ mss[40:70]] = NA
+fakeCRT$C.ijk[ mss[60:100] ] = NA
+fakeCRT$T.x[ fakeCRT$D.id == 5 & fakeCRT$T.x == 0 ] = NA
+fakeCRT$Yobs[ fakeCRT$D.id == 6 & fakeCRT$T.x == 1 ] = NA
+
+fakeBrokeCRT = fakeCRT
+usethis::use_data(fakeBrokeCRT, overwrite = TRUE)
+
+
+
