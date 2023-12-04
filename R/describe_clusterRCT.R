@@ -104,8 +104,8 @@ describe_clusterRCT <- function( formula = NULL,
 
     C.ICC = as.numeric( a$clusterID )
     S.ICC = as.numeric( a$blockID )
-    sigma = sigma( M )
-    tvar = (C.ICC + S.ICC + sigma)
+    sigma2 = sigma( M )^2
+    tvar = (C.ICC + S.ICC + sigma2)
     C.ICC = C.ICC / tvar
     S.ICC = S.ICC / tvar
 
@@ -303,7 +303,7 @@ print.clusterRCTstats <- function( x, ... ) {
 
 
     if ( !is.null( x$K ) && x$K != 1 ) {
-        scat( "Site Statistics:\n\tAvg units/block: %.2f (coef var %.2f)\n\tAvg clusters/block: %.2f (coef var %.2f)\n\t25-75 Quantiles: %.1f -- %.1f w/ IQR = %.1f\n\tICC: %.2f\n\tAvg tx: %.2f (coef var %.2f)\n\t25-75 Quantile tx: %.2f -- %.2f w/ IQR %.2f\n",
+        scat( "Site Statistics:\n\tAvg units/block: %.2f (coef var %.2f)\n\tAvg clusters/block: %.2f (coef var %.2f)\n\t25-75 Quantiles: %.1f-%.1f w/ IQR = %.1f\n\tICC: %.2f\n\tAvg tx: %.2f (coef var %.2f)\n\t25-75 Quantile tx: %.2f-%.2f w/ IQR %.2f\n",
               x$n_block, x$n_block_cv,
               x$Jbar, x$Jcv,
               x$J.25, x$J.75, x$J.IQR,
@@ -315,7 +315,7 @@ print.clusterRCTstats <- function( x, ... ) {
         }
     }
 
-    scat( "Cluster Statistics:\n\tAvg units: %.2f (coef var %.2f)\n\t25-75 Quantiles: %.1f -- %.1f w/ IQR = %.1f\n\tICC: %.2f\n",
+    scat( "Cluster Statistics:\n\tAvg units: %.2f (coef var %.2f)\n\t25-75 Quantiles: %.1f-%.1f w/ IQR = %.1f\n\tICC: %.2f\n",
           x$nbar, x$ncv,
           x$n.25, x$n.75, x$n.IQR,
           x$cluster_ICC )
