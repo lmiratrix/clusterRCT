@@ -3,8 +3,8 @@
 
 method_characteristics <- function() {
 
-    mc <- tribble( ~ fullname,              ~ method, ~ weight, ~ population, ~ biased,
-                   "DB (cluster-finite)",   ~ "DB",   "cluster",  "finite",    "0" )
+    mc <- tribble( ~ method, ~ weight, ~ population, ~ biased,
+                   "DB_FI_Cluster_Cluster",   "cluster",  "finite",    "0" )
 
     return( mc )
 }
@@ -124,24 +124,25 @@ compare_methods <- function(formula,
 
     summary_table <- data.frame()
 
-    if (include_DB) {
-        db_res_i <- design_based_estimators(formula = NULL, data = aggdat,
-                                            control_formula = control_formula_agg,
-                                            weight = "individual",
-                                            aggregated = TRUE)
-        db_res_c <- design_based_estimators(formula = NULL, data = aggdat,
-                                            control_formula = control_formula_agg,
-                                            weight = "cluster",
-                                            aggregated = TRUE)
-
-        summary_table = dplyr::bind_rows( summary_table, db_res_i, db_res_c )
-    }
-
+    has_blocks <- "blockID" %in% colnames(data)
 
     if (include_LM) {
         lms <- linear_model_estimators(formula = NULL, data = data,
                                        control_formula = control_formula )
         summary_table = dplyr::bind_rows(summary_table, lms)
+
+        if ( has_blocks ) {
+            lms_int = interacted_linear_model_estimators( formula = NULL, data = data,
+                                                          control_formula = control_formula )
+            summary_table = dplyr::bind_rows(summary_table, lms_int)
+        }
+    }
+
+
+    if (include_MLM) {
+        mlms <- MLM_estimators(formula = NULL, data = data,
+                               control_formula = control_formula )
+        summary_table <- dplyr::bind_rows( summary_table, mlms )
     }
 
 
@@ -152,10 +153,17 @@ compare_methods <- function(formula,
         summary_table = dplyr::bind_rows(summary_table, lms)
     }
 
-    if (include_MLM) {
-        mlms <- MLM_estimators(formula = NULL, data = data,
-                               control_formula = control_formula )
-        summary_table <- dplyr::bind_rows( summary_table, mlms )
+    if (include_DB) {
+        db_res_i <- design_based_estimators(formula = NULL, data = aggdat,
+                                            control_formula = control_formula_agg,
+                                            weight = "Person",
+                                            aggregated = TRUE)
+        db_res_c <- design_based_estimators(formula = NULL, data = aggdat,
+                                            control_formula = control_formula_agg,
+                                            weight = "Cluster",
+                                            aggregated = TRUE)
+
+        summary_table = dplyr::bind_rows( summary_table, db_res_i, db_res_c )
     }
 
     # Add info on the methods (e.g., what estimand they are targeting)
@@ -163,13 +171,11 @@ compare_methods <- function(formula,
         summary_table$weight = NULL
         mc <- method_characteristics()
 
-        summary_table <- merge( summary_table, mc, by = "method",
-                                all.x = TRUE, all.y = FALSE)
+        summary_table <- left_join( summary_table, mc, by = "method" )
     }
 
     if ( nrow( summary_table ) > 0 ) {
-        summary_table = tibble::remove_rownames( summary_table ) %>%
-            arrange( method )
+        summary_table = tibble::remove_rownames( summary_table )
     }
 
     return(summary_table)

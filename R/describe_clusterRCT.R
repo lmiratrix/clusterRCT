@@ -60,6 +60,7 @@ describe_clusterRCT <- function( formula = NULL,
 
     K = length( unique( data$blockID ) )
 
+    # Get cluster sizes
     sizes = data %>%
         group_by( blockID, clusterID, Z ) %>%
         summarise( n = n(), .groups = "drop" )
@@ -73,7 +74,8 @@ describe_clusterRCT <- function( formula = NULL,
                    n.IQR = n.75 - n.25,
                    p.tx = mean(Z) )
 
-    sstat = sizes %>% group_by( blockID ) %>%
+    sstat = sizes %>%
+        group_by( blockID ) %>%
         summarise( J = n(),
                    n = sum(n),
                    p.tx = mean(Z) ) %>%
@@ -92,7 +94,38 @@ describe_clusterRCT <- function( formula = NULL,
                    tx.IQR = tx.75 - tx.25 )
 
 
-    library( lme4 )
+    ICCs = calc_ICCs(data)
+
+    stats <- tibble( n = nrow(data) )
+    stats = bind_cols( stats, cstat, sstat )
+    stats$cluster_ICC = ICCs$C.ICC
+    stats$block_ICC = ICCs$S.ICC
+    stats$sdY0 = sd( data$Yobs[ data$Z == 0] )
+
+    class( stats ) <- c( "clusterRCTstats", class( stats ) )
+
+    # R2 values
+    if ( !is.null( cnames ) ) {
+        stats <- bind_cols( stats, calc_covariate_R2s(data, ICCs) )
+    }
+
+    if ( sum( miss ) > 0 ) {
+        stats$.missing = list( miss )
+    }
+
+    stats
+}
+
+
+
+#' Calculate ICCs
+#'
+#' Use a multilevel model to calculate ICCs
+#'
+calc_ICCs <- function( data ) {
+
+    require( lme4 )
+
     form = Yobs ~ 1 + Z + (1 | blockID ) + (1 | clusterID )
     #if ( !is.null( control_formula ) ) {
     #    form = update( control_formula, Yobs ~ . + 1 + Z + (1 | blockID ) + (1 | clusterID ) )
@@ -109,25 +142,7 @@ describe_clusterRCT <- function( formula = NULL,
     C.ICC = C.ICC / tvar
     S.ICC = S.ICC / tvar
 
-    stats <- tibble( n = nrow(data) )
-    stats = bind_cols( stats, cstat, sstat )
-    stats$cluster_ICC = C.ICC
-    stats$block_ICC = S.ICC
-    stats$sdY0 = sd( data$Yobs[ data$Z == 0] )
-
-    class( stats ) <- c( "clusterRCTstats", class( stats ) )
-
-
-    # R2 values
-    if ( !is.null( cnames ) ) {
-        stats <- bind_cols( stats, calc_covariate_R2s(data) )
-    }
-
-    if ( sum( miss ) > 0 ) {
-        stats$.missing = list( miss )
-    }
-
-    stats
+    list( C.ICC = C.ICC, S.ICC = S.ICC )
 }
 
 
@@ -141,11 +156,16 @@ describe_clusterRCT <- function( formula = NULL,
 #'
 #' @importFrom purrr map_dbl
 #' @param data in canonical form.
+#' @param ICCs List of ICC values, level 2 and level 3 in order.
 #' @param pooled Calculate pooled Tx and Co groups, attempting to
 #'   remove systematic shift of average treatment effect.  If FALSE,
 #'   subset to control observations only.
 #'
-calc_covariate_R2s <- function( data, pooled = FALSE ) {
+calc_covariate_R2s <- function( data, ICCs = NULL, pooled = FALSE ) {
+
+    if ( is.null( ICCs ) ) {
+        ICCs = calc_ICCs(data)
+    }
 
     # Covert covariates to numerical, if they are not already.
     dm = model.matrix( Yobs ~ . - clusterID - blockID, data=data ) %>%
@@ -181,7 +201,9 @@ calc_covariate_R2s <- function( data, pooled = FALSE ) {
     result$Yobs = data$Yobs
 
     # Two ways of calculating R2 values.
+    R2s = NA
     if ( pooled ) {
+        # This way is not preferred--I forget why.
         Mblock = lm( Yobs ~ Z_mn*blockID, data=result )
         R2.block = summary(Mblock)$adj.r.squared
 
@@ -199,12 +221,10 @@ calc_covariate_R2s <- function( data, pooled = FALSE ) {
         tx.R2 = sTx$r.squared
         rat = 1 / (1 - sTx$r.squared)
 
-        tibble( R2.1 = (R2.cent - R2.block)*rat,
-                ncov.1 = ncov.1,
-                R2.2 = (R2.mn - R2.block)*rat,
-                ncov.2 = ncov.2,
-                R2.3 = (R2.block - tx.R2)*rat,
-                R2.adj.rat = rat )
+        R2s <- tibble( R2.1 = (R2.cent - R2.block)*rat,
+                       ncov.1 = ncov.1,
+                       R2.2 = (R2.mn - R2.block)*rat,
+                       ncov.2 = ncov.2 )
     } else {
         # This is the way we default to!
 
@@ -225,12 +245,16 @@ calc_covariate_R2s <- function( data, pooled = FALSE ) {
         summary( Mmn )
         R2.mn = summary( Mmn )$adj.r.squared
 
-        tibble( R2.1 = R2.cent - R2.block,
-                ncov.1 = ncov.1,
-                R2.2 = R2.mn - R2.block,
-                ncov.2 = ncov.2,
-                R2.3 = R2.block )
+        R2s <- tibble( R2.1 = R2.cent - R2.block,
+                       ncov.1 = ncov.1,
+                       R2.2 = R2.mn - R2.block,
+                       ncov.2 = ncov.2 )
     }
+
+    R2s$R2.1 = R2s$R2.1 / (1 - ICCs[[1]] - ICCs[[2]])
+    R2s$R2.2 = R2s$R2.2 / ICCs[[1]]
+
+    R2s
 }
 
 
@@ -303,7 +327,7 @@ print.clusterRCTstats <- function( x, ... ) {
 
 
     if ( !is.null( x$K ) && x$K != 1 ) {
-        scat( "Site Statistics:\n\tAvg units/block: %.2f (coef var %.2f)\n\tAvg clusters/block: %.2f (coef var %.2f)\n\t25-75 Quantiles: %.1f-%.1f w/ IQR = %.1f\n\tICC: %.2f\n\tAvg tx: %.2f (coef var %.2f)\n\t25-75 Quantile tx: %.2f-%.2f w/ IQR %.2f\n",
+        scat( "Block Statistics:\n\tAvg units/block: %.2f (coef var %.2f)\n\tAvg clusters/block: %.2f (coef var %.2f)\n\t25-75 Quantiles: %.1f-%.1f w/ IQR = %.1f\n\tICC: %.2f\n\tAvg tx: %.2f (coef var %.2f)\n\t25-75 Quantile tx: %.2f-%.2f w/ IQR %.2f\n",
               x$n_block, x$n_block_cv,
               x$Jbar, x$Jcv,
               x$J.25, x$J.75, x$J.IQR,
@@ -315,17 +339,18 @@ print.clusterRCTstats <- function( x, ... ) {
         }
     }
 
-    scat( "Cluster Statistics:\n\tAvg units: %.2f (coef var %.2f)\n\t25-75 Quantiles: %.1f-%.1f w/ IQR = %.1f\n\tICC: %.2f\n",
+    scat( "Cluster Statistics:\n\tAvg size: %.2f (coef var %.2f)\n\t25-75 Quantiles: %.1f-%.1f w/ IQR = %.1f\n\tICC: %.2f\n\tProp treated: %.2f\n",
           x$nbar, x$ncv,
           x$n.25, x$n.75, x$n.IQR,
-          x$cluster_ICC )
+          x$cluster_ICC,
+          x$p.tx )
     if ( hasName( x, "R2.2" ) ) {
         scat( "\tR2.2: %.2f (%d covariates)\n", x$R2.2, x$ncov.2)
     }
 
 
-    scat( "Unit Statistics:\n\tprop clusters tx: %.2f\n\tstddev( Y0 ): %.2f\n",
-          x$p.tx, x$sdY0 )
+    scat( "Unit Statistics:\n\tstddev( Y0 ): %.2f\n",
+          x$sdY0 )
     if ( hasName( x, "R2.1" ) ) {
         scat( "\tR2.1: %.2f (%d covariates)\n", x$R2.1, x$ncov.1)
     }
@@ -374,16 +399,16 @@ as.data.frame.clusterRCTstats = function( x ) {
 
 
 count_block_sizes <- function( clusterID, blockID ) {
-    tt = tibble( cid = clusterID, bid = blockID )
+    tt = tibble( clusterID = clusterID, blockID = blockID )
     t2 <- tt %>%
-        #group_by( cid, bid ) %>%
-        #summarize( n = n(), .groups = "drop" ) %>%
-        group_by( bid ) %>%
-        summarize( n_stud = n(),
-                   J = length( unique( cid ) ) )
+        group_by( blockID ) %>%
+        summarize( n = n(),
+                   J = length( unique( clusterID ) ) )
 
     t2
 }
+
+
 
 
 #### Testing code ####

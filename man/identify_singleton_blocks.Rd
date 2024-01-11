@@ -13,6 +13,7 @@ Dataframe of block IDs corresponding to all tx or all co
 }
 \description{
 Identify blocks that are all tx or all co.  Rows with missing
-outcomes, treatment indicators, cluster identifiers, or block
-identifiers are dropped.
+treatment indicators are dropped.  Rows with missing block
+identifiers are considered all unique blocks and thus put into the
+table of results.
 }

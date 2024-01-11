@@ -24,7 +24,7 @@ test_that("compare methods aggregates as expected", {
     mtab
     expect_true( all( mtab$dels != 0 ) )
 
-    mtab <- compare_methods( Yobs ~ T.x | S.id , data=fakeCRT,
+    mtab <- compare_methods( Yobs ~ T.x | S.id, data=fakeCRT,
                              include_method_characteristics = FALSE)
 
     expect_true( is.data.frame(mtab) )

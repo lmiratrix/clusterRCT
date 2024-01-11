@@ -47,11 +47,11 @@ aggregation_estimators <- function( formula,
                                     control_formula = control_formula )
 
     M3 <- lm_robust( form, data=datagg, se_type = "HC2" )
-    Agg_FE_cluster = get_agg_ests( M3, "Agg-FE-cluster" )
+    Agg_FE_cluster = get_agg_ests( M3, ifelse( needFE, "Agg_FE_Cluster", "Agg_noFE_Cluster" ) )
 
 
     M4 <- lm_robust( form, data=datagg, weights = n, se_type = "HC2" )
-    Agg_FE_person = get_agg_ests( M4, "Agg-FE-person" )
+    Agg_FE_person = get_agg_ests( M4, ifelse( needFE, "Agg_FE_Person", "Agg_noFE_Person" ) )
 
 
     if ( !needFE ) {
@@ -64,12 +64,17 @@ aggregation_estimators <- function( formula,
     M5 <- lm_robust( formI, data=datagg, se_type = "HC2" )
     Agg_FI = generate_all_interacted_estimates( M5, data,
                                                 use_full_vcov=TRUE,
-                                                method = "Agg" )
+                                                method = "Agg_FI" )
 
+    M6 <- lm_robust( formI, data=datagg, se_type = "HC2", weights = n )
+    Agg_wFI = generate_all_interacted_estimates( M6, data,
+                                                 use_full_vcov=TRUE,
+                                                 method = "Agg_wFI" )
     # Compile our results
     bind_rows( Agg_FE_cluster,
                Agg_FE_person,
-               Agg_FI )
+               Agg_FI,
+               Agg_wFI )
 
 }
 

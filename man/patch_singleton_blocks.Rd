@@ -5,7 +5,7 @@
 \title{Drop or combine all-tx or all-co blocks}
 \usage{
 patch_singleton_blocks(
-  formula,
+  formula = NULL,
   data,
   drop_data = TRUE,
   pool_clusters = TRUE,
@@ -32,6 +32,8 @@ drop those blocks or replace the block ID with canonical new block
 ID shared by all such blocks.
 }
 \details{
+Missing values in the block ID are all considered singletons.
+
 Also, depending on pool_clusters, pool the clusters in each of
 these identified blocks into single clusters.
 }

@@ -31,11 +31,102 @@ test_that("DB estimators work", {
     table( sim.data$D.id)
     aa = design_based_estimators( Yobs ~ T.x | S.id | D.id, data=sim.data )
     aa
-    expect_true( nrow( aa ) == 2 )
+    expect_true( nrow( aa ) == 5 )
 
     # No block-level.
     sim.data$D.id = NULL
-    bb = design_based_estimators( Yobs ~ T.x | S.id, data=sim.data )
+    bb = design_based_estimators( Yobs ~ T.x | S.id, data=sim.data, weight = "Cluster" )
+    bb
+    expect_true( nrow(bb) == 1 )
+
+    bb2 = design_based_estimators( Yobs ~ T.x | S.id, data=sim.data, weight = "Person" )
+    bb2
+    expect_true( nrow(bb) == 1 )
+
+})
+
+
+
+
+
+
+test_that("DB weighting works", {
+
+    ss = tibble( blockID = c( 1, 1, 1, 1, 1, 1 ),
+                 clusterID = c( 1, 2, 3, 4, 5, 6 ),
+                 Z = c( 0, 1, 0, 0, 1, 0 ),
+                 Y0 = c( 9, 10, 11, 14, 15, 16 ),
+                 tau = c( 0, 0, 0, 10, 10, 10 ) )
+    ss = ss[ rep( 1:6, c(2,2,2,4,4,4) ), ]
+    ss$Y0 = ss$Y0 + rep( c(-1, 1), nrow(ss)/2 )
+
+    ss2 = ss
+    ss2$clusterID = 1:nrow(ss2)
+    ss2$tau = ss2$tau * 5 + 50
+    ss2$blockID = 2
+    ss = bind_rows( ss, ss2, ss2 ) %>%
+        mutate( Yobs = Y0 + Z*tau ) %>%
+        arrange( blockID, clusterID )
+    ss
+    table( ss$blockID )
+    describe_clusterRCT( Yobs ~ Z | clusterID | blockID, data=ss )
+
+    mean( ss$tau )
+    stats <- ss %>%
+        group_by( blockID, clusterID ) %>%
+        summarise( n = n(),
+                   tau = mean( tau ), .groups = "drop" )
+    table( stats$n )
+
+    sts <- stats %>% group_by( blockID ) %>%
+        summarise( wt = sum( n ),
+                   J = n(),
+                   tau_cl = mean( tau ),
+                   tau_per = weighted.mean( tau, w=n ) )
+    sts
+    stats %>%
+        summarise( wt = sum( n ),
+                   J = n(),
+                   tau_cl = mean( tau ),
+                   tau_per = weighted.mean( tau, w=n ) )
+
+    bl_avgs <- sts %>% summarise(
+                       tau_cl = mean(tau_cl),
+                       tau_per = mean(tau_per) )
+    bl_avgs
+
+    # Weighting within block by person...
+    aa = design_based_estimators( Yobs ~ Z | clusterID | blockID, data=ss, weight = "Person",
+                                  include_block_estimates = TRUE )
+    aa
+
+    blocks = attr(aa, "blocks" )
+    blocks
+    expect_equal( as.numeric(blocks$ATE_hat), sts$tau_per )
+
+    expect_equal( aa$ATE_hat[[1]], bl_avgs$tau_per )
+    expect_equal( aa$ATE_hat[[2]], weighted.mean( sts$tau_per, w=sts$J ) )
+    expect_equal( aa$ATE_hat[[3]], weighted.mean( sts$tau_per, w=sts$wt ) )
+    expect_equal( aa$ATE_hat[[4]], weighted.mean( sts$tau_per, w=sts$wt ) )
+    expect_equal( aa$ATE_hat[[5]], weighted.mean( sts$tau_per, w=sts$wt ) )
+
+    aa = design_based_estimators( Yobs ~ Z | clusterID | blockID, data=ss, weight = "Cluster",
+                                  include_block_estimates = TRUE )
+    blocks = attr(aa, "blocks" )
+    expect_equal( as.numeric(blocks$ATE_hat), sts$tau_cl )
+
+    aa
+    expect_equal( aa$ATE_hat[[1]], bl_avgs$tau_cl )
+    expect_equal( aa$ATE_hat[[2]], weighted.mean( sts$tau_cl, w=sts$J ) )
+    expect_equal( aa$ATE_hat[[3]], weighted.mean( sts$tau_cl, w=sts$wt ) )
+    expect_equal( aa$ATE_hat[[4]], weighted.mean( sts$tau_cl, w=sts$J ) )
+    expect_equal( aa$ATE_hat[[5]], weighted.mean( sts$tau_cl, w=sts$J ) )
+
+
+    # No block-level.
+    ss
+    ss$cid = paste( ss$blockID, ss$clusterID, sep="-" )
+    bb = design_based_estimators( Yobs ~ Z | cid, data=ss )
     bb
     expect_true( nrow(bb) == 1 )
 

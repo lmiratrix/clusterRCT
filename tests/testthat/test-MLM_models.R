@@ -33,7 +33,7 @@ test_that("MLM estimation works", {
     expect_true( all( md$SE_hat > 0 ) )
 
     md = MLM_estimators( Yobs ~ T.x | S.id, data = sim.data )
-    expect_true( md$method == "MLM-NoFE" )
+    expect_true( md$method == "MLM_NoFE" )
 
     sim.data$Yobs[ sim.data$T.x == 1 ] = sim.data$Yobs[ sim.data$T.x == 1 ] + 0.3
     md = MLM_estimators( Yobs ~ T.x | S.id | D.id, data = sim.data )

@@ -28,7 +28,7 @@ test_that("patch data works", {
     expect_true( nrow(ptch) == n )
 
     mn = mean( data$RR == "C", na.rm=TRUE )
-    expect_true( ptch$RRC[17] == mn )
+    expect_equal( ptch$RRC[17], mn, tolerance = 0.000001 )
 
     mod = lm( Yobs ~ X_mi + R_mi + Q_mi + RRB_mi,
               data=ptch)

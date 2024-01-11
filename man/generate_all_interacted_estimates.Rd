@@ -8,7 +8,8 @@ generate_all_interacted_estimates(
   fitModel,
   data,
   use_full_vcov = FALSE,
-  method = "LR-FI-CRVE",
+  SE_table = NULL,
+  method = "LR_FI_CRVE",
   aggregated = FALSE
 )
 }

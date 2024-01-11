@@ -29,10 +29,6 @@ model.params.list <- list(
 
 
 
-# Hack--- use binom dist to get number of big clusters (needed?)
-# generate and then stack the data from little and big cluster estimates
-
-
 
 one_run <- function() {
 
@@ -45,8 +41,8 @@ one_run <- function() {
 
 one_run()
 
-
-rps = map_df( 1:50, ~ one_run(), .id = "runID" )
+R = 100
+rps = map_df( 1:R, ~ one_run(), .id = "runID" )
 
 head( rps )
 
@@ -60,5 +56,3 @@ rps %>% group_by( method ) %>%
 
 
 
-
-# Profile the above code

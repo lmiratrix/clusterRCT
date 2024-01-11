@@ -37,8 +37,9 @@ linear_model_estimators <- function( formula,
     pv2 <- M2$p.value[["Z"]]
 
     # Compile our results
+    nm = ifelse( needFE, "LR_FE_CRVE", "LR_NoFE_CRVE" )
     tibble(
-        method = c( "LR w/ CRSE" ),
+        method = c( nm ),
         ATE_hat = c( est2 ),
         SE_hat = c( se2 ),
         p_value = c( pv2 )
@@ -87,6 +88,7 @@ interacted_linear_model_estimators <- function( formula,
     M0.int <- estimatr::lm_robust( form, data=data, clusters=clusterID )
 
     ests <- generate_all_interacted_estimates( M0.int, data,
+                                               method = "LR_FI_CRVE",
                                                use_full_vcov = use_full_vcov )
 
     ests

@@ -18,6 +18,7 @@ test_that( "describer works", {
     d <- describe_clusterRCT( formula = Yobs ~ T.x | S.id | D.id, data=fakeCRT,
                               control_formula = ~ V.k + X.jk + C.ijk )
 
+    d
     expect_true( is.clusterRCTstats(d) )
 
     dd = as.data.frame(d)
@@ -144,12 +145,12 @@ test_that( "ICC calcs work", {
 
     head( data )
 
-    dd <- describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data=data )
-
+    dd <- describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data=data,
+                               control_formula = ~ X.jk )
+    dd
     expect_equal( dd$block_ICC, 0.5, tolerance = 0.1 )
     expect_equal( dd$cluster_ICC, 0.2, tolerance = 0.1 )
-
-
+    expect_equal( dd$R2.2, 0.1, tolerance = 0.1 )
 
     model.params.list <- list(
         M = 1                            # number of outcomes
@@ -160,24 +161,26 @@ test_that( "ICC calcs work", {
         , D.id = NULL                     # N-length vector of district assignments
         , Xi0 = 0                         # scalar grand mean outcome under no treatment
         , MDES = 0.125            # minimum detectable effect size
-        , R2.3 = 0.1              # percent of district variation
+        , R2.3 = 0.0              # percent of district variation
         , ICC.3 = 0             # district intraclass correlation
         , omega.3 = 0.2           # ratio of district effect size variability
-        , R2.2 = 0.1              # percent of school variation
+        , R2.2 = 0.0              # percent of school variation
         , ICC.2 = 0.05             # school intraclass correlation
         , omega.2 = 0.0          # ratio of school effect size variability
-        , R2.1 = 0.1    # percent of indiv variation explained
+        , R2.1 = 0.8    # percent of indiv variation explained
     )
 
     data <- PUMP::gen_sim_data( d_m = "d3.2_m3ff2rc", model.params.list, Tbar = 0.5 )
 
     head( data )
 
-    dd <- describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data=data )
 
+    dd <- describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data=data,
+                               control_formula = ~ C.ijk )
+    dd
     expect_equal( dd$block_ICC, 0.05, tolerance = 0.1 )
     expect_equal( dd$cluster_ICC, 0, tolerance = 0.1 )
-
+    expect_equal( dd$R2.1, 0.8, tolerance = 0.1 )
 })
 
 
@@ -203,7 +206,7 @@ test_that( "R2 calcs work", {
     bt <- make_block_table(  Y ~ Z | cid | sid, data=dd )
     expect_true( nrow( bt ) == 3 )
 
-    describe_clusterRCT( Y ~ Z | cid | sid, data=dd)
+    desc <- describe_clusterRCT( Y ~ Z | cid | sid, data=dd)
     dd <- dd %>%
         group_by( sid ) %>%
         mutate(   X1 = Y + rnorm(n(), sd=3),
@@ -224,6 +227,40 @@ test_that( "R2 calcs work", {
     b
     expect_true( a$ncov.1 == b$ncov.1 )
     expect_true( a$ncov.2 == b$ncov.2 )
+
+
+
+
+
+    set.seed( 445040 )
+    model.params.list <- list(
+        M = 1                            # number of outcomes
+        , J = 50                          # number of schools
+        , K = 5                          # number of districts
+        , nbar = 30                       # number of individuals per school
+        , S.id = NULL                     # N-length vector of school assignments
+        , D.id = NULL                     # N-length vector of district assignments
+        , Xi0 = 0                         # scalar grand mean outcome under no treatment
+        , MDES = 0.125            # minimum detectable effect size
+        , R2.3 = 0.5              # percent of district variation
+        , ICC.3 = 0.2             # district intraclass correlation
+        , omega.3 = 0.2           # ratio of district effect size variability
+        , R2.2 = 0.75              # percent of school variation
+        , ICC.2 = 0.4             # school intraclass correlation
+        , omega.2 = 0.0          # ratio of school effect size variability
+        , R2.1 = 0.25    # percent of indiv variation explained
+    )
+    sim.data <- PUMP::gen_sim_data( d_m = "d3.2_m3ff2rc", model.params.list, Tbar = 0.5 )
+    kp = rbinom( nrow(sim.data), 1, prob = (50+as.numeric(sim.data$S.id)) / 300 )
+    mean(kp)
+    head( sim.data )
+    sim.data = sim.data[ kp == 1, ]
+    desc = describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data=sim.data, control_formula = ~ C.ijk + X.jk + V.k )
+    desc
+    expect_equal( desc$R2.1, 0.25, tolerance = 0.2 )
+    expect_equal( desc$R2.2, 0.75, tolerance = 0.2 )
+    expect_equal( desc$cluster_ICC, 0.4, tolerance = 0.25 )
+
 
 })
 

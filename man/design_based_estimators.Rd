@@ -8,7 +8,7 @@ design_based_estimators(
   formula,
   data = NULL,
   control_formula = NULL,
-  weight = c("individual", "cluster"),
+  weight = c("Person", "Cluster"),
   aggregated = FALSE
 )
 }

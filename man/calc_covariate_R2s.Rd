@@ -4,10 +4,12 @@
 \alias{calc_covariate_R2s}
 \title{Calculate R2 of level 1, level 2, and block.}
 \usage{
-calc_covariate_R2s(data, pooled = FALSE)
+calc_covariate_R2s(data, ICCs = NULL, pooled = FALSE)
 }
 \arguments{
 \item{data}{in canonical form.}
+
+\item{ICCs}{List of ICC values, level 2 and level 3 in order.}
 
 \item{pooled}{Calculate pooled Tx and Co groups, attempting to
 remove systematic shift of average treatment effect.  If FALSE,
