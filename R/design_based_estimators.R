@@ -30,10 +30,13 @@ get_overall_ATE <- function( mod, weights ) {
 
 
 
-# Implement formula (9) and following equations from Schochet et
-# al paper.
+# Implement formula (9) and following equations from Schochet et al
+# paper.
 #
 # See page 2139-40 (section 4.2)
+#
+# This return a dataframe, one row per block, of standard errors for
+# impact estimates.
 #
 # @param adt Aggregated (cluster-level) data.
 # @param v Degrees of freedom.  Use v=# covariates.
@@ -45,16 +48,16 @@ schochet_variance_formula_block <- function( adt, v ) {
     stopifnot( !is.null( adt$resid ) )
     stopifnot( !is.null( adt$Z ) )
 
+    # This calculates the sum part of the s2 calculations.
     calc_s2_partial <- function( .weight, resid ) {
 
         w_bar = mean( .weight )
         tot = sum( ( (.weight^2) / (w_bar^2) ) * resid^2 )
-        #mb = nrow( adt )
 
-        #tot / (mb - v * p * q - 1)
         tot
     }
 
+    W = sum( adt$.weight )
     adtw <- adt %>%
         group_by( blockID, Z ) %>%
         summarize( m = n(),
@@ -63,47 +66,34 @@ schochet_variance_formula_block <- function( adt, v ) {
                    s2 = calc_s2_partial( .weight, resid ),
                    .groups = "drop" ) %>%
         dplyr::group_by( blockID ) %>%
-        dplyr::mutate( p = m / sum(m) ) %>%
+        dplyr::mutate( p = m / sum(m),
+                       weight = sum( totwt ) ) %>%
+        dplyr::select( -totwt ) %>%
         ungroup() %>%
-        dplyr::mutate( q = totwt / sum(totwt) ) %>%
+        dplyr::mutate( q = weight / W ) %>%
         dplyr::group_by( Z ) %>%
-        dplyr::mutate( wt = totwt / sum(totwt),
-                       s2 = s2 / (m - v * p * q - 1) ) %>%
+        dplyr::mutate( sdf = (m - v * p * q - 1),
+                       s2 = s2 / sdf ) %>%
         ungroup()
 
     pt2 <- adtw %>%
-        dplyr::select( -p, -q ) %>%
         tidyr::pivot_wider( names_from = "Z",
-                            values_from = c( totwt, s2, m, n, wt) ) %>%
+                            values_from = c( s2, sdf, m, n, p ) ) %>%
         dplyr::mutate( varD = s2_1 / m_1 + s2_0 / m_0,
                        SE_hat = sqrt( varD ),
                        n = n_0 + n_1,
-                       m = m_0 + m_1,
-                       weight = totwt_0 + totwt_1 )
+                       m = m_0 + m_1 )
+
+
+    pt2 <- pt2 %>%
+        dplyr::select( -p_0 ) %>%
+        rename( p = p_1 )
 
     pt2$weight = pt2$weight / sum(pt2$weight)   # normalize weights to avoid overflow
 
     pt2
 }
 
-
-
-#' Given block specific estimates, calculate the ATE, associated
-#' standard error, and design-based degrees of freedom.
-#'
-#' @param block_estimates Result of the
-#'   schochet_variance_formula_block() function call.
-#' @return List of ATE, SE, and degrees of freedom.
-schochet_overall_estimator <- function( block_estimates ) {
-
-    h = length( unique( adt$blockID ) )
-
-    SE_ATE <- with(block_estimates, sum(varD*totwt^2) / (h*mean(totwt))^2)
-
-    list( SE_hat = sqrt( SE_ATE ),
-          df = nrow(adt) - 2*h - 1 )
-
-}
 
 
 
@@ -123,8 +113,8 @@ schochet_FE_variance_formula <- function( adt, v ) {
                    m_b = n(),
                    wbar_b = mean(.weight),
                    num = sum(.weight^2 * (Z-p_b)^2 * resid^2)) %>%
-        summarize(SE_ATE = sqrt( m / (m-h-v-1) * sum(num) /
-                                     sum(m_b*p_b*(1-p_b)*wbar_b)^2 )) %>%
+        summarize( SE_ATE = sqrt( m / (m-h-v-1) * sum(num) /
+                                      sum(m_b*p_b*(1-p_b)*wbar_b)^2 )) %>%
         pull(SE_ATE)
 
     df = m - v - h - 1
@@ -214,9 +204,34 @@ design_based_estimators <- function( formula,
                                                   method = glue::glue("DB_FI_{suff}"),
                                                   aggregated = TRUE,
                                                   include_block_estimates = include_block_estimates )
-
         # df = m - 2h - v* = #clusters - 2 #blocks - #covariates
         ests$df = J - 2*K - v
+
+        if ( FALSE ) {
+            aa <- aggregation_estimators( formula = NULL, data_agg, aggregated = TRUE )
+            aa
+
+            mm <- data_agg %>% group_by( blockID, Z ) %>%
+                summarise( n = n(),
+                           s2 = var( resid ),
+                           s2Y = var( Ybar ), .groups = "drop" ) %>%
+                pivot_wider( names_from=Z, values_from=c(n, s2, s2Y ) ) %>%
+                mutate( varD = s2_1 / n_1 + s2_0 / n_0,
+                        SE_hat = sqrt( varD ),
+                        w = (n_0+n_1) / sum( n_0+n_1) )
+            mm
+
+            mm$SE_hat / block_tab$SE_hat
+            sqrt( with( mm, sum( w^2 * varD ) ) )
+            mm$J = block_tab$J
+            mm$n = block_tab$n
+            generate_all_interacted_estimates( mod, data = data_agg,
+                                               use_full_vcov = FALSE,
+                                               SE_table = mm,
+                                               method = "tmp",
+                                               aggregated = TRUE,
+                                               include_block_estimates = TRUE )
+        }
 
         # fixed effects model
         form = make_regression_formula( Yobs = "Ybar", FE = TRUE,
@@ -299,9 +314,8 @@ design_based_estimators <- function( formula,
 middleton_aronow_estimator <- function( formula,
                                         data = NULL,
                                         control_formula = NULL,
-                                        weight = c( "individual", "cluster" ),
-                                        aggregated = FALSE ) {
-
+                                        aggregated = FALSE,
+                                        include_block_estimates = FALSE ) {
 
     if ( !aggregated ) {
         data = make_canonical_data( formula=formula, data=data,
@@ -322,68 +336,62 @@ middleton_aronow_estimator <- function( formula,
     M = nrow( data_agg )
     m_t = sum( data_agg$Z )
 
-    tots <- data_agg %>% group_by( blockID ) %>%
-        mutate( Ytot = Ybar * n ) %>%
-        summarise( YT_1 = mean( Ytot[Z==1] ),
-                   YT_0 = mean( Ytot[Z==0] ),
-                   M = n(),
-                   N = sum( n ),
-                   ATE_hat = (M/N) * (YT_1 - YT_0) )
+    data_agg <- data_agg %>%
+        mutate( Ytot = Ybar * n )
+
+    # Calculate relationship of cluster total and cluster size
+    alpha = 0
+    if ( sd( data_agg$n ) > 0 ) {
+        Malpha = lm( Ytot ~ n, data=data_agg )
+        alpha = coef(Malpha)[[2]]
+    }
+
+    # Calculate totals and U
+    data_agg <- data_agg %>%
+        group_by( blockID ) %>%
+        mutate( n_bar = mean( n ) ) %>%
+        ungroup() %>%
+        mutate( U = Ytot - alpha*(n - n_bar) )
+
+    # Calculate point estimates
+    tots <- data_agg %>%
+        group_by( blockID, Z ) %>%
+        summarise( Ybar = mean(Ytot),
+                   Ubar = mean(U),
+                   S2Y = var(Ytot),
+                   S2U = var(U),
+                   J = n(),
+                   N = sum(n) )
+
+    tots <- pivot_wider( tots,
+                         names_from = Z,
+                         values_from = c( Ybar, Ubar, S2Y, S2U, J, N ) ) %>%
+        mutate( J = J_0 + J_1,
+                N = N_0 + N_1,
+                ATE_HT = (J/N) * (Ybar_1 - Ybar_0),
+                ATE_Raj = (J/N) * (Ubar_1 - Ubar_0),
+                SE_HT = ((J^2)/(N^2)) * (S2Y_1/J_1 + S2Y_0/J_0),
+                SE_Raj = ((J^2)/(N^2)) * (S2U_1/J_1 + S2U_0/J_0) )
     stopifnot( nrow( tots ) == n_block )
 
-    #ATE_hat <- (M / N) * ( tots$YT[[2]] - tots$YT[[1]] )
+    ATE_HT = calc_agg_estimate( tots$N, tots$ATE_HT, tots$SE_HT )
+    ATE_Raj = calc_agg_estimate( tots$N, tots$ATE_Raj, tots$SE_Raj )
 
-    # Make our weights variable
-    suff = ""
-    if (weight == "individual") {
-        data_agg$.weight <- data_agg$n
-        suff = "Person"
-    } else {
-        data_agg$.weight <- 1 / data_agg$n
-        suff = "Cluster"
+    df = M - 2*n_block
+
+    res <- tibble(
+        method = c( "DB_HT", "DB_Raj" ),
+        ATE_hat = c( ATE_HT$ATE_hat, ATE_Raj$ATE_hat ),
+        SE_hat = c( ATE_HT$SE_hat, ATE_Raj$SE_hat ),
+        df = c( df, df ),
+        p_value = two_sided_p(ATE_hat, SE_hat, df )
+    )
+
+    if ( include_block_estimates ) {
+        attr( res, "blocks" ) <- tots
     }
 
-    # block level stuff: only if we have a blockID do we fit an
-    # interacted model or allow for fixed effects for each block.
-    ATE_int = NA
-    if ( has_block ) {
-        # Fully interacted model
-        form = make_regression_formula( Yobs = "Ybar", interacted = TRUE,
-                                        control_formula = control_formula )
-        mod = lm_robust( form, data=data_agg, weights = .weight,
-                         ci = FALSE, se_type="none" )
-        stwt <- data_agg %>% group_by( blockID ) %>%
-            summarise( wt = sum( .weight ) )
-        ATE_int = get_overall_ATE(mod, stwt$wt )
-
-        # fixed effects model
-        form = make_regression_formula( Yobs = "Ybar", FE = TRUE,
-                                        control_formula = control_formula )
-        mod_FE = lm_robust( form, data=data_agg, weights = .weight,
-                            ci = FALSE, se_type="none" )
-        ATE_FE = coef(mod_FE)[ "Z" ]
-        tibble(
-            method = c( glue::glue( "DB_{suff} (int)" ),
-                        glue::glue( "DB_{suff} (FE)" ) ),
-            ATE_hat = c( ATE_int, ATE_FE ),
-            SE_hat = c( NA, NA ),
-            p_value = c( NA, NA )
-        )
-    } else {
-        # We have to use simple Cluster randomized estimators.
-        form = make_regression_formula( Yobs = "Ybar", FE = FALSE,
-                                        control_formula = control_formula )
-        mod = lm_robust( form, data=data_agg, weights = .weight,
-                         ci = FALSE, se_type="none" )
-        ATE_FE = coef(mod)[ "Z" ]
-        tibble(
-            method = glue::glue( "DB_{suff}" ),
-            ATE_hat = c( ATE_FE ),
-            SE_hat = c( NA ),
-            p_value = c( NA )
-        )
-
-    }
+    res
 }
 
 
@@ -426,6 +434,14 @@ if ( FALSE ) {
     bb
 
 
+    # Unbalanced data
+    data( "fakeCRT" )
+    head( fakeCRT )
+    bb = design_based_estimators( Yobs ~ T.x | S.id | D.id, data = fakeCRT )
+
+
+    compare_methods( Yobs ~ T.x | S.id | D.id, data = fakeCRT , include_MLM = FALSE, include_agg = FALSE ) %>%
+        arrange( SE_hat )
 }
 
 

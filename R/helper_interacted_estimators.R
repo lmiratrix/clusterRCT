@@ -1,17 +1,17 @@
 
 
-calc_agg_estimate <- function( wts, ATE_hats, SE_hats ) {
+calc_agg_estimate <- function( wts, ATE_hats, SE2_hats ) {
 
     # normalize weights
     wts = wts / sum(wts)
 
     ATE_hat <- weighted.mean(ATE_hats, wts)
     SE_hat = NA
-    if ( is.matrix(SE_hats) ) {
+    if ( is.matrix(SE2_hats) ) {
         wts = as.matrix(wts, ncol=1)
-        SE_hat = as.numeric( sqrt( t(wts) %*% SE_hats %*% wts ) )
+        SE_hat = as.numeric( sqrt( t(wts) %*% SE2_hats %*% wts ) )
     } else {
-        SE_hat = sqrt( sum(wts ^ 2 * SE_hats) )
+        SE_hat = sqrt( sum(wts ^ 2 * SE2_hats) )
     }
     tibble( ATE_hat = ATE_hat,
             SE_hat = SE_hat,
@@ -20,7 +20,7 @@ calc_agg_estimate <- function( wts, ATE_hats, SE_hats ) {
 
 
 
-calculate_avg_impacts <- function( ATE_hats, SE_hats,
+calculate_avg_impacts <- function( ATE_hats, SE2_hats,
                                    sizes = NULL,
                                    clusterID = NULL,
                                    blockID = NULL ) {
@@ -39,20 +39,20 @@ calculate_avg_impacts <- function( ATE_hats, SE_hats,
     K = nrow( sizes )
 
     # equal weighting
-    ATE_eq <- calc_agg_estimate( rep(1,K), ATE_hats, SE_hats )
+    ATE_eq <- calc_agg_estimate( rep(1,K), ATE_hats, SE2_hats )
 
     # weight by number of clusters
-    ATE_cluster <- calc_agg_estimate(sizes$J, ATE_hats, SE_hats)
+    ATE_cluster <- calc_agg_estimate(sizes$J, ATE_hats, SE2_hats)
 
     # weight by number of students
-    ATE_indiv <- calc_agg_estimate(sizes$n, ATE_hats, SE_hats)
+    ATE_indiv <- calc_agg_estimate(sizes$n, ATE_hats, SE2_hats)
 
     rsp <- bind_rows( Block = ATE_eq,
                       Cluster = ATE_cluster,
                       Person = ATE_indiv, .id="weight" )
     if ( "weight" %in% names(sizes) ) {
         # weight by arbitrary weight, if given
-        ATE_weight = calc_agg_estimate(sizes$weight, ATE_hats, SE_hats)
+        ATE_weight = calc_agg_estimate(sizes$weight, ATE_hats, SE2_hats)
         ATE_weight$weight = "Weight"
         rsp = bind_rows( rsp, ATE_weight )
     }
@@ -101,22 +101,22 @@ generate_all_interacted_estimates <- function( fitModel, data,
     }
 
     ests = NA
-    SE_hats = NA
+    SE2_hats = NA
     if ( !is.null( SE_table ) ) {
         stopifnot( all( names(ATE_hats) == SE_table$blockID ) )
-        SE_hats = SE_table$SE_hat
+        SE2_hats = SE_table$SE_hat^2
         ests <- calculate_avg_impacts( ATE_hats,
-                                       SE_hats,
+                                       SE2_hats,
                                        sizes = SE_table )
     } else if ( use_full_vcov ) {
         # This is the cautious way we don't need since we have 0s in
         # the off diagonal
-        SE_hats = diag( as.matrix( VC ) )[ids] # for table below
+        SE2_hats = diag( as.matrix( VC ) )[ids] # for table below
         ests <- calculate_avg_impacts( ATE_hats, VC[ids,ids],
                                        sizes = sizes )
     } else {
-        SE_hats <- diag( as.matrix( VC ) )[ids]
-        ests <- calculate_avg_impacts( ATE_hats, SE_hats,
+        SE2_hats <- diag( as.matrix( VC ) )[ids]
+        ests <- calculate_avg_impacts( ATE_hats, SE2_hats,
                                        sizes = sizes )
     }
 
@@ -128,7 +128,7 @@ generate_all_interacted_estimates <- function( fitModel, data,
     if ( include_block_estimates ) {
         tb = tibble( blockID = names(ATE_hats),
                      ATE_hat = ATE_hats,
-                     SE_hat = SE_hats )
+                     SE_hat = sqrt( SE2_hats ) )
         attr( ests, "blocks" ) <- tb
     }
     ests

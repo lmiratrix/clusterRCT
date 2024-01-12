@@ -54,7 +54,7 @@ rps = map_df( 1:100, ~ one_run(), .id = "runID", .progress=TRUE )
 head( rps )
 
 
-rps %>% group_by( method ) %>%
+res <- rps %>% group_by( method ) %>%
     summarise( sdtau_indiv = sd( tau_indiv ),
                tau_indiv = mean( tau_indiv ),
                sdtau_clust = sd( tau_clust ),
@@ -67,13 +67,20 @@ rps %>% group_by( method ) %>%
                SEb = sd(ATE_hat - tau_indiv) / sqrt(n()),
                bI_t = bias_indiv / SEb,
                bI_c = bias_clust / ( sd(ATE_hat - tau_clust) / sqrt(n()) ),
-               biased = pmin( abs(bI_t), abs(bI_c) ) ) %>%
-    mutate( calib = sqrt( ESE_hat^2 / SE^2 ) )
+               biased = round( pmin( abs(bI_t), abs(bI_c) ) ) ) %>%
+    mutate( calib = sqrt( ESE_hat^2 / SE^2 ) ) %>%
+    relocate( method, tau_indiv, sdtau_indiv, tau_clust )
 
 
-# CONCLUSIONS: Estimators are either targeting individual or cluster
-# average impacts, but the standard errors all seem reasonably
-# calibrated under a superpopulation model.
+res %>%
+    dplyr::select( -sdtau_indiv )
+
+res %>%
+    dplyr::select( method, EATE, SE, bias_indiv, bias_clust, calib, biased )
+
+# CONCLUSIONS: Estimators are, for the most part, either targeting
+# individual or cluster average impacts, and the standard errors all
+# seem reasonably calibrated under a superpopulation model.
 
 # RESULTS:
 # A tibble: 6 × 9

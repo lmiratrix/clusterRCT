@@ -123,10 +123,6 @@ if (F) {
 }
 
 
-# NOTE: schochet_variance_formula() returns NA if there is only
-#  one treated (or control) cluster within a district!
-#   - i.e., m_b^1 or m_b^0 = 1 (equation 9)
-# --> avoid this in a hacky way for now
 one_run <- function() {
 
     # super hacky, just want to ensure that there are at least
@@ -159,11 +155,14 @@ one_run <- function() {
                 pull(tau)
         )
 }
-one_run()
+
+if ( FALSE ) {
+    one_run()
+}
 
 
 
-rps = map_df( 1:100, ~ one_run(), .id = "runID", .progress=T )
+rps = map_df( 1:100, ~ one_run(), .id = "runID", .progress=TRUE )
 head( rps )
 
 
@@ -173,7 +172,8 @@ rps %>% group_by( method ) %>%
                EATE = mean( ATE_hat ),
                SE = sd( ATE_hat ),
                ESE_hat = sqrt( mean( SE_hat^2 ) ) ) %>%
-    mutate( calib = sqrt( ESE_hat^2 / SE^2 ) )
+    mutate( calib = sqrt( ESE_hat^2 / SE^2 ) ) %>%
+    knitr::kable(digits=2)
 
 # RESULTS:
 # # A tibble: 8 x 7

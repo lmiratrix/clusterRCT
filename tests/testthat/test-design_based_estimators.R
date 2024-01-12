@@ -33,6 +33,9 @@ test_that("DB estimators work", {
     aa
     expect_true( nrow( aa ) == 5 )
 
+    bb4 = middleton_aronow_estimator( Yobs ~ T.x | S.id | D.id, data=sim.data )
+    expect_true( nrow( bb4 ) == 2 )
+
     # No block-level.
     sim.data$D.id = NULL
     bb = design_based_estimators( Yobs ~ T.x | S.id, data=sim.data, weight = "Cluster" )
@@ -42,6 +45,9 @@ test_that("DB estimators work", {
     bb2 = design_based_estimators( Yobs ~ T.x | S.id, data=sim.data, weight = "Person" )
     bb2
     expect_true( nrow(bb) == 1 )
+
+
+    bb3 = middleton_aronow_estimator( Yobs ~ T.x | S.id, data=sim.data )
 
 })
 
@@ -129,5 +135,35 @@ test_that("DB weighting works", {
     bb = design_based_estimators( Yobs ~ Z | cid, data=ss )
     bb
     expect_true( nrow(bb) == 1 )
+
+} )
+
+
+
+test_that( "middleton aronow works", {
+    ss = tibble( blockID = c( 1, 1, 1, 1, 1, 1 ),
+                 clusterID = c( 1, 2, 3, 4, 5, 6 ),
+                 Z = c( 0, 1, 0, 0, 1, 0 ),
+                 Y0 = c( 9, 10, 11, 14, 15, 16 ),
+                 tau = c( 0, 0, 0, 10, 10, 10 ) )
+    ss = ss[ rep( 1:6, c(2,2,2,4,4,10) ), ]
+    ss$Y0 = ss$Y0 + rep( c(-1, 1), nrow(ss)/2 )
+
+    ss2 = ss
+    ss2$blockID = 2
+    ss = bind_rows( ss, ss2, ss2 ) %>%
+        mutate( Yobs = Y0 + Z*tau ) %>%
+        arrange( blockID, clusterID )
+    ss
+
+    # Raj estimator, etc
+    aa = middleton_aronow_estimator( Yobs ~ Z | clusterID | blockID, data=ss,
+                                  include_block_estimates = TRUE )
+
+    blk <- attr( aa, "blocks" )
+    blk
+    expect_true( nrow( blk ) == 2 )
+
+    expect_true( aa$SE_hat[[2]] < aa$SE_hat[[1]] )
 
 })

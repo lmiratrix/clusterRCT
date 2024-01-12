@@ -163,7 +163,10 @@ compare_methods <- function(formula,
                                             weight = "Cluster",
                                             aggregated = TRUE)
 
-        summary_table = dplyr::bind_rows( summary_table, db_res_i, db_res_c )
+        db_middleton <- middleton_aronow_estimator(formula = NULL, data = aggdat,
+                                             control_formula = control_formula_agg,
+                                             aggregated = TRUE)
+        summary_table = dplyr::bind_rows( summary_table, db_res_i, db_res_c, db_middleton )
     }
 
     # Add info on the methods (e.g., what estimand they are targeting)
