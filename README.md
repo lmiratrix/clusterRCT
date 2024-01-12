@@ -17,5 +17,6 @@ The opinions expressed are those of the authors and do not represent views of th
 
 ## Fake Version Tag
 
-The version of this code is at least 0.002 as of Dec 4, 2023
+The version of this code is at least 0.003 as of Jan 12, 2024
+
 
