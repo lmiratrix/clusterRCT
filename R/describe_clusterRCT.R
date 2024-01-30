@@ -115,7 +115,11 @@ describe_clusterRCT <- function( formula = NULL,
             nblk = apply( tb == 1, 1, min )
             notes = c( notes, glue::glue( "{sum(nblk)} blocks have exactly 2 clusters, one treated and one control" ) )
         }
+        stats$has_singletons = TRUE
+    } else {
+        stats$has_singletons = FALSE
     }
+
     if ( any( tb == 2 ) ) {
         notes = c( notes, glue::glue( "{sum(tb==2)} within-block treatment arms have exactly 2 clusters." ) )
     }
