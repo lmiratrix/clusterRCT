@@ -58,6 +58,7 @@ aggregation_estimators <- function( formula,
         return( bind_rows( Agg_FE_cluster, Agg_FE_person ) )
     }
 
+    # Interacted estimator that estimates within block and averages
     formI = make_regression_formula( Yobs = "Ybar",
                                     FE = needFE, interacted = TRUE,
                                     control_formula = control_formula )
@@ -71,15 +72,21 @@ aggregation_estimators <- function( formula,
                                                  use_full_vcov=TRUE,
                                                  method = "Agg_wFI" )
 
+    # Drop SEs if there are singleton treated or control blocks.
+    if ( has_singleton_clusters_agg( datagg ) ) {
+        Agg_FI$SE_hat = NA
+        Agg_FI$p_value = NA
+        Agg_wFI$SE_hat = NA
+        Agg_wFI$p_value = NA
+    }
+
     # Compile our results
     res <- bind_rows( Agg_FE_cluster,
                Agg_FE_person,
                Agg_FI,
                Agg_wFI )
 
-    # convert NaNs to NAs
-    res$SE_hat[ is.nan(res$SE_hat) ] = NA
-    res$p_value[ is.na(res$SE_hat) ] = NA
+
 
     res
 }

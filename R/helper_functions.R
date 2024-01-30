@@ -413,6 +413,19 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
 }
 
 
+#' Any treatment arms with singleton cluster (tx or co)?
+#'
+#' Used to avoid calculating nonsensical standard errors.
+#'
+#' @param datagg Aggregated data with blockID and Z columns.
+#'
+#' @return TRUE or FALSE
+has_singleton_clusters_agg <- function( datagg ) {
+    tb = table( datagg$blockID, datagg$Z )
+    return( any( tb <= 1 ) )
+}
+
+
 
 #' Identify all tx and all co blocks
 #'

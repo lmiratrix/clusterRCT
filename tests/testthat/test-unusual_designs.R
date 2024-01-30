@@ -39,11 +39,13 @@ test_that( "matched pairs designs get handled right", {
 
 test_that( "singleton tx or co designs get handled right", {
 
-    blk = blkvar::generate_blocked_data( n_k = c( 5, 10, 20, 10, 5, 10, 20, 30, 10 ) )
+    blk = blkvar::generate_blocked_data( n_k = c( 5, 10, 20, 10, 11, 13,
+                                                  10, 10, 20, 10,
+                                                  30, 10, 5, 10, 30, 15 ) )
     head( blk )
-    blks = tibble( B = paste0( "B", 1:9 ),
-                   D = rep( 1:3, each=3 ),
-                   Z = rep( c(0,1,0), 3 ) )
+    blks = tibble( B = paste0( "B", 1:16 ),
+                   D = rep( 1:3, c(6,4,6) ),
+                   Z = randomizr::block_ra(blocks=D, block_m = c(3,1,3) ) )
     blk = left_join( blk, blks, by="B" ) %>%
         mutate( Yobs = ifelse( Z, Y1, Y0 ) )
 
@@ -76,10 +78,12 @@ test_that( "singleton tx or co designs get handled right", {
     expect_true( !any( stringr::str_detect( attr( dsc, "notes" ), "matched pairs" ) ) )
     expect_true( any( stringr::str_detect( attr( dsc, "notes" ), "singleton" ) ) )
 
-    comp = compare_methods( Yobs ~ Z | B | D, data=blk )
-    comp
-    expect_true( all( !is.na( comp$ATE_hat ) ) )
+    comp2 = compare_methods( Yobs ~ Z | B | D, data=blk )
+    comp2
+    expect_true( all( !is.na( comp2$ATE_hat ) ) )
 
+    left_join( comp[ c(1:3) ], comp2[ c(1:3) ], by="method" )
+    expect_equal( is.na( comp$SE_hat ), is.na( comp2$SE_hat ) )
 })
 
 

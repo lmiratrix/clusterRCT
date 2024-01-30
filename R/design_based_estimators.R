@@ -209,6 +209,8 @@ design_based_estimators <- function( formula,
         # df = m - 2h - v* = #clusters - 2 #blocks - #covariates
         ests$df = J - 2*K - v
 
+
+        # Random debugging code -- here for future checking.
         if ( FALSE ) {
             aa <- aggregation_estimators( formula = NULL, data_agg, aggregated = TRUE )
             aa
@@ -234,6 +236,8 @@ design_based_estimators <- function( formula,
                                                aggregated = TRUE,
                                                include_block_estimates = TRUE )
         }
+
+
 
         # fixed effects model
         form = make_regression_formula( Yobs = "Ybar", FE = TRUE,
