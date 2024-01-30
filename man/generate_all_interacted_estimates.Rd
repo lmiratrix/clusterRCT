@@ -10,7 +10,8 @@ generate_all_interacted_estimates(
   use_full_vcov = FALSE,
   SE_table = NULL,
   method = "LR_FI_CRVE",
-  aggregated = FALSE
+  aggregated = FALSE,
+  include_block_estimates = FALSE
 )
 }
 \arguments{
@@ -20,7 +21,11 @@ generate_all_interacted_estimates(
 should the full variance-covariance matrix of the block-level
 estimates be used, or just the diagonal of standard errors?}
 
-\item{method}{Prefix of the method.  Will add the weighting to stem.}
+\item{method}{Prefix of the method.  Will add the weighting to
+stem.}
+
+\item{aggregated}{TRUE means data is summarized at the Block level.
+False means it is not, and needs to be aggregated.}
 }
 \description{
 Also calculate associated standard error.

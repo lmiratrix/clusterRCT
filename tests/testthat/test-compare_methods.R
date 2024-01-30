@@ -10,7 +10,7 @@ data( "fakeCRT" )
 test_that("compare methods aggregates as expected", {
 
     mtab <- compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
-                             include_method_characteristics = FALSE)
+                             include_method_characteristics = FALSE )
     mtab
     expect_true( is.data.frame(mtab) )
 
@@ -22,7 +22,7 @@ test_that("compare methods aggregates as expected", {
     # control formula is getting propagated)
     mtab$dels = mtab$ATE_hat - mtab_cov$ATE_hat
     mtab
-    expect_true( all( mtab$dels != 0 ) )
+    expect_true( sum( mtab$dels == 0 ) == 2 )
 
     mtab <- compare_methods( Yobs ~ T.x | S.id, data=fakeCRT,
                              include_method_characteristics = FALSE)
@@ -106,3 +106,5 @@ test_that("missing data handled as desired", {
                      include_method_characteristics = FALSE ) )
     #expect_true( is.data.frame(mtab_cov) )
 })
+
+

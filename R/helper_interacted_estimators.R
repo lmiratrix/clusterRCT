@@ -87,6 +87,9 @@ generate_all_interacted_estimates <- function( fitModel, data,
     } else {
         cc = coef( fitModel )
     }
+
+
+
     ids <- grep( "Z:", names(cc) )
     stopifnot(length(ids) == J)
 
@@ -131,5 +134,14 @@ generate_all_interacted_estimates <- function( fitModel, data,
                      SE_hat = sqrt( SE2_hats ) )
         attr( ests, "blocks" ) <- tb
     }
+
+    # Now a check: if rank deficient, then give NAs for all ATEs
+    # to signal something is wrong
+    if ( any( is.na( cc ) ) ) {
+        warning( "Some coefficients of linear model undefined, likely due to colinearity in covariates and block dummies", call. = FALSE )
+        ests$ATE_hat = rep( NA, nrow(ests) )
+        ests$SE_hat = rep( NA, nrow(ests) )
+    }
+
     ests
 }

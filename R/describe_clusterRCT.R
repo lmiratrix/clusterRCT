@@ -102,6 +102,25 @@ describe_clusterRCT <- function( formula = NULL,
     stats$block_ICC = ICCs$S.ICC
     stats$sdY0 = sd( data$Yobs[ data$Z == 0] )
 
+    # Calculate some notes about block distribution.
+    notes = c()
+    tb = table( sizes$blockID, sizes$Z )
+
+    if ( any( tb == 1 ) ) {
+        if ( all( tb <= 1 ) ) {
+            notes = c( notes, "matched pairs design" )
+        } else {
+            nblk = apply( tb == 1, 1, max )
+            notes = c( notes, glue::glue( "{sum(nblk)} blocks have at least one singleton treated or control clusters" ) )
+            nblk = apply( tb == 1, 1, min )
+            notes = c( notes, glue::glue( "{sum(nblk)} blocks have exactly 2 clusters, one treated and one control" ) )
+        }
+    }
+    if ( any( tb == 2 ) ) {
+        notes = c( notes, glue::glue( "{sum(tb==2)} within-block treatment arms have exactly 2 clusters." ) )
+    }
+    attr( stats, "notes" ) <- notes
+
     class( stats ) <- c( "clusterRCTstats", class( stats ) )
 
     # R2 values
@@ -235,7 +254,8 @@ calc_covariate_R2s <- function( data, ICCs = NULL, pooled = FALSE ) {
         Mblock = lm( Yobs ~ blockID, data=resCo )
         R2.block = summary(Mblock)$adj.r.squared
 
-        cents = resCo %>% dplyr::select( !ends_with( "_mn" ) )
+        cents = resCo %>%
+            dplyr::select( !ends_with( "_mn" ) )
         M = lm( Yobs ~ . - clusterID, data=cents )
         summary( M )
         R2.cent = summary(M)$adj.r.squared
@@ -358,6 +378,14 @@ print.clusterRCTstats <- function( x, ... ) {
     if ( ".missing" %in% names(x) ) {
         scat( "missing data counts:\n" )
         print( x$.missing[[1]] )
+    }
+
+    notes = attr( x, "notes" )
+    if ( !is.null(notes) && ( length( notes ) > 0 ) ) {
+        cat( "Notes:\n" )
+        for ( n in notes ) {
+            cat( "\t", n, "\n" )
+        }
     }
 
     invisible( x )

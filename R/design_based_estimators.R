@@ -305,6 +305,9 @@ design_based_estimators <- function( formula,
 #' the outcomes by a fixed constant rather than the realized sample
 #' size to avoid biasing our estimate.
 #'
+#' Note that the control_formula is ignored--these estimators do not
+#' adjust for additioanl controls at this time.
+#'
 #' @inheritParams linear_model_estimators
 #'
 #' @return tibble of estimates using different varieties of the
@@ -316,6 +319,10 @@ middleton_aronow_estimator <- function( formula,
                                         control_formula = NULL,
                                         aggregated = FALSE,
                                         include_block_estimates = FALSE ) {
+
+    #if ( !is.null( control_formula ) ) {
+    #    message( "Note: Adjusting for control variables not yet implemented in the HT and Raj estimators" )
+    #}
 
     if ( !aggregated ) {
         data = make_canonical_data( formula=formula, data=data,

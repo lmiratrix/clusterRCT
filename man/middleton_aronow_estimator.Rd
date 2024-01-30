@@ -8,8 +8,8 @@ middleton_aronow_estimator(
   formula,
   data = NULL,
   control_formula = NULL,
-  weight = c("individual", "cluster"),
-  aggregated = FALSE
+  aggregated = FALSE,
+  include_block_estimates = FALSE
 )
 }
 \arguments{
@@ -31,4 +31,7 @@ They introduce a Raj Difference estimator that is an extension of a
 Horvitz-Thompson estimator where, in effect, we divide the sum of
 the outcomes by a fixed constant rather than the realized sample
 size to avoid biasing our estimate.
+
+Note that the control_formula is ignored--these estimators do not
+adjust for additioanl controls at this time.
 }

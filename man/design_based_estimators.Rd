@@ -9,7 +9,8 @@ design_based_estimators(
   data = NULL,
   control_formula = NULL,
   weight = c("Person", "Cluster"),
-  aggregated = FALSE
+  aggregated = FALSE,
+  include_block_estimates = FALSE
 )
 }
 \arguments{
