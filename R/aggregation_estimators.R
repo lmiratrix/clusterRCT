@@ -70,12 +70,18 @@ aggregation_estimators <- function( formula,
     Agg_wFI = generate_all_interacted_estimates( M6, data,
                                                  use_full_vcov=TRUE,
                                                  method = "Agg_wFI" )
+
     # Compile our results
-    bind_rows( Agg_FE_cluster,
+    res <- bind_rows( Agg_FE_cluster,
                Agg_FE_person,
                Agg_FI,
                Agg_wFI )
 
+    # convert NaNs to NAs
+    res$SE_hat[ is.nan(res$SE_hat) ] = NA
+    res$p_value[ is.na(res$SE_hat) ] = NA
+
+    res
 }
 
 

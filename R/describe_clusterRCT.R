@@ -443,8 +443,6 @@ count_block_sizes <- function( clusterID, blockID ) {
 
 if ( FALSE ) {
 
-
-
     library( tidyverse )
     library( clusterRCT )
 

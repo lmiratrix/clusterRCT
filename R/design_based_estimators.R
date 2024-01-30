@@ -76,6 +76,8 @@ schochet_variance_formula_block <- function( adt, v ) {
                        s2 = s2 / sdf ) %>%
         ungroup()
 
+    adtw$s2[ is.infinite(adtw$s2) ] = NA
+
     pt2 <- adtw %>%
         tidyr::pivot_wider( names_from = "Z",
                             values_from = c( s2, sdf, m, n, p ) ) %>%
