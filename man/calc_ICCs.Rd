@@ -7,5 +7,6 @@
 calc_ICCs(data)
 }
 \description{
-Use a multilevel model to calculate ICCs
+Use a multilevel model to calculate ICCs.  Treated units included,
+using a constant treatment effect model.
 }

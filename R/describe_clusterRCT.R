@@ -129,7 +129,7 @@ describe_clusterRCT <- function( formula = NULL,
 
     # R2 values
     if ( !is.null( cnames ) ) {
-        stats <- bind_cols( stats, calc_covariate_R2s(data, ICCs) )
+        stats <- bind_cols( stats, calc_covariate_R2s(data) )
     }
 
     if ( sum( miss ) > 0 ) {
@@ -143,7 +143,8 @@ describe_clusterRCT <- function( formula = NULL,
 
 #' Calculate ICCs
 #'
-#' Use a multilevel model to calculate ICCs
+#' Use a multilevel model to calculate ICCs.  Treated units included,
+#' using a constant treatment effect model.
 #'
 calc_ICCs <- function( data ) {
 
@@ -171,23 +172,34 @@ calc_ICCs <- function( data ) {
 
 #' Calculate R2 of level 1, level 2, and block.
 #'
-#' block is always the fixed effects for block.  No covariates
+#' All variables are group mean centered to make level 1 only and
+#' level 2 only covariates.
+#'
+#' For R2.1: Calculate by comparing model with fixed effects for
+#' cluster vs fixed effects for cluster AND level 1 variables.
+#'
+#' For R2.2: Calculate by comparing multilevel model with fixed
+#' effects for block and random effects for cluster to model with
+#' level 2 covariates as well.
+#'
+#' block is always the fixed effects for block, so no covariates
 #' allowed at that level.  In all models block fixed effects are
-#' included, so level 2 covarites R2 are additional explanatory power
-#' beyond their representing block differences (e.g., they are
+#' included, so the level 2 covariates R2 are additional explanatory
+#' power beyond their representing block differences (e.g., they are
 #' considered block centered).
 #'
 #' @importFrom purrr map_dbl
-#' @param data in canonical form.
-#' @param ICCs List of ICC values, level 2 and level 3 in order.
+#' @param data Data in canonical form.
 #' @param pooled Calculate pooled Tx and Co groups, attempting to
 #'   remove systematic shift of average treatment effect.  If FALSE,
 #'   subset to control observations only.
 #'
-calc_covariate_R2s <- function( data, ICCs = NULL, pooled = FALSE ) {
+calc_covariate_R2s <- function( data, pooled = TRUE ) {
 
-    if ( is.null( ICCs ) ) {
-        ICCs = calc_ICCs(data)
+    # Calculating R2.1
+    if ( !pooled ) {
+        data = filter( data, Z == 0 )
+        data$Z = NULL
     }
 
     # Covert covariates to numerical, if they are not already.
@@ -223,60 +235,40 @@ calc_covariate_R2s <- function( data, ICCs = NULL, pooled = FALSE ) {
 
     result$Yobs = data$Yobs
 
-    # Two ways of calculating R2 values.
-    R2s = NA
-    if ( pooled ) {
-        # This way is not preferred--I forget why.
-        Mblock = lm( Yobs ~ Z_mn*blockID, data=result )
-        R2.block = summary(Mblock)$adj.r.squared
+    noLvl2 = result %>%
+        dplyr::select( !ends_with( "_mn" ) )
+    noLvl1 = result %>%
+        dplyr::select( !ends_with("_cent" ) )
 
-        cents = result %>% dplyr::select( !ends_with( "_mn" ) )
-        cents$Z_mn = result$Z_mn
-        M = lm( Yobs ~ . + Z_mn*blockID - clusterID, data=cents )
-        R2.cent = summary(M)$adj.r.squared
+    # Calculate R2.1
+    # browser()
+    Mfull = lmer( Yobs ~ 1 + . - blockID - clusterID + (1|clusterID), data=noLvl2 )
+    Mnull = lmer( Yobs ~ 1 + (1|clusterID), data=noLvl2 )
+    R2.1 = (sigma( Mnull )^2 - sigma(Mfull)^2) / sigma(Mnull)^2
 
-        mns = result %>% dplyr::select( !ends_with("_cent" ) )
-        Mmn = lm( Yobs ~ . + Z_mn*blockID - clusterID, data=mns )
-        R2.mn = summary( Mmn )$adj.r.squared
 
-        Mtx = lm( Yobs ~ Z_mn, data=result )
-        sTx <- summary(Mtx)
-        tx.R2 = sTx$r.squared
-        rat = 1 / (1 - sTx$r.squared)
+    # Calculate R2.2
+    M2null = lmer( Yobs ~ 1 + . - clusterID + blockID + (1|clusterID), data=noLvl2 )
+    M2full = lmer( Yobs ~ 1 + . - clusterID + blockID + (1|clusterID), data=result )
 
-        R2s <- tibble( R2.1 = (R2.cent - R2.block)*rat,
-                       ncov.1 = ncov.1,
-                       R2.2 = (R2.mn - R2.block)*rat,
-                       ncov.2 = ncov.2 )
-    } else {
-        # This is the way we default to!
+    vFull = as.numeric( VarCorr( M2full )$clusterID )
+    vNull = as.numeric( VarCorr( M2null )$clusterID )
+    R2.2 = (vNull - vFull) / vNull
 
-        # Look at control observations only.
-        resCo = dplyr::filter( result, Z_mn == 0 )
-        resCo$Z_mn = NULL
 
-        Mblock = lm( Yobs ~ blockID, data=resCo )
-        R2.block = summary(Mblock)$adj.r.squared
+    # Pack and ship!
+    R2s <- tibble( R2.1 = R2.1,
+                   ncov.1 = ncov.1,
+                   R2.2 = R2.2,
+                   ncov.2 = ncov.2 )
 
-        cents = resCo %>%
-            dplyr::select( !ends_with( "_mn" ) )
-        M = lm( Yobs ~ . - clusterID, data=cents )
-        summary( M )
-        R2.cent = summary(M)$adj.r.squared
-
-        mns = resCo %>% dplyr::select( !ends_with("_cent" ) )
-        Mmn = lm( Yobs ~ . - clusterID, data=mns )
-        summary( Mmn )
-        R2.mn = summary( Mmn )$adj.r.squared
-
-        R2s <- tibble( R2.1 = R2.cent - R2.block,
-                       ncov.1 = ncov.1,
-                       R2.2 = R2.mn - R2.block,
-                       ncov.2 = ncov.2 )
+    # Add Hedges SEs
+    calc_hedge_SE <- function( R2, n ) {
+        R2 = pmax( 0.01, pmin( R2, 0.99 ) )
+        sqrt( 4 * R2 * (1-R2)^2 / n )
     }
-
-    R2s$R2.1 = R2s$R2.1 / (1 - ICCs[[1]] - ICCs[[2]])
-    R2s$R2.2 = R2s$R2.2 / ICCs[[1]]
+    R2s$SER2.1 = calc_hedge_SE( R2.1, nrow(result) )
+    R2s$SER2.2 = calc_hedge_SE( R2.2, length(unique(result$clusterID)) )
 
     R2s
 }
@@ -452,7 +444,7 @@ if ( FALSE ) {
 
     set.seed( 1039 )
 
-
+    # Make some data
     model.params.list <- list(
         M = 1                            # number of outcomes
         , J = 30                          # number of clusters
@@ -478,6 +470,9 @@ if ( FALSE ) {
     data = filter( data, !( S.id %in% dd ) )
     data <- clusterRCT:::make_canonical_data( Yobs ~ T.x | S.id | D.id, data=data )
     head( data )
+
+
+    # Describe the data
     dd <- describe_clusterRCT( data )
     class( dd )
     dd2 = dd
@@ -501,6 +496,8 @@ if ( FALSE ) {
 
 
 
+    # Looking at R2 calculation
+
     dd = data.frame( cid = rep( 1:10, 1:10 ) )
     dd = mutate( dd,
                  Ybar = cid,
@@ -521,7 +518,6 @@ if ( FALSE ) {
     make_block_table(  Y ~ Z | cid | sid, data=dd )
     describe_clusterRCT( Y ~ Z | cid | sid, data=dd)
 
-
     dd <- dd %>%
         group_by( sid ) %>%
         mutate(   X1 = Y + rnorm(n(), sd=3),
@@ -531,12 +527,12 @@ if ( FALSE ) {
                   Y = Y + 1 * Z ) %>%
         ungroup()
 
+
     data = clusterRCT:::make_canonical_data( Y ~ Z | cid | sid, data=dd,
                                              control_formula = ~ X1 + X2 + X3 + X4 )
     head( data )
 
 
-    calc_covariate_R2s( data, pooled=TRUE )
-    calc_covariate_R2s( data, pooled=FALSE )
+    calc_covariate_R2s( data )
 
 }

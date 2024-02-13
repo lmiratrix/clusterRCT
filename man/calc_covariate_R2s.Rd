@@ -4,21 +4,30 @@
 \alias{calc_covariate_R2s}
 \title{Calculate R2 of level 1, level 2, and block.}
 \usage{
-calc_covariate_R2s(data, ICCs = NULL, pooled = FALSE)
+calc_covariate_R2s(data, pooled = TRUE)
 }
 \arguments{
-\item{data}{in canonical form.}
-
-\item{ICCs}{List of ICC values, level 2 and level 3 in order.}
+\item{data}{Data in canonical form.}
 
 \item{pooled}{Calculate pooled Tx and Co groups, attempting to
 remove systematic shift of average treatment effect.  If FALSE,
 subset to control observations only.}
 }
 \description{
-block is always the fixed effects for block.  No covariates
+All variables are group mean centered to make level 1 only and
+level 2 only covariates.
+}
+\details{
+For R2.1: Calculate by comparing model with fixed effects for
+cluster vs fixed effects for cluster AND level 1 variables.
+
+For R2.2: Calculate by comparing multilevel model with fixed
+effects for block and random effects for cluster to model with
+level 2 covariates as well.
+
+block is always the fixed effects for block, so no covariates
 allowed at that level.  In all models block fixed effects are
-included, so level 2 covarites R2 are additional explanatory power
-beyond their representing block differences (e.g., they are
+included, so the level 2 covariates R2 are additional explanatory
+power beyond their representing block differences (e.g., they are
 considered block centered).
 }

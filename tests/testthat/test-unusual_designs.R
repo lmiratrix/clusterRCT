@@ -18,7 +18,9 @@ test_that( "matched pairs designs get handled right", {
     blk = left_join( blk, blks, by="B" ) %>%
         mutate( Yobs = ifelse( Z, Y1, Y0 ) )
 
-    dsc = describe_clusterRCT( Yobs ~ Z | B | D, data=blk )
+    blk$X = rnorm( nrow(blk) )
+
+    dsc = describe_clusterRCT( Yobs ~ Z | B | D, data=blk, control_formula = ~ X )
     dsc
     expect_true( any( stringr::str_detect( attr( dsc, "notes" ), "matched pairs" ) ) )
 
@@ -29,7 +31,6 @@ test_that( "matched pairs designs get handled right", {
 
 
     head(blk)
-    blk$X = rnorm( nrow(blk) )
     suppressWarnings( comp <- compare_methods( Yobs ~ Z | B | D, data=blk, control_formula = ~ X ) )
     comp
     expect_true( any( is.na( comp$ATE_hat ) ) )

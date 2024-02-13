@@ -16,7 +16,7 @@ test_that( "describer works", {
     data( fakeCRT )
 
     d <- describe_clusterRCT( formula = Yobs ~ T.x | S.id | D.id, data=fakeCRT,
-                              control_formula = ~ V.k + X.jk + C.ijk )
+                              control_formula = ~  X.jk + C.ijk )
 
     d
     expect_true( is.clusterRCTstats(d) )
@@ -30,14 +30,14 @@ test_that( "describer works", {
 
     # We can calculate statistics for each district
     st <- make_block_table( formula = Yobs ~ T.x | S.id | D.id, data=fakeCRT,
-                            control_formula = ~ V.k + X.jk + C.ijk )
+                            control_formula = ~  X.jk + C.ijk )
     expect_true( nrow( st ) == 10 )
 
 
     # It will trap errors!
     fakeCRT$T.x[1:4] = 2
     expect_error( describe_clusterRCT( formula = Yobs ~ T.x | S.id | D.id, data=fakeCRT,
-                                       control_formula = ~ V.k + X.jk + C.ijk ) )
+                                       control_formula = ~  X.jk + C.ijk ) )
 
 
     fakeCRT$T.x[1:4] = NA
@@ -57,13 +57,15 @@ test_that( "describer with multiple outcomes works", {
 
 
     data( fakeCRT )
+    nrow( fakeCRT )
     fakeCRT$Y2 = fakeCRT$Yobs + rnorm( nrow(fakeCRT) )
     fakeCRT$Y2[1:200] = NA
-    fakeCRT$X.jk2 = fakeCRT$X.jk + fakeCRT$Yobs
+    fakeCRT$X.jk2 = fakeCRT$X.jk + fakeCRT$Yobs + rnorm( nrow(fakeCRT), sd=0.2 )
 
     expect_warning( d <- describe_clusterRCT( formula = Yobs + Y2 ~ T.x | S.id | D.id, data=fakeCRT,
-                                              control_formula = ~ V.k + X.jk + C.ijk + X.jk2 ) )
+                                              control_formula = ~  X.jk + C.ijk + X.jk2 ) )
 
+    d
     expect_true( is.data.frame(d) )
     expect_true( nrow(d) == 2 )
 
@@ -108,7 +110,7 @@ test_that( "more general describer tests", {
     # Check R2 calculations
     head( fakeCRT )
     dsc = describe_clusterRCT( formula = Yobs ~ T.x | S.id | D.id, data=fakeCRT,
-                               control_formula = ~ V.k + X.jk + C.ijk )
+                               control_formula = ~  X.jk + C.ijk )
 
     expect_true( dsc$R2.1 > 0 )
     expect_true( dsc$R2.2 > 0 )
@@ -221,15 +223,10 @@ test_that( "R2 calcs work", {
     head( data )
     expect_true( ncol(data) == 8 )
 
-    a <- clusterRCT:::calc_covariate_R2s( data, pooled=TRUE )
-    b <- clusterRCT:::calc_covariate_R2s( data, pooled=FALSE )
+    a <- clusterRCT:::calc_covariate_R2s( data )
     a
-    b
-    expect_true( a$ncov.1 == b$ncov.1 )
-    expect_true( a$ncov.2 == b$ncov.2 )
-
-
-
+    expect_true( a$ncov.1 == 3 )
+    expect_true( a$ncov.2 == 5 )
 
 
     set.seed( 445040 )
@@ -255,12 +252,10 @@ test_that( "R2 calcs work", {
     mean(kp)
     head( sim.data )
     sim.data = sim.data[ kp == 1, ]
-    desc = describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data=sim.data, control_formula = ~ C.ijk + X.jk + V.k )
-    desc
+    cdat = clusterRCT:::make_canonical_data( Yobs ~ T.x | S.id | D.id, data=sim.data, control_formula = ~ C.ijk + X.jk )
+    desc = clusterRCT:::calc_covariate_R2s( cdat )
     expect_equal( desc$R2.1, 0.25, tolerance = 0.2 )
     expect_equal( desc$R2.2, 0.75, tolerance = 0.2 )
-    expect_equal( desc$cluster_ICC, 0.4, tolerance = 0.25 )
-
 
 })
 
