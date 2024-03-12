@@ -15,6 +15,7 @@ compare_methods(
   include_LM = TRUE,
   include_agg = TRUE,
   warn_missing = TRUE,
+  include_dumb = FALSE,
   patch_data = TRUE,
   handle_singleton_blocks = c("drop", "pool", "fail"),
   include_method_characteristics = TRUE
@@ -37,6 +38,10 @@ Huber-White SEs, etc.)}
 
 \item{include_agg}{Include estimators applied to aggregated data,
 aggregated at the cluster level.}
+
+\item{include_dumb}{Include "dumb" estimators (i.e., those
+interacted estimators that weight by both person and cluster or
+vice versa).}
 
 \item{patch_data}{If TRUE impute all missing covariates with mean
 imputation (adding dummy variables as needed) via the
