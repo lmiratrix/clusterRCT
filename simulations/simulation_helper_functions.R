@@ -92,7 +92,17 @@ if ( FALSE ) {
 
     rps = map_df( 1:10, ~ one_run(), .id = "runID", .progress=TRUE )
 
-    rps %>% group_estimators()
+    groups <- rps %>% group_estimators()
+    groups
 
+
+    # List the groups
+    map_chr( groups, paste, collapse = ", " ) %>%
+        as.data.frame() %>%
+        mutate( grp = 1:n() ) %>%
+        relocate( grp ) %>%
+        knitr::kable()
 }
+
+
 
