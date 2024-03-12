@@ -37,7 +37,7 @@ linear_model_estimators <- function( formula,
     pv2 <- M2$p.value[["Z"]]
 
     # Compile our results
-    nm = ifelse( needFE, "LR_FE_CRVE", "LR_NoFE_CRVE" )
+    nm = ifelse( needFE, "LR_FE_CRVE", "LR_CRVE" )
     tibble(
         method = c( nm ),
         ATE_hat = c( est2 ),

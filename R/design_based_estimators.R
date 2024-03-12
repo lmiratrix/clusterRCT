@@ -238,7 +238,6 @@ design_based_estimators <- function( formula,
         }
 
 
-
         # fixed effects model
         form = make_regression_formula( Yobs = "Ybar", FE = TRUE,
                                         control_formula = control_formula )

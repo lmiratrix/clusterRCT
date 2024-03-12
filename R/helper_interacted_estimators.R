@@ -1,5 +1,12 @@
 
+# Calculate ATE and SE given weights and individual block estimates
+#
+# The function takes in the estimated ATEs and their standard errors,
+# and the sizes of the clusters. The function then calculates the ATE
+# and SE using different weighting schemes.
 
+# @return A tibble with the ATE, SE, and p-value for each weighting
+#   scheme.
 calc_agg_estimate <- function( wts, ATE_hats, SE2_hats ) {
 
     # normalize weights
@@ -19,11 +26,13 @@ calc_agg_estimate <- function( wts, ATE_hats, SE2_hats ) {
 }
 
 
-
+# @param sizes A data frame with columns blockID, J, n, and
+#   (optionally) weight
 calculate_avg_impacts <- function( ATE_hats, SE2_hats,
                                    sizes = NULL,
                                    clusterID = NULL,
                                    blockID = NULL ) {
+
     if ( is.null( sizes ) ) {
         stopifnot( !is.null( clusterID ) && !is.null( blockID ) )
     } else {
@@ -50,12 +59,13 @@ calculate_avg_impacts <- function( ATE_hats, SE2_hats,
     rsp <- bind_rows( Block = ATE_eq,
                       Cluster = ATE_cluster,
                       Person = ATE_indiv, .id="weight" )
-    if ( "weight" %in% names(sizes) ) {
-        # weight by arbitrary weight, if given
-        ATE_weight = calc_agg_estimate(sizes$weight, ATE_hats, SE2_hats)
-        ATE_weight$weight = "Weight"
-        rsp = bind_rows( rsp, ATE_weight )
-    }
+
+    # if ( "weight" %in% names(sizes) ) {
+    #     # weight by arbitrary weight, if given
+    #     ATE_weight = calc_agg_estimate(sizes$weight, ATE_hats, SE2_hats)
+    #     ATE_weight$weight = "Weight"
+    #     rsp = bind_rows( rsp, ATE_weight )
+    # }
 
     return( rsp )
 }
@@ -98,10 +108,6 @@ generate_all_interacted_estimates <- function( fitModel, data,
     ATE_hats <- cc[ids]
     names(ATE_hats) = stringr::str_remove(names(ATE_hats), "Z:blockID")
 
-    sizes = data
-    if ( !aggregated ) {
-        sizes <- count_block_sizes( data$clusterID, data$blockID )
-    }
 
     ests = NA
     SE2_hats = NA
@@ -111,23 +117,30 @@ generate_all_interacted_estimates <- function( fitModel, data,
         ests <- calculate_avg_impacts( ATE_hats,
                                        SE2_hats,
                                        sizes = SE_table )
-    } else if ( use_full_vcov ) {
-        # This is the cautious way we don't need since we have 0s in
-        # the off diagonal
-        SE2_hats = diag( as.matrix( VC ) )[ids] # for table below
-        ests <- calculate_avg_impacts( ATE_hats, VC[ids,ids],
-                                       sizes = sizes )
     } else {
-        SE2_hats <- diag( as.matrix( VC ) )[ids]
-        ests <- calculate_avg_impacts( ATE_hats, SE2_hats,
-                                       sizes = sizes )
-    }
+        sizes = data
+        if ( !aggregated ) {
+            sizes <- count_block_sizes( data$clusterID, data$blockID )
+        }
 
+        if ( use_full_vcov ) {
+            # This is the cautious way we don't need since we have 0s in
+            # the off diagonal
+            SE2_hats = diag( as.matrix( VC ) )[ids] # for table below
+            ests <- calculate_avg_impacts( ATE_hats, VC[ids,ids],
+                                           sizes = sizes )
+        } else {
+            SE2_hats <- diag( as.matrix( VC ) )[ids]
+            ests <- calculate_avg_impacts( ATE_hats, SE2_hats,
+                                           sizes = sizes )
+        }
+    }
 
     ests <- ests %>%
         mutate( method = paste0( method, "_", weight ) ) %>%
         relocate( method )
 
+    # Add block-level estimates to the output as an attribute
     if ( include_block_estimates ) {
         tb = tibble( blockID = names(ATE_hats),
                      ATE_hat = ATE_hats,

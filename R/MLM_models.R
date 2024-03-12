@@ -57,7 +57,7 @@ MLM_estimators <- function( formula,
                                           cluster_RE = TRUE )
         M1 <- my_lmer( form, data=data )
 
-        return( get_mlm_ests( M1, "MLM_NoFE") )
+        return( get_mlm_ests( M1, "MLM") )
     }
 
 

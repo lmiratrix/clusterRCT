@@ -32,6 +32,9 @@ method_characteristics <- function() {
 #'   Huber-White SEs, etc.)
 #' @param include_agg Include estimators applied to aggregated data,
 #'   aggregated at the cluster level.
+#' @param include_dumb Include "dumb" estimators (i.e., those
+#'   interacted estimators that weight by both person and cluster or
+#'   vice versa).
 #' @param control_formula What variables to control for, in the form
 #'   of "~ X1 + X2".
 #' @param patch_data If TRUE impute all missing covariates with mean
@@ -55,6 +58,7 @@ compare_methods <- function(formula,
                             include_LM = TRUE,
                             include_agg = TRUE,
                             warn_missing = TRUE,
+                            include_dumb = FALSE,
                             patch_data = TRUE,
                             handle_singleton_blocks = c( "drop", "pool", "fail" ),
                             include_method_characteristics = TRUE ) {
@@ -167,6 +171,12 @@ compare_methods <- function(formula,
                                              control_formula = control_formula_agg,
                                              aggregated = TRUE)
         summary_table = dplyr::bind_rows( summary_table, db_res_i, db_res_c, db_middleton )
+    }
+
+    if ( !include_dumb ) {
+        summary_table <- summary_table %>%
+            filter( !grepl( "Person_Cluster", method ),
+                    !grepl( "Cluster_Person", method ) )
     }
 
     # Add info on the methods (e.g., what estimand they are targeting)

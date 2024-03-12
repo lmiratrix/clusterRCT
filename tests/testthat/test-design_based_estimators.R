@@ -31,7 +31,7 @@ test_that("DB estimators work", {
     table( sim.data$D.id)
     aa = design_based_estimators( Yobs ~ T.x | S.id | D.id, data=sim.data )
     aa
-    expect_true( nrow( aa ) == 5 )
+    expect_true( nrow( aa ) == 4 )
 
     bb4 = middleton_aronow_estimator( Yobs ~ T.x | S.id | D.id, data=sim.data )
     expect_true( nrow( bb4 ) == 2 )
@@ -78,6 +78,7 @@ test_that("DB weighting works", {
     describe_clusterRCT( Yobs ~ Z | clusterID | blockID, data=ss )
 
     mean( ss$tau )
+
     stats <- ss %>%
         group_by( blockID, clusterID ) %>%
         summarise( n = n(),
@@ -114,7 +115,6 @@ test_that("DB weighting works", {
     expect_equal( aa$ATE_hat[[2]], weighted.mean( sts$tau_per, w=sts$J ) )
     expect_equal( aa$ATE_hat[[3]], weighted.mean( sts$tau_per, w=sts$wt ) )
     expect_equal( aa$ATE_hat[[4]], weighted.mean( sts$tau_per, w=sts$wt ) )
-    expect_equal( aa$ATE_hat[[5]], weighted.mean( sts$tau_per, w=sts$wt ) )
 
     aa = design_based_estimators( Yobs ~ Z | clusterID | blockID, data=ss, weight = "Cluster",
                                   include_block_estimates = TRUE )
@@ -126,8 +126,6 @@ test_that("DB weighting works", {
     expect_equal( aa$ATE_hat[[2]], weighted.mean( sts$tau_cl, w=sts$J ) )
     expect_equal( aa$ATE_hat[[3]], weighted.mean( sts$tau_cl, w=sts$wt ) )
     expect_equal( aa$ATE_hat[[4]], weighted.mean( sts$tau_cl, w=sts$J ) )
-    expect_equal( aa$ATE_hat[[5]], weighted.mean( sts$tau_cl, w=sts$J ) )
-
 
     # No block-level.
     ss

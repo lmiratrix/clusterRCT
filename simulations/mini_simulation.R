@@ -3,7 +3,7 @@
 
 # Simple simulation as sanity check of SEs etc
 #
-# This sim is equal sized blocks and clusters and all that.
+# This sim has equal sized blocks and clusters and all that.
 
 set.seed( 1039 )
 library( tidyverse )
