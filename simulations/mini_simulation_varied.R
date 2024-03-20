@@ -1,11 +1,13 @@
 
 
 
-# Simple simulation as sanity check of SEs etc
+# Simple simulation as sanity check of SEs etc.
 #
 # This sim has two sizes of clusters, with big clusters having larger
 # treatment impacts.
-
+#
+# Inspired by Mike Weiss questions on MLM
+#
 
 
 set.seed( 1039 )
@@ -60,25 +62,56 @@ make_two_tier_data <- function( n1, ATE1, n2 = 5*n1, ATE2 = 3*ATE1,
         params$K = NULL
     }
 
+    # Make small blocks across the districts
     params$nbar = n1
     params$MDES = ATE1
     sim.data.small <- PUMP::gen_sim_data( d_m = design, params, Tbar = 0.30, include_POs = TRUE )
+
+    # Make large blocks across the districts
     params$nbar = n2
     params$MDES = ATE2
     sim.data <- PUMP::gen_sim_data( d_m = design, params, Tbar = 0.30, include_POs = TRUE )
     sim.data$S.id = paste0( "b-", sim.data$S.id )
+
+    # Bind so each district has small and large blocks
     sim.data = bind_rows( sim.data.small, sim.data )
 
     if ( het_block ) {
+        # Add a third size of blocks in District 1, and also change
+        # the treatment proportion
         params$K = 1
         params$J = round( 1.5*params$J )
         params$MDES = ATE1 + ATE2
         params$nbar = n1 + 2
-        sim.data3 <- PUMP::gen_sim_data( d_m = design, params, Tbar = 0.95, include_POs = TRUE )
+        sim.data3 <- PUMP::gen_sim_data( d_m = design, params, Tbar = 0.70, include_POs = TRUE )
+
         sim.data3$D.id = sim.data.small$D.id[[1]]
         sim.data3$S.id = paste0( "h-", sim.data3$S.id )
-        sim.data = bind_rows( sim.data, sim.data3)
-        sim.data <- filter( sim.data, !( S.id %in% c( paste0( "b-", 11:19 ) ) ) )
+        sim.data = bind_rows( sim.data, sim.data3 )
+
+        sim.data <- filter( sim.data, !( S.id %in% c( paste0( "b-", 11:16 ) ) ) )
+
+        # browser()
+        if ( FALSE ) {
+            ss <- sim.data %>% group_by( D.id, S.id ) %>%
+                summarise( n = n(), .groups = "drop" )
+            table( ss$n, ss$D.id )
+            sim.data %>% group_by( S.id, D.id, T.x ) %>%
+                summarise( n = n(), .groups = "drop",
+                           Tx = mean( T.x ) ) %>%
+                group_by( D.id ) %>%
+                summarise( p_tx = mean( Tx ),
+                           sizes = paste0( unique( n ), collapse=", " ),
+                           nT = sum( n ),
+                           J = n(), .groups = "drop" )
+        }
+
+        # Rerandomize units within the blocks
+        sim.data$T.x = randomizr::block_and_cluster_ra( blocks = sim.data$D.id,
+                                                        clusters = sim.data$S.id,
+                                                        block_m = c( 10, 6, 10, 5 ) )
+        sim.data <- mutate( sim.data,
+                            Yobs = ifelse( T.x == 1, Y1, Y0 ) )
     }
 
     sdY0 = sd( sim.data$Y0 )
@@ -92,9 +125,12 @@ make_two_tier_data <- function( n1, ATE1, n2 = 5*n1, ATE2 = 3*ATE1,
 }
 
 
+
+
+
 if ( FALSE ) {
-    dat = make_two_tier_data( 10, 0.2, het_block = FALSE)
-    dat
+    dat = make_two_tier_data( 10, 0.2, het_block = TRUE)
+    slice_sample( dat, n=10 )
     table( dat$D.id )
     table( table( dat$S.id ) )
     sd( dat$Y0 )
@@ -152,9 +188,13 @@ if ( FALSE ) {
 
 
 
-one_run <- function( blocks = TRUE, het_block = FALSE, ICC.2 = NULL, include_covariates = FALSE ) {
 
-    p = model.params.list
+
+
+one_run <- function( blocks = TRUE, het_block = FALSE, ICC.2 = NULL, include_covariates = FALSE,
+                     model.params = model.params.list ) {
+
+    p = model.params
     if ( !is.null( ICC.2 ) ) {
         p$ICC.2 = ICC.2
     }
@@ -225,15 +265,30 @@ if ( FALSE ) {
 }
 
 
-#### Simple simulation ####
+run_simple_simulation <- function( ICC.2 = 0.4, omega.2 = 1, R = 1000 ) {
 
-if ( FALSE ) {
-    R = 100
-    rps = map_df( 1:R, ~ one_run( blocks = TRUE, het_block = TRUE ),
-                  .id = "runID", .progress=TRUE )
+    model.params.list$ICC.2 = ICC.2
+    model.params.list$omega.2 = omega.2
+
+    if ( TRUE ) {
+        library( furrr )
+        plan(multisession, workers = parallel::detectCores() - 1 )
+        tictoc::tic()
+        rps = future_map_dfr( 1:R, ~ one_run( blocks = TRUE,
+                                              het_block = TRUE,
+                                              model.params = model.params.list ),
+                              .id = "runID", .progress=TRUE, .options = furrr_options( seed=TRUE ) )
+        tictoc::tic()
+    } else {
+        rps = map_df( 1:R, ~ one_run( blocks = TRUE,
+                                      het_block = TRUE,
+                                      model.params = model.params.list ),
+                      .id = "runID", .progress=TRUE )
+    }
+
 
     head( rps )
-
+    sd( rps$tau_c)
 
     res <- rps %>%
         group_by( method ) %>%
@@ -241,13 +296,40 @@ if ( FALSE ) {
                    tau_p = mean( tau_p ),
                    tau_c = mean( tau_c ),
                    SE = sd( ATE_hat ),
+                   SE_E = sd( ATE_hat ) / sqrt(n()),
                    ESE_hat = sqrt( mean( SE_hat^2 ) ) ) %>%
         mutate( calib = sqrt( ESE_hat^2 / SE^2 ) )
 
+    res
+}
+
+#### Simple simulation ####
+
+if ( FALSE ) {
+
+    res <- run_simple_simulation( ICC.2 = 0.4, omega.2 = 1, R = 250 )
+    res2 <- run_simple_simulation( ICC.2 = 0, omega.2 = 0, R = 250 )
+
+    res <- bind_rows( varied=res, not_varied=res2, .id="sim" )
 
     res %>%
         arrange( EATE ) %>%
         knitr::kable(digits=2)
+
+    res <- mutate( res, method = fct_reorder2( method, ESE_hat, EATE ) )
+
+    res <- mutate( res, method = factor( method, levels = rev( sort( levels(method) ) ) ) )
+
+    ggplot( res, aes( method, EATE ) ) +
+        facet_wrap( ~ sim, nrow=1 ) +
+        geom_hline( aes( yintercept = mean( tau_c ),  col="Cluster" ) ) +
+        geom_hline( aes( yintercept = mean( tau_p ), col="Person" ) ) +
+        geom_point(size=3) +
+#        geom_errorbar( aes( ymin = EATE - ESE_hat, ymax = EATE + ESE_hat ), width=0) +
+        geom_errorbar( aes( ymin = EATE - SE_E, ymax = EATE + SE_E ), linewidth = 1, width=0) +
+        theme_minimal() +
+        coord_flip()
+
 }
 
 

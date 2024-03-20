@@ -22,3 +22,15 @@ cc %>%
 source( here::here( "simulations/simulation_helper_functions.R" ) )
 cc$runID = 1
 group_estimators( cc )
+
+
+
+
+
+
+cc <- compare_methods( Yobs ~ T.x | S.id,
+                       control_formula = ~ C.ijk + X.jk,
+                       data = fakeCRT,
+                       include_method_characteristics = FALSE )
+cc
+

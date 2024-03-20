@@ -3,8 +3,54 @@
 
 method_characteristics <- function() {
 
-    mc <- tribble( ~ method, ~ weight, ~ population, ~ biased,
-                   "DB_FI_Cluster_Cluster",   "cluster",  "finite",    "0" )
+    # datapasta::tribble_paste(a)
+
+    if ( FALSE ) {
+        cc %>% dplyr::select( method ) %>%
+            mutate( weight = "person",
+                    population = "super",
+                    biased = 0 ) %>% datapasta::tribble_paste()
+    }
+
+    mc <- tibble::tribble(
+                           ~method,   ~weight, ~population, ~biased,
+                      "LR_FE_CRVE", "person",          "super",       0,
+                "LR_FI_CRVE_Block", "person",         "super",       1,
+              "LR_FI_CRVE_Cluster", "person",         "super",       0,
+               "LR_FI_CRVE_Person", "person",          "super",       0,
+                          "MLM_FE", "cluster",          "super",       1,
+                          "MLM_RE", "cluster",          "super",       1,
+                    "MLM_FI_Block", "cluster",         "super",       1,
+                  "MLM_FI_Cluster", "cluster",         "super",       1,
+                   "MLM_FI_Person", "cluster",          "super",       1,
+                        "MLM_RIRC", "cluster",         "super",       1,
+                        "MLM_FIRC", "cluster",         "super",       1,
+                  "Agg_FE_Cluster", "cluster",         "super",       0,
+                   "Agg_FE_Person", "person",          "super",       0,
+            "Agg_FI_Cluster_Block", "cluster",        "super",       1,
+          "Agg_FI_Cluster_Cluster", "cluster",         "super",       0,
+             "Agg_FI_Person_Block", "person",         "super",       1,
+            "Agg_FI_Person_Person", "person",          "super",       0,
+              "DB_FI_Person_Block", "person",         "super",       0,
+             "DB_FI_Person_Person", "person",          "super",       0,
+                    "DB_FE_Person", "person",         "super",       1,
+             "DB_FI_Cluster_Block", "cluster",         "super",       1,
+           "DB_FI_Cluster_Cluster", "cluster",         "super",       0,
+                   "DB_FE_Cluster", "cluster",         "super",       0,
+                           "DB_HT", "person",         "super",       0,
+                          "DB_Raj", "person",         "super",       0,
+
+          # Non-blocked estimators
+             "LR_CRVE", "person",      "super",       0,
+                 "MLM", "cluster",     "super",       1,
+         "Agg_Cluster", "cluster",     "super",       0,
+          "Agg_Person", "person",      "super",       0,
+           "DB_Person", "person",      "super",       0,
+          "DB_Cluster", "cluster",     "super",       0,
+               "DB_HT", "person",      "super",       0,
+              "DB_Raj", "person",      "super",       0
+          )
+
 
     return( mc )
 }
@@ -168,8 +214,8 @@ compare_methods <- function(formula,
                                             aggregated = TRUE)
 
         db_middleton <- middleton_aronow_estimator(formula = NULL, data = aggdat,
-                                             control_formula = control_formula_agg,
-                                             aggregated = TRUE)
+                                                   control_formula = control_formula_agg,
+                                                   aggregated = TRUE)
         summary_table = dplyr::bind_rows( summary_table, db_res_i, db_res_c, db_middleton )
     }
 
