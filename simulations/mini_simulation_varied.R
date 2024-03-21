@@ -190,8 +190,71 @@ if ( FALSE ) {
 
 
 
+#' @param blocks TRUE means multiple districts (blocks)
+#' @param het_block TRUE means blocks are different shapes and styles
+#'
+make_simple_block_example <- function( ) {
 
-one_run <- function( blocks = TRUE, het_block = FALSE, ICC.2 = NULL, include_covariates = FALSE,
+    make_blocks <- function( n, J, Y0, ATE, prefix ) {
+        dat = tibble( S.id = rep( 1:J, each=n ),
+                      Y0 = Y0 + rnorm( n*J, sd=0.5 ) )
+        dat$Y1 = dat$Y0 + ATE
+        dat$T.x = 0 + (dat$S.id %% 2 == 1)
+        dat$Yobs = ifelse( dat$T.x, dat$Y1, dat$Y0 )
+        dat$S.id = paste0( prefix, "-", dat$S.id )
+        dat
+    }
+
+    make_blocks_v <- function( n, J, Y0, ATE ) {
+        stopifnot( length(n) == length(J) )
+        stopifnot( length(n) == length(Y0) )
+        stopifnot( length(n) == length(ATE) )
+
+        res <- pmap_df( list( n=n, J=J, Y0=Y0, ATE=ATE, prefix=LETTERS[ 1:length(n) ] ), make_blocks )
+        res
+    }
+
+    dat = make_blocks_v( c( 5, 20 ), c( 4, 6 ), c( 1, 0.5 ), c( 1.4, 0.2 ) )
+    datB = make_blocks_v( c( 20, 40 ), c( 6, 10 ), c( 0, 1.5 ), c( 1.2, 2.4 ) )
+    datC = make_blocks( 10, 20, 4, 8, prefix="A" )
+    dat = bind_rows( A=dat, B=datB, C=datC, .id="D.id" )
+
+    # Standardize
+    sdY0 = sd( dat$Y0 )
+    sim.data <- mutate( dat,
+                        Yobs = Yobs / sdY0,
+                        Y0 = Y0 / sdY0,
+                        Y1 = Y1 / sdY0 )
+    as_tibble( sim.data )
+}
+
+if ( FALSE ) {
+    dat = make_simple_block_example()
+
+    mean( dat$Y1 - dat$Y0 )
+    mean( dat$Yobs[dat$T.x==1] - dat$Yobs[dat$T.x==0] )
+    dat %>% group_by( D.id, S.id ) %>%
+        summarise( tauk = mean( Y1 - Y0 ), .groups = "drop" ) %>%
+        pull( tauk ) %>% mean()
+
+    dat %>% group_by( D.id, S.id ) %>%
+        summarise( tauk = mean( Y1 - Y0 ),
+                   n = n(),
+                   .groups = "drop" ) %>%
+        group_by( D.id ) %>%
+        summarise( tauk = mean( tauk ),
+                   J = n(),
+                   n = sum( n ),
+
+                   .groups = "drop" )
+}
+
+
+
+
+
+
+one_run <- function( blocks = TRUE, het_block = FALSE, simple = FALSE, ICC.2 = NULL, include_covariates = FALSE,
                      model.params = model.params.list ) {
 
     p = model.params
@@ -199,11 +262,14 @@ one_run <- function( blocks = TRUE, het_block = FALSE, ICC.2 = NULL, include_cov
         p$ICC.2 = ICC.2
     }
 
-    sim.data = make_two_tier_data( n1 = 10, ATE1 = 0,
-                                   n2 = 40, ATE2 = 0.4,
-                                   params = p,
-                                   blocks = blocks, het_block = het_block )
-
+    if ( simple ) {
+        sim.data = make_simple_block_example()
+    } else {
+        sim.data = make_two_tier_data( n1 = 10, ATE1 = 0,
+                                       n2 = 40, ATE2 = 0.4,
+                                       params = p,
+                                       blocks = blocks, het_block = het_block )
+    }
     form = Yobs ~ T.x | S.id | D.id
     if ( !blocks ) {
         form = Yobs ~ T.x | S.id
@@ -226,13 +292,32 @@ one_run <- function( blocks = TRUE, het_block = FALSE, ICC.2 = NULL, include_cov
                                        include_dumb = TRUE,
                                        include_method_characteristics = FALSE )
 
-    c1$tau_p =  mean( sim.data$Y1 - sim.data$Y0 )
-    sim.data$D.id = "sing"
-    c1$tau_c = sim.data %>%
-        group_by( D.id, S.id ) %>%
-        summarise( tauk = mean( Y1 - Y0 ), .groups = "drop" ) %>%
-        pull( tauk ) %>% mean()
+    if ( !blocks ) {
+        sim.data$D.id = "sing"
+    }
 
+    ds = sim.data %>%
+        group_by( D.id, S.id ) %>%
+        summarise( tauk = mean( Y1 - Y0 ),
+                   n = n(), .groups = "drop" ) %>%
+        group_by( D.id ) %>%
+        summarise( tau_c = mean( tauk ),
+                   tau_p = weighted.mean( tauk, n ),
+                   J = n(),
+                   n = sum( n ) ) %>%
+        summarise( tau_cb = mean( tau_c ),
+                   tau_c = weighted.mean( tau_c, J ),
+                   tau_pb = mean( tau_p ),
+                   tau_p = weighted.mean( tau_p, n ),
+                   J = sum( J ),
+                   n = sum( n ) )
+
+    c1$tau_c = ds$tau_c
+    c1$tau_p = ds$tau_p
+    c1$tau_cb = ds$tau_cb
+    c1$tau_pb = ds$tau_pb
+    c1$J = ds$J
+    c1$n = ds$n
     c1$sdY0 = sd( sim.data$Y0 )
 
     c1 %>% dplyr::select( -any_of( c( "weight", "df" ) ) )
@@ -265,7 +350,7 @@ if ( FALSE ) {
 }
 
 
-run_simple_simulation <- function( ICC.2 = 0.4, omega.2 = 1, R = 1000 ) {
+run_simple_simulation <- function( ICC.2 = 0.4, omega.2 = 1, simple = FALSE, R = 1000 ) {
 
     model.params.list$ICC.2 = ICC.2
     model.params.list$omega.2 = omega.2
@@ -276,6 +361,7 @@ run_simple_simulation <- function( ICC.2 = 0.4, omega.2 = 1, R = 1000 ) {
         tictoc::tic()
         rps = future_map_dfr( 1:R, ~ one_run( blocks = TRUE,
                                               het_block = TRUE,
+                                              simple = simple,
                                               model.params = model.params.list ),
                               .id = "runID", .progress=TRUE, .options = furrr_options( seed=TRUE ) )
         tictoc::tic()
@@ -295,6 +381,8 @@ run_simple_simulation <- function( ICC.2 = 0.4, omega.2 = 1, R = 1000 ) {
         summarise( EATE = mean( ATE_hat ),
                    tau_p = mean( tau_p ),
                    tau_c = mean( tau_c ),
+                   tau_cb = mean( tau_cb ),
+                   tau_pb = mean( tau_pb ),
                    SE = sd( ATE_hat ),
                    SE_E = sd( ATE_hat ) / sqrt(n()),
                    ESE_hat = sqrt( mean( SE_hat^2 ) ) ) %>%
@@ -303,14 +391,53 @@ run_simple_simulation <- function( ICC.2 = 0.4, omega.2 = 1, R = 1000 ) {
     res
 }
 
+
+if ( FALSE) {
+    dat = make_simple_block_example()
+    dat
+
+    ds = dat %>%
+        group_by( D.id, S.id ) %>%
+        summarise( tauk = mean( Y1 - Y0 ),
+                   n = n(), .groups = "drop" )
+
+    ff <- filter( ds, D.id == "A" )
+    ff
+    mean( ff$tauk)
+    weighted.mean( ff$tauk , ff$n )
+
+    ds <- ds %>%
+        group_by( D.id ) %>%
+        summarise( tau_c = mean( tauk ),
+                   tau_p = weighted.mean( x=tauk, w=n ),
+                   tau_pp = mean( tauk * n ) / mean(n),
+                   J = n(),
+                   n = sum( n ) )
+    ds
+
+    mean( ds$tau_c )
+
+    ds %>%
+        summarise( tau_cb = mean( tau_c ),
+                   tau_pb = mean( tau_p ),
+                   tau_c = weighted.mean( tau_c, w=J ),
+                   tau_p = weighted.mean( tau_p, n ),
+                   J = sum( J ),
+                   n = sum( n ) )
+
+    debug( one_run )
+    one_run( simple = TRUE )
+}
+
+
 #### Simple simulation ####
 
 if ( FALSE ) {
 
-    res <- run_simple_simulation( ICC.2 = 0.4, omega.2 = 1, R = 250 )
+    res1 <- run_simple_simulation( ICC.2 = 0.4, omega.2 = 1, R = 250 )
     res2 <- run_simple_simulation( ICC.2 = 0, omega.2 = 0, R = 250 )
-
-    res <- bind_rows( varied=res, not_varied=res2, .id="sim" )
+    res3 <- run_simple_simulation( simple = TRUE, R = 250 )
+    res <- bind_rows( varied=res1, not_varied=res2, simple=res3, .id="sim" )
 
     res %>%
         arrange( EATE ) %>%
@@ -320,12 +447,25 @@ if ( FALSE ) {
 
     res <- mutate( res, method = factor( method, levels = rev( sort( levels(method) ) ) ) )
 
+    ggplot( res3, aes( method, EATE ) ) +
+        geom_hline( aes( yintercept = mean( tau_c ),  lty="clean", col="Cluster" ) ) +
+        geom_hline( aes( yintercept = mean( tau_p ), lty="clean", col="Person" ) ) +
+        geom_hline( aes( yintercept = mean( tau_cb ),  lty = "block", col="Cluster" ) ) +
+        geom_hline( aes( yintercept = mean( tau_pb ), lty="block", col="Person" ) ) +
+        geom_point(size=3) +
+        #        geom_errorbar( aes( ymin = EATE - ESE_hat, ymax = EATE + ESE_hat ), width=0) +
+        geom_errorbar( aes( ymin = EATE - SE_E, ymax = EATE + SE_E ), linewidth = 1, width=0) +
+        theme_minimal() +
+        coord_flip()
+
+
+
     ggplot( res, aes( method, EATE ) ) +
         facet_wrap( ~ sim, nrow=1 ) +
         geom_hline( aes( yintercept = mean( tau_c ),  col="Cluster" ) ) +
         geom_hline( aes( yintercept = mean( tau_p ), col="Person" ) ) +
         geom_point(size=3) +
-#        geom_errorbar( aes( ymin = EATE - ESE_hat, ymax = EATE + ESE_hat ), width=0) +
+        #        geom_errorbar( aes( ymin = EATE - ESE_hat, ymax = EATE + ESE_hat ), width=0) +
         geom_errorbar( aes( ymin = EATE - SE_E, ymax = EATE + SE_E ), linewidth = 1, width=0) +
         theme_minimal() +
         coord_flip()
