@@ -1,6 +1,18 @@
 
 
 
+#' Get table of characteristics of all the methods implemented in this
+#' package.
+#'
+#' @return Dataframe with columns for method, weight, population,
+#'   biased, and disfavored (whether we do not like the estimator due
+#'   to odd weighting or instability).
+#' @importFrom dplyr bind_rows filter left_join mutate select
+#' @examples
+#' method_characteristics()
+#'
+#' @export
+#'
 method_characteristics <- function() {
 
     # datapasta::tribble_paste(a)
@@ -13,43 +25,47 @@ method_characteristics <- function() {
     }
 
     mc <- tibble::tribble(
-                           ~method,   ~weight, ~population, ~biased,
-                      "LR_FE_CRVE", "person",          "super",       0,
-                "LR_FI_CRVE_Block", "person/block",         "super",       1,
-              "LR_FI_CRVE_Cluster", "person",         "super",       0,
-               "LR_FI_CRVE_Person", "person",          "super",       0,
-                          "MLM_FE", "cluster",          "super",       1,
-                          "MLM_RE", "cluster",          "super",       1,
-                    "MLM_FI_Block", "cluster/block",         "super",       1,
-                  "MLM_FI_Cluster", "cluster",         "super",       1,
-                   "MLM_FI_Person", "cluster",          "super",       1,
-                        "MLM_RIRC", "cluster/block",         "super",       1,
-                        "MLM_FIRC", "cluster/block",         "super",       1,
-                  "Agg_FE_Cluster", "cluster",         "super",       0,
-                   "Agg_FE_Person", "person",          "super",       0,
-            "Agg_FI_Cluster_Block", "cluster/block",        "super",       1,
-          "Agg_FI_Cluster_Cluster", "cluster",         "super",       0,
-             "Agg_FI_Person_Block", "person/block",         "super",       1,
-            "Agg_FI_Person_Person", "person",          "super",       0,
-              "DB_FI_Person_Block", "person/block",         "super",       0,
-             "DB_FI_Person_Person", "person",          "super",       0,
-                    "DB_FE_Person", "person",         "super",       1,
-             "DB_FI_Cluster_Block", "cluster/block",         "super",       1,
-           "DB_FI_Cluster_Cluster", "cluster",         "super",       0,
-                   "DB_FE_Cluster", "cluster",         "super",       0,
-                           "DB_HT", "person",         "super",       0,
-                          "DB_Raj", "person",         "super",       0,
+        ~method,   ~weight, ~population, ~biased,  ~disfavored,
+        "LR_FE_CRVE", "person",          "super",       0,  0,
+        "LR_FI_CRVE_Block", "person/block",         "super",       1, 0,
+        "LR_FI_CRVE_Cluster", "person",         "super",       0,0,
+        "LR_FI_CRVE_Person", "person",          "super",       0,0,
+        "MLM_FE", "cluster",          "super",       1,0,
+        "MLM_RE", "cluster",          "super",       1,0,
+        "MLM_FI_Block", "cluster/block",         "super",       1,0,
+        "MLM_FI_Cluster", "cluster",         "super",       1,0,
+        "MLM_FI_Person", "cluster",          "super",       1,0,
+        "MLM_RIRC", "cluster/block",         "super",       1,0,
+        "MLM_FIRC", "cluster/block",         "super",       1,0,
+        "Agg_FE_Cluster", "cluster",         "super",       0,0,
+        "Agg_FE_Person", "person",          "super",       0,0,
+        "Agg_FI_Cluster_Block", "cluster/block",        "super",       1,0,
+        "Agg_FI_Cluster_Cluster", "cluster",         "super",       0,0,
+        "Agg_FI_Person_Block", "person/block",         "super",       1,0,
+        "Agg_FI_Person_Person", "person",          "super",       0,0,
+        "DB_FI_Person_Block", "person/block",         "super",       0,0,
+        "DB_FI_Person_Person", "person",          "super",       0,0,
+        "DB_FE_Person", "person",         "super",       1,0,
+        "DB_FI_Cluster_Block", "cluster/block",         "super",       1,0,
+        "DB_FI_Cluster_Cluster", "cluster",         "super",       0,0,
+        "DB_FE_Cluster", "cluster",         "super",       0,0,
+        "DB_HT", "person",         "super",       0,1,
+        "DB_Raj", "person",         "super",       0,1,
 
-          # Non-blocked estimators
-             "LR_CRVE", "person",      "super",       0,
-                 "MLM", "cluster",     "super",       1,
-         "Agg_Cluster", "cluster",     "super",       0,
-          "Agg_Person", "person",      "super",       0,
-           "DB_Person", "person",      "super",       0,
-          "DB_Cluster", "cluster",     "super",       0,
-               "DB_HT", "person",      "super",       0,
-              "DB_Raj", "person",      "super",       0
-          )
+        # Methods that are disfavored due to odd weighting
+        "DB_FI_Cluster_Person", "cluster",         "super",       1,1,
+        "DB_FI_Person_Cluster", "person",         "super",       1,1,
+        "Agg_FI_Cluster_Person", "cluster",         "super",       1,1,
+        "Agg_FI_Person_Cluster", "person",         "super",       1,1,
+
+        # Non-blocked estimators
+        "LR_CRVE", "person",      "super",       0,0,
+        "MLM", "cluster",     "super",       1,0,
+        "Agg_Cluster", "cluster",     "super",       0,0,
+        "Agg_Person", "person",      "super",       0,0,
+        "DB_Person", "person",      "super",       0,0,
+        "DB_Cluster", "cluster",     "super",       0,0,
+    )
 
 
     return( mc )
@@ -226,8 +242,8 @@ compare_methods <- function(formula,
     }
 
     # Add info on the methods (e.g., what estimand they are targeting)
+    summary_table$weight = NULL
     if (include_method_characteristics) {
-        summary_table$weight = NULL
         mc <- method_characteristics()
 
         summary_table <- left_join( summary_table, mc, by = "method" )

@@ -55,8 +55,16 @@ head( fakeCRT )
 fakeCRT$X = sample( LETTERS[1:4], nrow(fakeCRT), replace=TRUE )
 fakeCRT = as_tibble(fakeCRT )
 
+sdY0 = sd( fakeCRT$Yobs[ fakeCRT$T.x==1 ] )
+fakeCRT <- mutate( fakeCRT,
+                    Yobs = Yobs / sdY0 )
+head(fakeCRT)
+
+
 usethis::use_data(fakeCRT, overwrite = TRUE)
 
+
+#### Make a fake data with missing outcomes and covariate values ####
 table( fakeCRT$D.id )
 
 
@@ -79,4 +87,17 @@ fakeBrokeCRT = fakeCRT
 usethis::use_data(fakeBrokeCRT, overwrite = TRUE)
 
 
+
+
+#### A second fake dataset ####
+
+source( here::here( "simulations/mini_simulation_varied.R" ) )
+fakeCRT2 = make_simple_block_example( tx_scale = 0.4)
+
+dd <- fakeCRT2 %>% group_by( T.x ) %>%
+    summarise( n = n(),
+               sd = sd( Yobs ) )
+dd
+
+usethis::use_data(fakeCRT2, overwrite = TRUE)
 

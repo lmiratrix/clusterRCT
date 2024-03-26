@@ -1,14 +1,5 @@
 
 
-#' Print out a status message for the package.
-#'
-#' @export
-package_status <- function() {
-    cat( "The status of this package is:\nThis method was last updated March 12, 2024.\nGit version of the code you are looking at may be beyond that, but is not before it.\n")
-}
-
-
-
 
 
 #'@title Fake Cluster Randomized Trial data
@@ -43,3 +34,25 @@ package_status <- function() {
 #'  \item{\code{T.x}}{integer Treatment assignment (1 treated, 0 control).} }
 #'@details These data were generated via the PUMP package.
 "fakeBrokeCRT"
+
+
+
+
+#'@title Fake Cluster Randomized Trial data (set 2)
+#'
+#'@description This dataset is a three-level dataset with students in
+#'  schools in districts, with schools randomized to treatment and
+#'  control.  It is used to illustrate and test the clusterRCT pacakge.
+#'
+#' @seealso \code{\link{fakeCRT}}
+#'
+#'@format A data frame with 1500 rows and 7 variables: \describe{
+#'  \item{\code{S.id}}{integer School ID.}
+#'  \item{\code{D.id}}{integer District ID.}
+#'  \item{\code{Y1}}{double Potential outcome under treatment.}
+#'  \item{\code{Y0}}{double Potential outcome under no treatment.}
+#'  \item{\code{Yobs}}{double Observed outcome (think test score).)}
+#'  \item{\code{T.x}}{integer Treatment assignment (1 treated, 0 control).} }
+#'@details These data were generated via the PUMP package.
+"fakeCRT2"
+
