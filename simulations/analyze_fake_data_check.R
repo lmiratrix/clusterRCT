@@ -7,7 +7,9 @@ head( fakeCRT )
 cc <- compare_methods( Yobs ~ T.x | S.id | D.id,
                  control_formula = ~ C.ijk + X.jk,
                  data = fakeCRT,
-                 include_method_characteristics = FALSE )
+                 include_method_characteristics = TRUE )
+
+cc
 
 cc %>% dplyr::select( -weight, -df )
 

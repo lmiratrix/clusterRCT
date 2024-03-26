@@ -193,7 +193,7 @@ if ( FALSE ) {
 #' @param blocks TRUE means multiple districts (blocks)
 #' @param het_block TRUE means blocks are different shapes and styles
 #'
-make_simple_block_example <- function( ) {
+make_simple_block_example <- function( tx_scale = 1 ) {
 
     make_blocks <- function( n, J, Y0, ATE, prefix ) {
         dat = tibble( S.id = rep( 1:J, each=n ),
@@ -214,9 +214,9 @@ make_simple_block_example <- function( ) {
         res
     }
 
-    dat = make_blocks_v( c( 5, 20 ), c( 4, 6 ), c( 1, 0.5 ), c( 1.4, 0.2 ) )
-    datB = make_blocks_v( c( 20, 40 ), c( 6, 10 ), c( 0, 1.5 ), c( 1.2, 2.4 ) )
-    datC = make_blocks( 10, 20, 4, 8, prefix="A" )
+    dat = make_blocks_v( c( 5, 20 ), c( 4, 6 ), c( 1, 0.5 ), tx_scale * c( 1.4, 0.2 ) )
+    datB = make_blocks_v( c( 20, 40 ), c( 6, 10 ), c( 0, 1.5 ), tx_scale * c( 1.2, 2.4 ) )
+    datC = make_blocks( 10, 20, 4, tx_scale * 4, prefix="A" )
     dat = bind_rows( A=dat, B=datB, C=datC, .id="D.id" )
 
     # Standardize
