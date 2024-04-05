@@ -28,7 +28,7 @@ method_characteristics <- function() {
         ~method,   ~weight, ~population, ~biased,  ~disfavored,
         "LR_FE_CRVE", "person",          "super",       0,  0,
         "LR_FI_CRVE_Block", "person/block",         "super",       1, 0,
-        "LR_FI_CRVE_Cluster", "person",         "super",       0,0,
+        "LR_FI_CRVE_Cluster", "person",         "super",       0,1,
         "LR_FI_CRVE_Person", "person",          "super",       0,0,
         "MLM_FE", "cluster",          "super",       1,0,
         "MLM_RE", "cluster",          "super",       1,0,
