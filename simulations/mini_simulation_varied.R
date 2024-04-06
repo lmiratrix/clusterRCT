@@ -225,17 +225,33 @@ make_simple_block_example <- function( tx_scale = 1 ) {
                         Yobs = Yobs / sdY0,
                         Y0 = Y0 / sdY0,
                         Y1 = Y1 / sdY0 )
+
+    # Add some covariates
+    sim.data$X.jk = sim.data$Y0 + rnorm( nrow(sim.data), sd=1)
+    sim.data <- sim.data %>%
+        group_by( S.id ) %>%
+        mutate( X.jk = mean( X.jk ) ) %>%
+        ungroup()
+    sim.data$C.ijk = sim.data$Y0 + rnorm( nrow(sim.data), sd=1)
+
+
     as_tibble( sim.data )
 }
+
+
 
 if ( FALSE ) {
     dat = make_simple_block_example()
 
+    head( dat )
     mean( dat$Y1 - dat$Y0 )
     mean( dat$Yobs[dat$T.x==1] - dat$Yobs[dat$T.x==0] )
     dat %>% group_by( D.id, S.id ) %>%
         summarise( tauk = mean( Y1 - Y0 ), .groups = "drop" ) %>%
         pull( tauk ) %>% mean()
+
+    # How predictive covariates?
+    summary( lm( Yobs ~ T.x + X.jk + C.ijk, data=dat ) )
 
     dat %>% group_by( D.id, S.id ) %>%
         summarise( tauk = mean( Y1 - Y0 ),
@@ -432,11 +448,24 @@ if ( FALSE) {
 
 #### Simple simulation ####
 
+# This simulation generates data and compares the estimators to the 4
+# different estimands to see which are biased.
+#
+# The third DGP ("simple") is a special DGP that hand-builds blocks of
+# different sizes to ensure that there are correlations with impact
+# and size of block and number of blocks in a district, and so forth.
+#
+# The other DGPs are more standard two-tier DGPs with different
+# intraclass correlations and effect size variability.
+
 if ( FALSE ) {
 
-    res1 <- run_simple_simulation( ICC.2 = 0.4, omega.2 = 1, R = 250 )
-    res2 <- run_simple_simulation( ICC.2 = 0, omega.2 = 0, R = 250 )
-    res3 <- run_simple_simulation( simple = TRUE, R = 250 )
+    R = 100
+
+    res1 <- run_simple_simulation( ICC.2 = 0.4, omega.2 = 1, R = R )
+    res2 <- run_simple_simulation( ICC.2 = 0, omega.2 = 0, R = R )
+    res3 <- run_simple_simulation( simple = TRUE, R = R )
+
     res <- bind_rows( varied=res1, not_varied=res2, simple=res3, .id="sim" )
 
     res %>%
@@ -447,7 +476,10 @@ if ( FALSE ) {
 
     res <- mutate( res, method = factor( method, levels = rev( sort( levels(method) ) ) ) )
 
-    ggplot( res3, aes( method, EATE ) ) +
+    # Look at third simulation only
+    res %>%
+        filter( sim == "simple" ) %>%
+        ggplot( aes( method, EATE ) ) +
         geom_hline( aes( yintercept = mean( tau_c ),  lty="clean", col="Cluster" ) ) +
         geom_hline( aes( yintercept = mean( tau_p ), lty="clean", col="Person" ) ) +
         geom_hline( aes( yintercept = mean( tau_cb ),  lty = "block", col="Cluster" ) ) +
@@ -475,7 +507,7 @@ if ( FALSE ) {
 
 #### Looking at what estimators align with other estimators ####
 
-
+# This runs a few iterations
 if ( FALSE ) {
 
     R = 10
@@ -483,11 +515,12 @@ if ( FALSE ) {
     #rps = map_df( 1:R, ~ one_run( blocks = TRUE, het_block = TRUE ),
     #              .id = "runID", .progress=TRUE )
 
-    rps = map_df( 1:R, ~ one_run( blocks = TRUE, het_block = FALSE,
+    rps = map_df( 1:R, ~ one_run( blocks = TRUE, het_block = FALSE, simple = TRUE,
                                   include_covariates = TRUE ),
                   .id = "runID", .progress=TRUE )
     head( rps )
 
+    source( here::here( "simulations/simulation_helper_functions.R" ) )
     groups = group_estimators( rps )
     groups
 
@@ -512,6 +545,9 @@ if ( FALSE ) {
 
 
 #### Mike's ICC Simulation ####
+
+# Mike wanted to see how the MLM estimators targeted different
+# estimands based on the ICC
 
 if ( FALSE ) {
 
@@ -542,10 +578,15 @@ if ( FALSE ) {
     ICCs = c( 0, 0.2, 0.4, 0.6, 0.8 )
     res <- ICCs %>%
         set_names() %>%
-        map_dfr( run_sim, R = 400, .id = "ICC" )
+        map_dfr( run_sim, R = 100, .id = "ICC" )
 
     res
+
+    # Make families of estimators for grouping on the plot
     res$meth_group = str_extract( res$method, "^[^_]+" )
+
+    # Note how all methods are level w.r.t. the ICC, except MLM which
+    # goes from person-weighted to cluster-weighted as ICC increases.
     ggplot( res, aes( ICC, EATE ) ) +
         facet_wrap( ~ meth_group, nrow=1 ) +
         scale_y_continuous( limits = c(0, 0.5 ) ) +
