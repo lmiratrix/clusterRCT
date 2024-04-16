@@ -34,7 +34,7 @@ method_characteristics <- function() {
         "MLM_RE", "cluster",          "super",       1,0,
         "MLM_FI_Block", "cluster/block",         "super",       1,0,
         "MLM_FI_Cluster", "cluster",         "super",       1,0,
-        "MLM_FI_Person", "cluster",          "super",       1,0,
+        "MLM_FI_Person", "cluster",          "super",       1,1,
         "MLM_RIRC", "cluster/block",         "super",       1,0,
         "MLM_FIRC", "cluster/block",         "super",       1,0,
         "Agg_FE_Cluster", "cluster",         "super",       0,0,
@@ -238,7 +238,8 @@ compare_methods <- function(formula,
     if ( !include_dumb ) {
         summary_table <- summary_table %>%
             filter( !grepl( "Person_Cluster", method ),
-                    !grepl( "Cluster_Person", method ) )
+                    !grepl( "Cluster_Person", method ),
+                    !grepl( "LR_FI_CRVE_Cluster|MLM_FI_Person", method ) )
     }
 
     # Add info on the methods (e.g., what estimand they are targeting)
