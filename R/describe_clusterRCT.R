@@ -106,20 +106,22 @@ describe_clusterRCT <- function( formula = NULL,
     notes = c()
     tb = table( sizes$blockID, sizes$Z )
 
+    stats$matched_pairs = FALSE
+    stats$num_singletons = sum( tb == 1 )
+
     if ( any( tb == 1 ) ) {
         if ( all( tb <= 1 ) ) {
             notes = c( notes, "matched pairs design" )
+            stats$matched_pairs = TRUE
         } else {
             nblk = apply( tb == 1, 1, max )
             notes = c( notes, glue::glue( "{sum(nblk)} blocks have at least one singleton treated or control clusters" ) )
             nblk = apply( tb == 1, 1, min )
             notes = c( notes, glue::glue( "{sum(nblk)} blocks have exactly 2 clusters, one treated and one control" ) )
         }
-        stats$has_singletons = TRUE
-    } else {
-        stats$has_singletons = FALSE
     }
 
+    stats$num_doubletons = sum( tb == 2 )
     if ( any( tb == 2 ) ) {
         notes = c( notes, glue::glue( "{sum(tb==2)} within-block treatment arms have exactly 2 clusters." ) )
     }

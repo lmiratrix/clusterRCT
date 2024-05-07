@@ -102,7 +102,9 @@ test_that( "more general describer tests", {
     data = filter( data, !( S.id %in% dd ) )
     data <- clusterRCT:::make_canonical_data( Yobs ~ T.x | S.id | D.id, data=data )
     head( data )
+
     dd <- describe_clusterRCT( data=data )
+    dd
     expect_true( is.clusterRCTstats( dd ) )
     expect_true( is.data.frame( dd ) )
 
@@ -310,8 +312,8 @@ test_that( "Missing data handled", {
     as.data.frame(dd)
 
     dd2 = describe_clusterRCT( Yobs ~ T.x | S.id | D.id, data=data,
-                              control_formula = ~ C.ijk + X.jk,
-                              warn_missing = FALSE )
+                               control_formula = ~ C.ijk + X.jk,
+                               warn_missing = FALSE )
     dd2
     as.data.frame( dd2 )
     expect_true( dd2$R2.1 > 0.5 )
@@ -320,4 +322,13 @@ test_that( "Missing data handled", {
     expect_equal( dd2$ncov.1, 2 )
 
 })
+
+
+
+
+#test_that( "singleton blocks and matched pairs works", {
+
+    # See test_unusual_designs.R
+
+#})
 

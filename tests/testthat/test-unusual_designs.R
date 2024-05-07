@@ -22,7 +22,12 @@ test_that( "matched pairs designs get handled right", {
 
     dsc = describe_clusterRCT( Yobs ~ Z | B | D, data=blk, control_formula = ~ X )
     dsc
+    as.data.frame(dsc)
     expect_true( any( stringr::str_detect( attr( dsc, "notes" ), "matched pairs" ) ) )
+    expect_equal( dsc$num_singletons, 6 )
+    expect_true( dsc$matched_pairs )
+    expect_equal( dsc$num_doubletons, 0 )
+
 
     expect_warning( expect_warning( comp <- compare_methods( Yobs ~ Z | B | D, data=blk ) ) )
 
@@ -32,7 +37,8 @@ test_that( "matched pairs designs get handled right", {
 
     head(blk)
     suppressWarnings( comp <- compare_methods( Yobs ~ Z | B | D, data=blk, control_formula = ~ X ) )
-    comp
+    comp %>%
+        filter( is.na( ATE_hat ) )
     expect_true( any( is.na( comp$ATE_hat ) ) )
 
 })
@@ -54,6 +60,8 @@ test_that( "singleton tx or co designs get handled right", {
     dsc
     expect_true( !any( stringr::str_detect( attr( dsc, "notes" ), "matched pairs" ) ) )
     expect_true( any( stringr::str_detect( attr( dsc, "notes" ), "singleton" ) ) )
+    expect_true( !dsc$matched_pairs )
+    expect_equal( dsc$num_singletons, 1 )
 
     comp = compare_methods( Yobs ~ Z | B | D, data=blk )
     comp
@@ -78,6 +86,8 @@ test_that( "singleton tx or co designs get handled right", {
     dsc
     expect_true( !any( stringr::str_detect( attr( dsc, "notes" ), "matched pairs" ) ) )
     expect_true( any( stringr::str_detect( attr( dsc, "notes" ), "singleton" ) ) )
+    expect_equal( dsc$num_singletons, 2 )
+    expect_equal( dsc$num_doubletons, 0 )
 
     comp2 = compare_methods( Yobs ~ Z | B | D, data=blk )
     comp2
@@ -106,6 +116,7 @@ test_that( "doubleton tx or co designs get handled right", {
     dsc
     expect_true( !any( stringr::str_detect( attr( dsc, "notes" ), "matched pairs" ) ) )
     expect_true( !any( stringr::str_detect( attr( dsc, "notes" ), "singleton" ) ) )
+    expect_equal( dsc$num_doubletons, 1 )
 
     comp = compare_methods( Yobs ~ Z | B | D, data=blk )
     comp
@@ -129,13 +140,13 @@ test_that( "doubleton tx or co designs get handled right", {
     dsc
     expect_true( !any( stringr::str_detect( attr( dsc, "notes" ), "matched pairs" ) ) )
     expect_true( !any( stringr::str_detect( attr( dsc, "notes" ), "singleton" ) ) )
+    expect_equal( dsc$num_singletons, 0 )
+    expect_equal( dsc$num_doubletons, 3 * 2 )
 
     comp = compare_methods( Yobs ~ Z | B | D, data=blk )
     comp
     expect_true( all( !is.na( comp$ATE_hat ) ) )
     expect_true( all( !is.na( comp$SE_hat ) ) )
-
-
 
 })
 

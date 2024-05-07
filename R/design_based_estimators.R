@@ -208,7 +208,7 @@ design_based_estimators <- function( formula,
                                                   include_block_estimates = include_block_estimates )
         # df = m - 2h - v* = #clusters - 2 #blocks - #covariates
         ests$df = J - 2*K - v
-
+        ests$df[ ests$df < 1 ] = NA
 
         # Random debugging code -- here for future checking.
         if ( FALSE ) {
