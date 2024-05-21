@@ -35,6 +35,7 @@ linear_model_estimators <- function( formula,
     est2 <- M2$coefficients[["Z"]]
     se2  <- M2$std.error[["Z"]]
     pv2 <- M2$p.value[["Z"]]
+    df2 <- M2$df[[ "Z" ]]
 
     # Compile our results
     nm = ifelse( needFE, "LR_FE_CRVE", "LR_CRVE" )
@@ -42,7 +43,8 @@ linear_model_estimators <- function( formula,
         method = c( nm ),
         ATE_hat = c( est2 ),
         SE_hat = c( se2 ),
-        p_value = c( pv2 )
+        p_value = c( pv2 ),
+        df = c( df2 )
     )
 
 }

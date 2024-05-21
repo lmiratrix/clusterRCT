@@ -1,6 +1,8 @@
 
 
 test_that( "aggregation works", {
+    set.seed( 433434 )
+
     dd = data.frame( Y = 1:20,
                      clusterID = sample(LETTERS[1:5], 20, replace=TRUE),
                      blockID = sample( LETTERS[1:2], 20, replace=TRUE ),
@@ -29,4 +31,21 @@ test_that( "aggregation works", {
     a4
     expect_true( all( a2$x == a4$x ) )
 })
+
+
+test_that( "aggregation estimators work", {
+
+    data( fakeCRT )
+    fakeCRT
+
+    J = length( unique( fakeCRT$S.id ) )
+    J
+
+    e2 <- aggregation_estimators( Yobs ~ T.x | S.id | D.id,
+                                              #control_formula = ~ X.jk + C.ijk,
+                                              data = fakeCRT )
+    expect_true( is.data.frame(e2) )
+
+})
+
 

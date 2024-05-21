@@ -12,25 +12,28 @@
 #'   method, and ATE_hat, at least.  Each row is a simulation result
 #'   for a given method.  The runID groups the methods on the same
 #'   dataset.
-#'
+#' @param   Method will call two methods the same if they are within
+#'   tolerance of each other.  This could cause chaining where members
+#'   in a group are linked by another member but are not close.
+#'   Beware this!
 #' @return A list of groups of methods that give the same point
 #'   estimate.
-group_estimators <- function( rps ) {
+group_estimators <- function( rps, tolerance = 10^-7, return_matrix = FALSE ) {
 
     wid <- rps %>% dplyr::select( runID, method, ATE_hat ) %>%
         pivot_wider( names_from = method, values_from = ATE_hat ) %>%
         dplyr::select( -runID )
 
 
-    results <- combn(names(wid), 2, function(x) {
-        mean_diff <- mean(wid[[x[1]]] - wid[[x[2]]])
-        tibble(pair = paste(x, collapse = " - "), mean_difference = round( mean_diff, digits=10 ) )
-    }, simplify = FALSE) %>% bind_rows()
+    #results <- combn(names(wid), 2, function(x) {
+    #        mean_diff <- mean( abs( wid[[x[1]]] - wid[[x[2]]] ) )
+    #       tibble(pair = paste(x, collapse = " - "), mean_difference = round( mean_diff, digits=10 ) )
+    #  }, simplify = FALSE) %>% bind_rows()
 
 
     # Create a matrix where each element is the mean difference between two columns
     mean_diff_matrix <- outer(1:ncol(wid), 1:ncol(wid), Vectorize(function(x, y) {
-        abs( mean(wid[[x]] - wid[[y]]) )
+        mean( abs( wid[[x]] - wid[[y]] ) )
     }))
 
     # Naming rows and columns for clarity
@@ -39,8 +42,6 @@ group_estimators <- function( rps ) {
 
     mean_diff_matrix
 
-    # Assuming mean_diff_matrix is your matrix of pairwise mean differences
-    tolerance <- 10^-7
 
     # Create a binary matrix where 1 indicates differences below the tolerance
     binary_matrix <- 0 + (mean_diff_matrix < tolerance)
@@ -60,7 +61,12 @@ group_estimators <- function( rps ) {
             already_included <- c(already_included, group_names)
         }
     }
-    groups
+
+    if ( return_matrix ) {
+        return( mean_diff_matrix )
+    } else {
+        return( groups )
+    }
 }
 
 

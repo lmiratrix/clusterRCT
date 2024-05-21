@@ -12,8 +12,8 @@
 #'
 #' @export
 MLM_estimators <- function( formula,
-                                     data = NULL,
-                                     control_formula = NULL,
+                            data = NULL,
+                            control_formula = NULL,
                             suppress_warnings = TRUE ) {
 
     require( lme4 )
@@ -32,29 +32,31 @@ MLM_estimators <- function( formula,
     get_mlm_ests <- function( M1, name = "MLM" ) {
         est1 <- fixef( M1 )[["Z"]]
         se1 <- arm::se.fixef( M1 )[["Z"]]
-        pv1 <- summary(M1)$coefficients["Z",5]
-
+        ss = summary(M1)
+        pv1 <- ss$coefficients["Z",5]
+        df1 <- ss$coefficients["Z",3]
         # Compile our results
         tibble(
             method = c( name ),
             ATE_hat = c( est1 ),
             SE_hat = c( se1 ),
-            p_value = c( pv1 )
+            p_value = c( pv1 ),
+            df = c( df1 )
         )
     }
 
-
     if ( !is.null( formula ) ) {
-        data = make_canonical_data( formula=formula, data=data, control_formula=control_formula )
+        data = make_canonical_data( formula=formula, data=data,
+                                    control_formula=control_formula )
     }
 
     needFE = "blockID" %in% names(data)
 
     if ( !needFE ) {
-        # Do single MLM possible, and bail.
+        # Do the only MLM that is possible, and bail.
         form = make_regression_formula( FE = FALSE,
-                                          control_formula = control_formula,
-                                          cluster_RE = TRUE )
+                                        control_formula = control_formula,
+                                        cluster_RE = TRUE )
         M1 <- my_lmer( form, data=data )
 
         return( get_mlm_ests( M1, "MLM") )
@@ -62,8 +64,8 @@ MLM_estimators <- function( formula,
 
 
     formFE = make_regression_formula( FE = TRUE,
-                                    control_formula = control_formula,
-                                    cluster_RE = TRUE )
+                                      control_formula = control_formula,
+                                      cluster_RE = TRUE )
     M1 <- my_lmer( formFE, data=data )
     MLM_FE = get_mlm_ests(M1, "MLM_FE")
 
@@ -80,11 +82,13 @@ MLM_estimators <- function( formula,
                                       cluster_RE = TRUE )
     M1 <- my_lmer( formFI, data=data )
     MLM_FI = clusterRCT:::generate_all_interacted_estimates( M1, data,
-                                       use_full_vcov = TRUE, method = "MLM_FI" )
+                                                             use_full_vcov = TRUE,
+                                                             method = "MLM_FI" )
+    MLM_FI$df = NA
 
     formRIRC = make_regression_formula( FE = FALSE,
-                                      control_formula = control_formula,
-                                      cluster_RE = TRUE )
+                                        control_formula = control_formula,
+                                        cluster_RE = TRUE )
     formRIRC = update( formRIRC, . ~ . + (1+Z|blockID) )
     M_RIRC <- my_lmer( formRIRC, data=data )
     MLM_RIRC = get_mlm_ests(M_RIRC, "MLM_RIRC")
@@ -128,10 +132,10 @@ if ( FALSE ) {
                    data = fakeCRT )
 
     MLM_estimators( Yobs ~ T.x | S.id | D.id,
-                                        data = fakeCRT )
+                    data = fakeCRT )
 
     MLM_estimators( Yobs ~ T.x | S.id,
-                                        data = fakeCRT )
+                    data = fakeCRT )
 
 }
 

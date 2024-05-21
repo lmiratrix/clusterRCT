@@ -1,4 +1,22 @@
 
+
+# Calculate the Welch-Satterthwaite degrees of freedom
+#
+# Calculate for a weighted sum of variances, with individual degrees
+# of freedom for each (estimated) variance.
+#
+# @param SE2 A vector of variances.
+# @param weight A vector of weights.
+#
+# @return The Welch-Satterthwaite degrees of freedom.
+Welch_Satterthwaite_df <- function( weight, SE2, df ) {
+
+    return( sum( weight * SE2 ) ^ 2 / sum( ( weight * SE2 )^2 / df ) )
+    # Formula from Wiki: https://en.wikipedia.org/wiki/Welch%E2%80%93Satterthwaite_equation
+
+}
+
+
 # Calculate ATE and SE given weights and individual block estimates
 #
 # The function takes in the estimated ATEs and their standard errors,
@@ -7,7 +25,7 @@
 
 # @return A tibble with the ATE, SE, and p-value for each weighting
 #   scheme.
-calc_agg_estimate <- function( wts, ATE_hats, SE2_hats ) {
+calc_agg_estimate <- function( wts, ATE_hats, SE2_hats, df ) {
 
     # normalize weights
     wts = wts / sum(wts)
@@ -22,13 +40,16 @@ calc_agg_estimate <- function( wts, ATE_hats, SE2_hats ) {
     }
     tibble( ATE_hat = ATE_hat,
             SE_hat = SE_hat,
-            p_value = 2*pnorm( abs(ATE_hat) / SE_hat, lower.tail=FALSE ) )
+            p_value = 2*pnorm( abs(ATE_hat) / SE_hat, lower.tail=FALSE ),
+            df = Welch_Satterthwaite_df( weight=wts, SE2=SE_hat^2, df=df ) )
 }
 
 
 # @param sizes A data frame with columns blockID, J, n, and
 #   (optionally) weight
-calculate_avg_impacts <- function( ATE_hats, SE2_hats,
+calculate_avg_impacts <- function( ATE_hats,
+                                   SE2_hats,
+                                   df,
                                    sizes = NULL,
                                    clusterID = NULL,
                                    blockID = NULL ) {
@@ -48,13 +69,13 @@ calculate_avg_impacts <- function( ATE_hats, SE2_hats,
     K = nrow( sizes )
 
     # equal weighting
-    ATE_eq <- calc_agg_estimate( rep(1,K), ATE_hats, SE2_hats )
+    ATE_eq <- calc_agg_estimate( rep(1,K), ATE_hats, SE2_hats, df=df )
 
     # weight by number of clusters
-    ATE_cluster <- calc_agg_estimate(sizes$J, ATE_hats, SE2_hats)
+    ATE_cluster <- calc_agg_estimate(sizes$J, ATE_hats, SE2_hats, df=df )
 
     # weight by number of students
-    ATE_indiv <- calc_agg_estimate(sizes$n, ATE_hats, SE2_hats)
+    ATE_indiv <- calc_agg_estimate(sizes$n, ATE_hats, SE2_hats, df=df )
 
     rsp <- bind_rows( Block = ATE_eq,
                       Cluster = ATE_cluster,
@@ -98,12 +119,21 @@ generate_all_interacted_estimates <- function( fitModel, data,
         cc = coef( fitModel )
     }
 
-
-
     ids <- grep( "Z:", names(cc) )
     stopifnot(length(ids) == J)
 
     VC <- vcov(fitModel)
+
+    if ( class( fitModel ) %in% "lm_robust" ) {
+        df = fitModel$df[ ids ]
+    } else if ( class( fitModel ) == "lm" ) {
+        # No good block-level degree of freedom due to homoskedasticity assumption
+        df = rep( NA, length( ids ) )
+    } else {
+        # MLM
+        ccc = summary( fitModel )$coefficients
+        df = ccc[ids,"df"]
+    }
 
     ATE_hats <- cc[ids]
     names(ATE_hats) = stringr::str_remove(names(ATE_hats), "Z:blockID")
@@ -116,6 +146,7 @@ generate_all_interacted_estimates <- function( fitModel, data,
         SE2_hats = SE_table$SE_hat^2
         ests <- calculate_avg_impacts( ATE_hats,
                                        SE2_hats,
+                                       df = df,
                                        sizes = SE_table )
     } else {
         sizes = data
@@ -128,10 +159,12 @@ generate_all_interacted_estimates <- function( fitModel, data,
             # the off diagonal
             SE2_hats = diag( as.matrix( VC ) )[ids] # for table below
             ests <- calculate_avg_impacts( ATE_hats, VC[ids,ids],
+                                           df = df,
                                            sizes = sizes )
         } else {
             SE2_hats <- diag( as.matrix( VC ) )[ids]
             ests <- calculate_avg_impacts( ATE_hats, SE2_hats,
+                                           df = df,
                                            sizes = sizes )
         }
     }

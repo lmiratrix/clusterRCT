@@ -19,13 +19,15 @@ aggregation_estimators <- function( formula,
         est1 <- M1$coefficients[["Z"]]
         se1 <- M1$std.error[["Z"]]
         pv1 <- M1$p.value[["Z"]]
+        df1 <- M1$df[["Z"]]
 
         # Compile our results
         tibble(
             method = c( name ),
             ATE_hat = c( est1 ),
             SE_hat = c( se1 ),
-            p_value = c( pv1 )
+            p_value = c( pv1 ),
+            df = c( df1 )
         )
     }
 
@@ -72,19 +74,27 @@ aggregation_estimators <- function( formula,
                                                 aggregated = TRUE,
                                                 use_full_vcov=TRUE,
                                                 method = "Agg_FI_Cluster" )
+    Agg_FI$df = M5$df[[1]]
+    # Note: The df for heteroskedastic seems to be an overall single
+    # number, so the satterwhite approximation of the above is
+    # inappropriate.
 
     M6 <- lm_robust( formI, data=datagg, se_type = "HC2", weights = n )
     Agg_wFI = generate_all_interacted_estimates( M6, aggd,
                                                  aggregated = TRUE,
                                                  use_full_vcov=TRUE,
                                                  method = "Agg_FI_Person" )
+    Agg_wFI$df = M6$df[[1]]
+    # See note above.
 
     # Drop SEs if there are singleton treated or control blocks.
     if ( has_singleton_clusters_agg( datagg ) ) {
         Agg_FI$SE_hat = NA
         Agg_FI$p_value = NA
+        Agg_FI$df = NA
         Agg_wFI$SE_hat = NA
         Agg_wFI$p_value = NA
+        Agg_wFI$df = NA
     }
 
     # Compile our results
