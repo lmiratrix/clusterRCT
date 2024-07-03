@@ -159,7 +159,8 @@ compare_methods <- function(formula,
 
         data = make_canonical_data( formula=formula, data=data,
                                     control_formula = control_formula,
-                                    warn_missing = warn_missing, patch_data = patch_data )
+                                    warn_missing = warn_missing,
+                                    patch_data = patch_data )
         if ( patch_data ) {
             control_formula = attr( data, "control_formula" )
         }

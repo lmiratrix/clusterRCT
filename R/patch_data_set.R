@@ -162,7 +162,9 @@ patch_singleton_blocks <- function( formula = NULL, data,
 
     parts = deconstruct_var_formula(formula, data)
 
-    drp = is.na( data[[ as.character(parts$blockID) ]] ) | ( data[[ as.character(parts$blockID) ]] %in% missing$blockID )
+    blkID = data[[ as.character(parts$blockID) ]]
+    drp = is.na( blkID ) | ( blkID %in% missing$blockID )
+
     if ( drop_data ) {
         if ( warn_missing ) {
             warning( glue::glue( "Dropping all-tx and/or all-co blocks. {sum(drp)} of {length(drp)} rows of data dropped." ),
@@ -180,16 +182,16 @@ patch_singleton_blocks <- function( formula = NULL, data,
              call. = FALSE )
     }
 
-    S.id = data[[parts$blockID]]
-    is_fac = is.factor(S.id)
-    S.id = as.character(S.id)
+    new_blk_id = data[[parts$blockID]]
+    is_fac = is.factor(new_blk_id)
+    new_blk_id = as.character(new_blk_id)
 
     if ( pool_clusters ) {
         cid = data[[ parts$clusterID ]]
         is_fac_cid = is.factor(cid)
         cid = as.character(cid)
         for ( n in missing$blockID ) {
-            cid[ S.id == n ] = paste0( ".", n )
+            cid[ new_blk_id == n ] = paste0( ".", n )
         }
         if ( is_fac_cid ) {
             cid = as.factor(cid)
@@ -197,12 +199,22 @@ patch_singleton_blocks <- function( formula = NULL, data,
         data[[ parts$clusterID ]] = cid
     }
 
-    S.id[ S.id %in% missing$blockID ] = ".pooled"
+    if ( ".pooled" %in% unique( new_blk_id ) ) {
+        warning( "Block ID already has a '.pooled' block.  This is likely to cause problems." )
+    }
+
+    new_blk_id[ drp ] = ".pooled"
 
     if ( is_fac ) {
-        S.id = as.factor(S.id)
+        new_blk_id = as.factor(new_blk_id)
     }
-    data[[parts$blockID]] = S.id
+    data[[parts$blockID]] = new_blk_id
+
+    # Now check if still have singleton blocks
+    missing = identify_singleton_blocks( formula, data )
+    if ( !is.null( missing ) ) {
+        warning( "Still have singleton blocks after pooling." )
+    }
 
     return( data )
 }

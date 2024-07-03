@@ -51,7 +51,7 @@ test_that("categorical covariates handled", {
 
 
 test_that("missing data handled as desired", {
-
+    data( fakeCRT )
     fake2 = fakeCRT
     head( fake2 )
     fake2$Yobs[1:10] = NA
@@ -77,33 +77,33 @@ test_that("missing data handled as desired", {
     mtab_cov
 
     mtab_cov2 <-  compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
-                                  control_formula = ~ X.jk + C.ijk,
-                                  include_method_characteristics = FALSE,
-                                  warn_missing = FALSE )
+                                   control_formula = ~ X.jk + C.ijk,
+                                   include_method_characteristics = FALSE,
+                                   warn_missing = FALSE )
 
     expect_true( is.data.frame(mtab_cov2) )
 
     # Kept more data, lower standard errors!
     expect_true( mean( mtab_cov2$SE_hat ) < mean( mtab_cov$SE_hat ) )
 
-    # Check if missingness drops all tx in a district, we stop.
+    # Check that if missingness drops all tx in a district, we stop.
     fake2$T.x[ is.na( fake2$D.id ) | is.na( fake2$T.x ) | (fake2$D.id == 1 & fake2$T.x == 0) ] = NA
 
     expect_warning( tt <- make_block_table( Yobs ~ T.x | S.id | D.id, data=fake2,
-                                           control_formula = ~ X.jk + C.ijk ) )
+                                            control_formula = ~ X.jk + C.ijk ) )
     expect_true( tt$p.tx[[1]] == 1 )
 
-    # Will crash when trying to analyze.
-    expect_warning( expect_error( compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
-                                                   control_formula = ~ X.jk + C.ijk,
-                                                   patch_data = FALSE,
-                                                   include_method_characteristics = FALSE ) ) )
+    # Will throw warning about dropping all-tx blocks when trying to analyze.
+    expect_warning( expect_warning( compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
+                                                     control_formula = ~ X.jk + C.ijk,
+                                                     patch_data = FALSE,
+                                                     include_method_characteristics = FALSE ) ) )
 
     # Patching data will not help with all tx or all co blocks.
-    expect_error( compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
-                     control_formula = ~ X.jk + C.ijk,
-                     patch_data = TRUE, warn_missing = FALSE,
-                     include_method_characteristics = FALSE ) )
+    expect_warning( expect_warning( compare_methods( Yobs ~ T.x | S.id | D.id, data=fake2,
+                                                     control_formula = ~ X.jk + C.ijk,
+                                                     patch_data = TRUE, warn_missing = TRUE,
+                                                     include_method_characteristics = FALSE ) ) )
     #expect_true( is.data.frame(mtab_cov) )
 })
 

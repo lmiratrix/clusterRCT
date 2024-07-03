@@ -460,7 +460,7 @@ identify_singleton_blocks <- function( formula, data ) {
     }
     nms = colnames(tb)[ zros == 0 ]
 
-    n = apply( tb[ 1:2, zros == 0 ], 2, sum )
+    n = apply( tb[ 1:2, zros == 0, drop=FALSE ], 2, sum )
     n_tx = tb[ 2, zros == 0 ]
     ptx = n_tx / n
     tb <- tibble( blockID = nms,
