@@ -4,7 +4,7 @@
 \alias{calc_covariate_R2s}
 \title{Calculate R2 of level 1, level 2, and block.}
 \usage{
-calc_covariate_R2s(data, pooled = TRUE)
+calc_covariate_R2s(data, pooled = TRUE, is_blocked = TRUE)
 }
 \arguments{
 \item{data}{Data in canonical form.}

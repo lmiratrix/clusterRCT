@@ -53,12 +53,22 @@ describe_clusterRCT <- function( formula = NULL,
 
     data = patch_data_set( NULL, data=data, control_formula = control_formula,
                            warn_missing = warn_missing )
-    data = patch_singleton_blocks(NULL, data=data,
-                                  warn_missing = warn_missing )
+
+    is_blocked = "blockID" %in% colnames(data)
+
+    if ( is_blocked ) {
+        data = patch_singleton_blocks(NULL, data=data,
+                                      warn_missing = warn_missing )
+    }
 
     control_formula = attr( data, "control_formula" )
 
-    K = length( unique( data$blockID ) )
+    if ( is_blocked ) {
+        K = length( unique( data$blockID ) )
+    } else {
+        K = 1
+        data$blockID = ".single"
+    }
 
     # Get cluster sizes
     sizes = data %>%
@@ -94,7 +104,7 @@ describe_clusterRCT <- function( formula = NULL,
                    tx.IQR = tx.75 - tx.25 )
 
 
-    ICCs = calc_ICCs(data)
+    ICCs = calc_ICCs(data, is_blocked = is_blocked )
 
     stats <- tibble( n = nrow(data) )
     stats = bind_cols( stats, cstat, sstat )
@@ -131,7 +141,7 @@ describe_clusterRCT <- function( formula = NULL,
 
     # R2 values
     if ( !is.null( cnames ) ) {
-        stats <- bind_cols( stats, calc_covariate_R2s(data) )
+        stats <- bind_cols( stats, calc_covariate_R2s(data, is_blocked = is_blocked ) )
     }
 
     if ( sum( miss ) > 0 ) {
@@ -148,11 +158,15 @@ describe_clusterRCT <- function( formula = NULL,
 #' Use a multilevel model to calculate ICCs.  Treated units included,
 #' using a constant treatment effect model.
 #'
-calc_ICCs <- function( data ) {
+calc_ICCs <- function( data, is_blocked = TRUE ) {
 
     require( lme4 )
 
-    form = Yobs ~ 1 + Z + (1 | blockID ) + (1 | clusterID )
+    if ( is_blocked ) {
+        form = Yobs ~ 1 + Z + (1 | blockID ) + (1 | clusterID )
+    } else {
+        form = Yobs ~ 1 + Z + (1 | clusterID )
+    }
     #if ( !is.null( control_formula ) ) {
     #    form = update( control_formula, Yobs ~ . + 1 + Z + (1 | blockID ) + (1 | clusterID ) )
     #}
@@ -161,12 +175,20 @@ calc_ICCs <- function( data ) {
 
     a = VarCorr( M )
 
-    C.ICC = as.numeric( a$clusterID )
-    S.ICC = as.numeric( a$blockID )
     sigma2 = sigma( M )^2
-    tvar = (C.ICC + S.ICC + sigma2)
-    C.ICC = C.ICC / tvar
-    S.ICC = S.ICC / tvar
+
+    if ( is_blocked ) {
+        C.ICC = as.numeric( a$clusterID )
+        S.ICC = as.numeric( a$blockID )
+        tvar = (C.ICC + S.ICC + sigma2)
+        S.ICC = S.ICC / tvar
+        C.ICC = C.ICC / tvar
+    } else {
+        C.ICC = as.numeric( a$clusterID )
+        S.ICC = NA
+        tvar = (C.ICC + sigma2)
+        C.ISS = C.ICC / tvar
+    }
 
     list( C.ICC = C.ICC, S.ICC = S.ICC )
 }
@@ -196,7 +218,7 @@ calc_ICCs <- function( data ) {
 #'   remove systematic shift of average treatment effect.  If FALSE,
 #'   subset to control observations only.
 #'
-calc_covariate_R2s <- function( data, pooled = TRUE ) {
+calc_covariate_R2s <- function( data, pooled = TRUE, is_blocked = TRUE ) {
 
     # Calculating R2.1
     if ( !pooled ) {
@@ -205,14 +227,28 @@ calc_covariate_R2s <- function( data, pooled = TRUE ) {
     }
 
     # Covert covariates to numerical, if they are not already.
-    dm = model.matrix( Yobs ~ . - clusterID - blockID, data=data ) %>%
-        as.data.frame() %>%
-        dplyr::select( -`(Intercept)` )
+    if ( is_blocked ) {
+        dm = model.matrix( Yobs ~ . - clusterID - blockID, data=data ) %>%
+            as.data.frame() %>%
+            dplyr::select( -`(Intercept)` )
+    } else {
+        # NOTE: This annoying thing is neccessary as model.matrix
+        # bails before we can subtract out blockID, so prior block
+        # doesn't work.
+        data$blockID = NULL
+        dm = model.matrix( Yobs ~ . - clusterID, data=data ) %>%
+            as.data.frame() %>%
+            dplyr::select( -`(Intercept)` )
 
+    }
     cnames = colnames(dm)
 
     dm$clusterID = data$clusterID
-    dm$blockID = data$blockID
+    if ( !is_blocked ) {
+        dm$blockID = ".single"
+    } else {
+        dm$blockID = data$blockID
+    }
 
     # Add group means and group mean-centered versions of all
     # covariates
@@ -243,20 +279,37 @@ calc_covariate_R2s <- function( data, pooled = TRUE ) {
         dplyr::select( !ends_with("_cent" ) )
 
     # Calculate R2.1
-    # browser()
-    Mfull = lmer( Yobs ~ 1 + . - blockID - clusterID + (1|clusterID), data=noLvl2 )
-    Mnull = lmer( Yobs ~ 1 + (1|clusterID), data=noLvl2 )
-    R2.1 = (sigma( Mnull )^2 - sigma(Mfull)^2) / sigma(Mnull)^2
+    if ( is_blocked ) {
+        # browser()
+        Mfull = lmer( Yobs ~ 1 + . - blockID - clusterID + (1|clusterID), data=noLvl2 )
+        Mnull = lmer( Yobs ~ 1 + (1|clusterID), data=noLvl2 )
+        R2.1 = (sigma( Mnull )^2 - sigma(Mfull)^2) / sigma(Mnull)^2
 
 
-    # Calculate R2.2
-    M2null = lmer( Yobs ~ 1 + . - clusterID + blockID + (1|clusterID), data=noLvl2 )
-    M2full = lmer( Yobs ~ 1 + . - clusterID + blockID + (1|clusterID), data=result )
+        # Calculate R2.2
+        M2null = lmer( Yobs ~ 1 + . - clusterID + blockID + (1|clusterID), data=noLvl2 )
+        M2full = lmer( Yobs ~ 1 + . - clusterID + blockID + (1|clusterID), data=result )
 
-    vFull = as.numeric( VarCorr( M2full )$clusterID )
-    vNull = as.numeric( VarCorr( M2null )$clusterID )
-    R2.2 = (vNull - vFull) / vNull
+        vFull = as.numeric( VarCorr( M2full )$clusterID )
+        vNull = as.numeric( VarCorr( M2null )$clusterID )
+        R2.2 = (vNull - vFull) / vNull
+    } else {
+        # browser()
+        noLvl2$blockID = NULL
+        Mfull = lmer( Yobs ~ 1 + . - clusterID + (1|clusterID), data=noLvl2 )
+        Mnull = lmer( Yobs ~ 1 + (1|clusterID), data=noLvl2 )
+        R2.1 = (sigma( Mnull )^2 - sigma(Mfull)^2) / sigma(Mnull)^2
 
+
+        # Calculate R2.2
+        result$blockID = NULL
+        M2null = lmer( Yobs ~ 1 + . - clusterID  + (1|clusterID), data=noLvl2 )
+        M2full = lmer( Yobs ~ 1 + . - clusterID  + (1|clusterID), data=result )
+
+        vFull = as.numeric( VarCorr( M2full )$clusterID )
+        vNull = as.numeric( VarCorr( M2null )$clusterID )
+        R2.2 = (vNull - vFull) / vNull
+    }
 
     # Pack and ship!
     R2s <- tibble( R2.1 = R2.1,

@@ -4,7 +4,7 @@
 \alias{calc_ICCs}
 \title{Calculate ICCs}
 \usage{
-calc_ICCs(data)
+calc_ICCs(data, is_blocked = TRUE)
 }
 \description{
 Use a multilevel model to calculate ICCs.  Treated units included,
