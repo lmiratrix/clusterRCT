@@ -30,7 +30,7 @@ MLM_estimators <- function( formula,
     }
 
     get_mlm_ests <- function( M1, name = "MLM" ) {
-        est1 <- fixef( M1 )[["Z"]]
+        est1 <- lme4::fixef( M1 )[["Z"]]
         se1 <- arm::se.fixef( M1 )[["Z"]]
         ss = summary(M1)
         pv1 <- ss$coefficients["Z",5]
