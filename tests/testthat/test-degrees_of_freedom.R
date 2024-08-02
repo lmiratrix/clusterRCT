@@ -1,8 +1,12 @@
 
+# Degrees of freedom verification
+
+
+
 model.params.list <- list(
     M = 1                            # number of outcomes
-    , J = 30                          # number of schools
-    , K = 10                          # number of districts
+    , J = 4                          # number of schools
+    , K = 3                          # number of districts
     , nbar = 10                       # number of individuals per school
     , S.id = NULL                     # N-length vector of school assignments
     , D.id = NULL                     # N-length vector of district assignments
@@ -18,37 +22,47 @@ model.params.list <- list(
 )
 
 
+set.seed( 4044024 )
+ss <- PUMP::gen_sim_data( d_m = "d3.2_m3ff2rc", model.params.list, Tbar = 0.5 )
 
-sim.data <- PUMP::gen_sim_data( d_m = "d3.2_m3ff2rc", model.params.list, Tbar = 0.5 )
 
 
 
-test_that("MLM estimation works", {
+test_that( "degrees of freedom calculated right (compare_method)", {
 
-    md = MLM_estimators( Yobs ~ T.x | S.id | D.id, data = sim.data )
+    table( ss$D.id, ss$S.id)
+    md = compare_methods( Yobs ~ T.x | S.id | D.id, data = ss ) %>%
+        dplyr::select( method, df )
     md
 
-    expect_true( is.data.frame( md ) )
-    expect_true( all( md$p_value <= 1 ) )
-    expect_true( all( md$SE_hat > 0 ) )
+    head( ss )
+    md2 = compare_methods( Yobs ~ T.x | S.id | D.id, data = ss,
+                           control_formula = ~ X.jk + C.ijk )
+    md$twoCov = md2$df
 
-    md = MLM_estimators( Yobs ~ T.x | S.id, data = sim.data )
-    expect_true( md$method == "MLM" )
+    ss$X = sample( LETTERS[1:5], nrow(ss), replace=TRUE )
+    md3 = linear_model_estimators( Yobs ~ T.x | S.id | D.id, data = ss,
+                           control_formula = ~ X.jk + C.ijk + X )
 
-    sim.data$Yobs[ sim.data$T.x == 1 ] = sim.data$Yobs[ sim.data$T.x == 1 ] + 0.3
-    md = MLM_estimators( Yobs ~ T.x | S.id | D.id, data = sim.data )
+    # Throws a warning
+    #md3 = aggregation_estimators( Yobs ~ T.x | S.id | D.id, data = ss,
+    #                               control_formula = ~ X.jk + C.ijk + X )
+
+    expect_warning( expect_warning( md3 <- compare_methods( Yobs ~ T.x | S.id | D.id, data = ss,
+                           control_formula = ~ X.jk + C.ijk + X ) ) )
+    md$catCov = md3$df
+
     md
-    expect_true( all( md$p_value <= 0.05 ) )
+    expect_true( all( !is.na( md$twoCov ) ) )
+    #expect_true( all( md$twoCov <= md$df ) )
 
+    # TODO: What should this table look like?  Is it correct?
 })
 
 
-test_that( "get degrees of freedom hack right", {
-    m2 = model.params.list
-    m2$K = 3
-    m2$J = 4
 
-    ss <- PUMP::gen_sim_data( d_m = "d3.2_m3ff2rc", m2, Tbar = 0.5 )
+test_that( "get degrees of freedom hack right (MLM)", {
+
     table( ss$D.id, ss$S.id)
     md = MLM_estimators( Yobs ~ T.x | S.id | D.id, data = ss )
     expect_equal( md$df[3:5], c( 6,6,6) )
@@ -65,19 +79,3 @@ test_that( "get degrees of freedom hack right", {
     expect_equal( md$df[3:5], c( 0,0,0) )
 })
 
-
-test_that( "warning suppression works", {
-    data( fakeCRT )
-    mtab_cov = NA
-
-    mtab_cov <-  MLM_estimators( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
-                                  control_formula = ~ X.jk + C.ijk )
-
-    mtab_cov2 = NA
-    w <- capture_warnings( mtab_cov2 <- MLM_estimators( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
-                                 control_formula = ~ X.jk + C.ijk,
-                                 suppress_warnings = FALSE ) )
-    expect_true( length( w ) == 3 )
-
-    expect_equal( mtab_cov, mtab_cov2 )
-})

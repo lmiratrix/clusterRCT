@@ -84,7 +84,9 @@ MLM_estimators <- function( formula,
     MLM_FI = clusterRCT:::generate_all_interacted_estimates( M1, data,
                                                              use_full_vcov = TRUE,
                                                              method = "MLM_FI" )
-    MLM_FI$df = NA
+    # Hack conservative DF calculation:
+    # df = #clusters - 2 * #blocks - #covariates
+    MLM_FI$df = length(unique(data$clusterID)) - length( fixef(M1) )
 
     formRIRC = make_regression_formula( FE = FALSE,
                                         control_formula = control_formula,

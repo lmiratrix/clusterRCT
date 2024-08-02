@@ -268,8 +268,12 @@ calc_covariate_R2s <- function( data, pooled = TRUE, is_blocked = TRUE ) {
     cents = which( endsWith( colnames(result), "_cent" ) )
     sds = purrr::map_dbl( cents, ~ sd( result[[ . ]] ) )
     ncov.1 = sum( sds != 0 )
+    cov.1 = paste0( colnames(result)[ c( cents[sds != 0] ) ], collapse = ", " )
+
     result = result[ -c( cents[sds == 0] ) ]
     ncov.2 = sum( endsWith( colnames(result), "_mn" ) ) - 1
+    cov.2 = paste0( setdiff( colnames(result)[ endsWith( colnames(result), "_mn" ) ], "Z_mn" ),
+                    collapse = ", " )
 
     result$Yobs = data$Yobs
 
@@ -292,7 +296,8 @@ calc_covariate_R2s <- function( data, pooled = TRUE, is_blocked = TRUE ) {
 
         vFull = as.numeric( VarCorr( M2full )$clusterID )
         vNull = as.numeric( VarCorr( M2null )$clusterID )
-        R2.2 = (vNull - vFull) / vNull
+        R2.2 = pmax( 0, (vNull - vFull) / vNull )
+
     } else {
         # browser()
         noLvl2$blockID = NULL
@@ -308,14 +313,15 @@ calc_covariate_R2s <- function( data, pooled = TRUE, is_blocked = TRUE ) {
 
         vFull = as.numeric( VarCorr( M2full )$clusterID )
         vNull = as.numeric( VarCorr( M2null )$clusterID )
-        R2.2 = (vNull - vFull) / vNull
+        R2.2 = pmax( 0, (vNull - vFull) / vNull )
     }
 
     # Pack and ship!
     R2s <- tibble( R2.1 = R2.1,
                    ncov.1 = ncov.1,
                    R2.2 = R2.2,
-                   ncov.2 = ncov.2 )
+                   ncov.2 = ncov.2
+    )
 
     # Add Hedges SEs
     calc_hedge_SE <- function( R2, n ) {
@@ -324,6 +330,10 @@ calc_covariate_R2s <- function( data, pooled = TRUE, is_blocked = TRUE ) {
     }
     R2s$SER2.1 = calc_hedge_SE( R2.1, nrow(result) )
     R2s$SER2.2 = calc_hedge_SE( R2.2, length(unique(result$clusterID)) )
+
+    # Add in covariate lists
+    R2s$cov.1 = cov.1
+    R2s$cov.2 = cov.2
 
     R2s
 }

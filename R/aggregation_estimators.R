@@ -91,10 +91,10 @@ aggregation_estimators <- function( formula,
     if ( has_singleton_clusters_agg( datagg ) ) {
         Agg_FI$SE_hat = NA
         Agg_FI$p_value = NA
-        Agg_FI$df = NA
+        Agg_FI$df = 0
         Agg_wFI$SE_hat = NA
         Agg_wFI$p_value = NA
-        Agg_wFI$df = NA
+        Agg_wFI$df = 0
     }
 
     # Compile our results

@@ -59,6 +59,7 @@ test_that( "describer works with non-blocked data", {
                               control_formula = ~  X.jk + C.ijk + bb )
 
     d
+    as.data.frame(d)
     expect_true( is.clusterRCTstats(d) )
     expect_equal( d$ncov.1, 1 )
     expect_equal( d$ncov.2, 1 + length( unique( fakeCRT$D.id ) ) )
@@ -68,6 +69,7 @@ test_that( "describer works with non-blocked data", {
 
     expect_equal( d2$ncov.1, d$ncov.1 )
     expect_equal( d2$R2.1, d$R2.1 )
+    as.data.frame(d2)
 })
 
 

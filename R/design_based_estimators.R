@@ -76,6 +76,9 @@ schochet_variance_formula_block <- function( adt, v ) {
                        s2 = s2 / sdf ) %>%
         ungroup()
 
+    # calc_s2_partial can give negative numbers on order of 10^-32
+    adtw$s2[ adtw$s2 < 0 ] = 0
+
     adtw$s2[ is.infinite(adtw$s2) ] = NA
 
     pt2 <- adtw %>%
