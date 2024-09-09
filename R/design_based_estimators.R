@@ -220,6 +220,7 @@ design_based_estimators <- function( formula,
         form = make_regression_formula( Yobs = "Ybar", interacted = TRUE,
                                         control_formula = control_formula )
         mod = lm( form, data=data_agg, weights = .weight )
+        no_estimate = sum( is.na( coef(mod) ) ) > 0
 
         data_agg$resid = residuals(mod)
         block_tab = schochet_variance_formula_block( data_agg, v = v )
@@ -235,8 +236,13 @@ design_based_estimators <- function( formula,
                                                   aggregated = TRUE,
                                                   include_block_estimates = include_block_estimates )
         # df = m - 2h - v* = #clusters - 2 #blocks - #covariates
-        ests$df = J - 2*K - v
-        ests$df[ ests$df < 1 ] = NA
+        df = J - 2*K - v
+        ests$df = df
+        if ( no_estimate ) {
+            ests$ATE_hat = NA
+            ests$SE_hat = NA
+            ests$p_value = NA
+        }
 
         # Random debugging code -- here for future checking.
         if ( FALSE ) {
@@ -297,7 +303,8 @@ design_based_estimators <- function( formula,
         # clean up NaNs
         ests$ATE_hat[ is.nan(ests$ATE_hat) ] = NA
         ests$SE_hat[ is.nan(ests$SE_hat) ] = NA
-
+        ests$SE_hat[ ests$df < 1 ] = NA
+        ests$p_value[ is.na(ests$SE_hat) ] = NA
         ests
 
     } else {
@@ -377,6 +384,7 @@ design_based_estimators_individual <- function( formula,
         form = make_regression_formula( interacted = TRUE,
                                         control_formula = control_formula )
         mod = lm( form, data=data, weights = .weight )
+        no_estimate = sum( is.na( coef(mod) ) ) > 0
 
         data$resid = residuals(mod)
         block_tab = schochet_variance_formula_block( data, v = v, aggregated=FALSE )
@@ -391,9 +399,13 @@ design_based_estimators_individual <- function( formula,
                                                   method = glue::glue("DBi_FI_{suff}"),
                                                   aggregated = FALSE,
                                                   include_block_estimates = include_block_estimates )
-        ests$df = J - 2*K - v
-        ests$df[ ests$df < 1 ] = NA
-
+        df = J - 2*K - v
+        ests$df = df
+        if ( no_estimate || df < 0 ) {
+            ests$ATE_hat = NA
+            ests$SE_hat = NA
+            ests$p_value = NA
+        }
 
         # fixed effects model
         form = make_regression_formula( FE = TRUE,
@@ -426,6 +438,8 @@ design_based_estimators_individual <- function( formula,
         # clean up NaNs
         ests$ATE_hat[ is.nan(ests$ATE_hat) ] = NA
         ests$SE_hat[ is.nan(ests$SE_hat) ] = NA
+        ests$SE_hat[ ests$df < 1 ] = NA
+        ests$p_value[ is.na(ests$SE_hat) ] = NA
 
         ests
 

@@ -116,7 +116,7 @@ center_controls <- function( data, control_formula, weights = NULL ) {
     }
     if ( is.null( weights ) ) {
         data <- data %>%
-            mutate( across( all_of( c_names ), scale, scale=FALSE ) )
+            mutate( across( all_of( c_names ), \(x) scale( x, scale=FALSE ) ) )
     } else {
         data <- data %>%
             mutate( across( all_of( c_names ), function( x ) {
