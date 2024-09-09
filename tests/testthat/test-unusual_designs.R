@@ -212,19 +212,26 @@ test_that( "equal sized designs", {
     expect_equal( dsc$num_doubletons, 8 )
 
     comp <- compare_methods( Yobs ~ Z | B | D, data=blk,
-                                                             include_method_characteristics = FALSE )
+                             include_method_characteristics = FALSE )
     comp
     expect_true( all( !is.na( comp$ATE_hat ) ) )
 
     df = comp$df
     names(df) <- comp$method
-    nC = 16
-    nB = 4
+    nC = length( unique( blk$B) )
+    nB = length( unique( blk$D ) )
     df = df[ !stringr::str_detect( names(df), "MLM" ) ]
+    df
 
     A = nC - nB - 1
     B = nC - 2*nB
-    expect_equal( as.numeric(df), c( A, B, B, A, A, B, B, B, B, B,B, A, B, B, A, B, B ) )
+    the_dfs <- c( A, B, B, A, A, B, B, B, B, B, B, A, B, B, A,
+                  B, B, A, B, B, A,
+                  B, B )
+    round( as.numeric(df) - the_dfs, digits = 2 )
+
+    expect_equal( as.numeric(df), the_dfs,
+                  tolerance = 0.000000001 )
 })
 
 

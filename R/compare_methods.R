@@ -129,6 +129,10 @@ compare_methods <- function(formula,
 
     if ( !is.null( formula ) ) {
 
+        if ( !inherits( formula, "formula" ) ) {
+            stop( "formula must be a formula object" )
+        }
+
         lhs_vars <- formula.tools::lhs.vars(formula)
         if (length(lhs_vars) > 1) {
             res <- purrr::map(
@@ -230,10 +234,20 @@ compare_methods <- function(formula,
                                             weight = "Cluster",
                                             aggregated = TRUE)
 
+        db_res_ii <- design_based_estimators_individual(formula = NULL, data = data,
+                                            control_formula = control_formula,
+                                            weight = "Person")
+        db_res_ci <- design_based_estimators_individual(formula = NULL, data = data,
+                                            control_formula = control_formula,
+                                            weight = "Cluster")
+
         db_middleton <- middleton_aronow_estimator(formula = NULL, data = aggdat,
                                                    control_formula = control_formula_agg,
                                                    aggregated = TRUE)
-        summary_table = dplyr::bind_rows( summary_table, db_res_i, db_res_c, db_middleton )
+        summary_table = dplyr::bind_rows( summary_table,
+                                          db_res_i, db_res_c,
+                                          db_res_ii, db_res_ci,
+                                          db_middleton )
     }
 
     if ( !include_dumb ) {

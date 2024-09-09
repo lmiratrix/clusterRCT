@@ -7,7 +7,7 @@ if ( FALSE ) {
 
 data( "fakeCRT" )
 
-test_that("compare methods aggregates as expected", {
+test_that("compare methods gives multiple estimates as expected", {
 
     mtab <- compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
                              include_method_characteristics = FALSE )
@@ -24,13 +24,24 @@ test_that("compare methods aggregates as expected", {
     mtab
     expect_true( sum( mtab$dels == 0 ) == 2 )
 
+
+    # Now without blocking
     mtab <- compare_methods( Yobs ~ T.x | S.id, data=fakeCRT,
                              include_method_characteristics = FALSE)
 
     expect_true( is.data.frame(mtab) )
     mtab
 
+    mtab_cov <- compare_methods( Yobs ~ T.x | S.id, data=fakeCRT,
+                             include_method_characteristics = FALSE,
+                             control_formula = ~ X.jk + C.ijk )
+
+    mtab$dels = mtab$ATE_hat - mtab_cov$ATE_hat
+    expect_true( sum( mtab$dels == 0 ) == 2 )
+
 })
+
+
 
 
 test_that("categorical covariates handled", {
@@ -106,5 +117,12 @@ test_that("missing data handled as desired", {
                                                      include_method_characteristics = FALSE ) ) )
     #expect_true( is.data.frame(mtab_cov) )
 })
+
+
+
+
+
+
+
 
 

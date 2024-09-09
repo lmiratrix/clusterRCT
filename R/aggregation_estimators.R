@@ -11,8 +11,13 @@
 aggregation_estimators <- function( formula,
                                     data = NULL,
                                     control_formula = NULL,
+                                    control_interacted = FALSE,
                                     aggregated = FALSE ) {
 
+
+    if ( is.null( control_formula ) ) {
+        control_interacted = FALSE
+    }
 
     # Utility to convert model results to easy to use tibble
     get_agg_ests <- function( M1, name = "<Unknown>" ) {
@@ -44,14 +49,22 @@ aggregation_estimators <- function( formula,
 
     needFE = "blockID" %in% names( data )
 
+
     form = make_regression_formula( Yobs = "Ybar",
                                     FE = needFE,
-                                    control_formula = control_formula )
+                                    control_formula = control_formula,
+                                    control_interacted = control_interacted )
 
+    if ( control_interacted ) {
+        datagg = center_controls( datagg, control_formula )
+    }
     M3 <- lm_robust( form, data=datagg, se_type = "HC2" )
     Agg_FE_cluster = get_agg_ests( M3, ifelse( needFE, "Agg_FE_Cluster", "Agg_Cluster" ) )
 
 
+    if ( control_interacted ) {
+        datagg = center_controls( datagg, control_formula, weights = datagg$n )
+    }
     M4 <- lm_robust( form, data=datagg, weights = n, se_type = "HC2" )
     Agg_FE_person = get_agg_ests( M4, ifelse( needFE, "Agg_FE_Person", "Agg_Person" ) )
 
@@ -63,7 +76,8 @@ aggregation_estimators <- function( formula,
     # Interacted estimator that estimates within block and averages
     formI = make_regression_formula( Yobs = "Ybar",
                                      FE = needFE, interacted = TRUE,
-                                     control_formula = control_formula )
+                                     control_formula = control_formula,
+                                     control_interacted = control_interacted )
 
     M5 <- lm_robust( formI, data=datagg, se_type = "HC2" )
 
