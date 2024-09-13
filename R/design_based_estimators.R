@@ -97,7 +97,7 @@ schochet_variance_formula_block <- function( adt, v, aggregated=TRUE ) {
     # calc_s2_partial can give negative numbers on order of 10^-32
     adtw$s2[ adtw$s2 < 0 ] = 0
 
-    adtw$s2[ is.infinite(adtw$s2) ] = NA
+    adtw$s2[ (adtw$sdf <= 0) | is.infinite(adtw$s2) ] = NA
 
     pt2 <- adtw %>%
         tidyr::pivot_wider( names_from = "Z",

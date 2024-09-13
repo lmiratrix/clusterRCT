@@ -148,10 +148,12 @@ test_that( "doubleton tx or co designs get handled right", {
     b2$X3 = rnorm(nrow(b2))
 
     # -1 degrees of freedom
-    expect_warning( expect_warning( expect_warning( expect_warning( expect_warning( expect_warning(
-        comp <- compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X1 + X2 + X3 + X4,
-                                 include_MLM = FALSE, include_LM = FALSE  )
-    ))))))
+    #expect_warning( expect_warning( expect_warning( expect_warning(
+    expect_warning( expect_warning(
+    comp <- compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X1 + X2 + X3 + X4,
+                             include_MLM = FALSE, include_LM = FALSE  )
+    ))
+    #))))))
     cc <- comp %>%
         dplyr::filter( weight == "person" )
     cc
@@ -162,7 +164,7 @@ test_that( "doubleton tx or co designs get handled right", {
     # 0 degrees of freedom
     expect_warning( expect_warning(
         comp <- compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X1 + X3 + X4,
-                            include_MLM = FALSE, include_LM = FALSE  )
+                                 include_MLM = FALSE, include_LM = FALSE  )
     ))
     cc <- comp %>%
         dplyr::filter( weight == "person" )
@@ -173,11 +175,16 @@ test_that( "doubleton tx or co designs get handled right", {
     expect_true( is.na( cc$SE_hat[[2]] ) )
 
     # 1 degrees of freedom
+    if ( FALSE ) {
+        debug( clusterRCT:::schochet_variance_formula_block )
+        saveRDS( b2, file = "~/Desktop/testing_data.rds" )
+    }
     comp = compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X1 + X4,
                             include_MLM = FALSE, include_LM = FALSE  )
     cc <- comp %>%
         dplyr::filter( weight == "person" )
     cc
+    expect_equal( cc$ATE_hat[[2]], cc$ATE_hat[[3]] )
     expect_equal( cc$df[[2]], cc$df[[3]] )
     expect_true( all( !is.na(cc) ) )
 
@@ -293,11 +300,14 @@ test_that( "matched pairs and matched doubles designs", {
 
     head( blk )
     blk$X = rnorm( nrow(blk) )
-    expect_warning( expect_warning( expect_warning(
-        expect_warning( expect_warning( expect_warning(
-            c2 <- compare_methods( Yobs ~ Z | B | D, data=blk,
-                                   include_method_characteristics = FALSE,
-                                   control_formula = ~ X ) ) ) ) )))
+    expect_warning( expect_warning(
+        #expect_warning(
+        #expect_warning( expect_warning( expect_warning(
+        c2 <- compare_methods( Yobs ~ Z | B | D, data=blk,
+                               include_method_characteristics = FALSE,
+                               control_formula = ~ X )
+    ))
+    #) ) ) )))
     c2
 
 

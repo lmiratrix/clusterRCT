@@ -10,9 +10,10 @@ data( "fakeCRT" )
 test_that("compare methods gives multiple estimates as expected", {
 
     mtab <- compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
-                             include_method_characteristics = FALSE )
+                             include_method_characteristics = TRUE )
     mtab
     expect_true( is.data.frame(mtab) )
+    expect_true( sum(is.na(mtab)) == 0 )
 
     mtab_cov <-  compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
                                   control_formula = ~ X.jk + C.ijk,
@@ -27,9 +28,10 @@ test_that("compare methods gives multiple estimates as expected", {
 
     # Now without blocking
     mtab <- compare_methods( Yobs ~ T.x | S.id, data=fakeCRT,
-                             include_method_characteristics = FALSE)
+                             include_method_characteristics = TRUE)
 
     expect_true( is.data.frame(mtab) )
+    expect_true( sum( is.na(mtab) ) == 0 )
     mtab
 
     mtab_cov <- compare_methods( Yobs ~ T.x | S.id, data=fakeCRT,
@@ -38,6 +40,8 @@ test_that("compare methods gives multiple estimates as expected", {
 
     mtab$dels = mtab$ATE_hat - mtab_cov$ATE_hat
     expect_true( sum( mtab$dels == 0 ) == 2 )
+
+
 
 })
 

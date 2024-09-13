@@ -49,6 +49,14 @@ method_characteristics <- function() {
         "DB_FI_Cluster_Block", "cluster/block",         "super",       1,0,
         "DB_FI_Cluster_Cluster", "cluster",         "super",       0,0,
         "DB_FE_Cluster", "cluster",         "super",       0,0,
+
+        "DBi_FI_Person_Block", "person/block",         "super",       0,0,
+        "DBi_FI_Person_Person", "person",          "super",       0,0,
+        "DBi_FE_Person", "person",         "super",       1,0,
+        "DBi_FI_Cluster_Block", "cluster/block",         "super",       1,0,
+        "DBi_FI_Cluster_Cluster", "cluster",         "super",       0,0,
+        "DBi_FE_Cluster", "cluster",         "super",       0,0,
+
         "DB_HT", "person",         "super",       0,1,
         "DB_Raj", "person",         "super",       0,1,
 
@@ -65,6 +73,8 @@ method_characteristics <- function() {
         "Agg_Person", "person",      "super",       0,0,
         "DB_Person", "person",      "super",       0,0,
         "DB_Cluster", "cluster",     "super",       0,0,
+        "DBi_Person", "person",      "super",       0,0,
+        "DBi_Cluster", "cluster",     "super",       0,0,
     )
 
 
