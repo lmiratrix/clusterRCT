@@ -9,7 +9,9 @@ generate_all_interacted_estimates(
   data,
   use_full_vcov = FALSE,
   SE_table = NULL,
-  method = "LR_FI_CRVE",
+  method = "LRi",
+  weight = NULL,
+  se_method = "crve",
   aggregated = FALSE,
   include_block_estimates = FALSE
 )

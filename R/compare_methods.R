@@ -1,6 +1,78 @@
 
 
 
+if ( FALSE ) {
+    # make the characteristics table
+
+
+    # datapasta::tribble_paste(a)
+
+    if ( FALSE ) {
+        cc %>% dplyr::select( method ) %>%
+            mutate( weight = "person",
+                    population = "super",
+                    biased = 0 ) %>% datapasta::tribble_paste()
+    }
+
+
+    mc <- tibble::tribble(
+        ~method, ~reg_weight,  ~weight,
+        "LRi",   "", "Person",
+        "LRi", "cw", "Cluster",
+        "LRa","", "Cluster",
+        "LRa","pw", "Person" )
+    mc
+    mc <- expand_grid( mc,
+                       FE = c("", "FE", "FIpw", "FIcw", "FIbw" ),
+                       SE = c("crve", "het", "db" ) ) %>%
+        mutate( block_weight = ifelse( str_detect( FE, "FI" ),
+                                       str_replace( FE, "FI", "" ),
+                                       "" ) ) %>%
+        filter( SE != "crve" | method != "LRa",
+                SE != "het" | method != "LRi" )
+
+    mc
+    mc$biased = mc$FE == "FE"
+
+    mc <- mutate( mc,
+                  blocked = ifelse( FE == "", 0, 1 ),
+                  method = paste0( method, reg_weight, "-", FE, "-", SE ),
+                  method = stringr::str_replace( method, "--", "-"),
+                  weight = make_weight_names( weight, block_weight ),
+                  disfavored = weight %in% c( "Cluster-Person", "Person-Cluster") ) %>%
+        dplyr::select( -reg_weight, -block_weight, -SE, -FE )
+
+    mc$disfavored = as.numeric( mc$disfavored )
+    mc$biased = as.numeric( mc$biased )
+    print( mc, n=100 )
+
+    others <- tibble::tribble(
+        ~method,           ~weight, ~biased, ~blocked, ~disfavored,
+
+        "MLM-FE",         "Cluster",       1,        1,           0,
+        "MLM-FIRC",   "Cluster-Block",       1,        1,           0,
+        "MLM-FIbw",   "Cluster-Block",       1,        1,           0,
+        "MLM-FIcw",         "Cluster",       1,        1,           0,
+        "MLM-FIpw",         "Cluster",       1,        1,           1,
+        "MLM-RE",         "Cluster",       1,        1,           0,
+        "MLM-RIRC",   "Cluster-Block",       1,        1,           0,
+
+        "MLM",         "Cluster",       1,        0,           0,
+        "DB_HT",          "Person",       0,        1,           1,
+        "DB_Raj",          "Person",       0,        1,           1
+    )
+    others$population = NULL
+
+    mc = bind_rows( mc, others ) %>%
+        arrange( blocked, method )
+
+    print( mc, n=100 )
+
+    datapasta::tribble_paste( mc )
+
+
+}
+
 #' Get table of characteristics of all the methods implemented in this
 #' package.
 #'
@@ -15,68 +87,64 @@
 #'
 method_characteristics <- function() {
 
-    # datapasta::tribble_paste(a)
+    mc <-
+        tibble::tribble(
+            ~method,           ~weight, ~biased, ~blocked, ~disfavored,
+            "LRa-db",         "Cluster",       0,        0,           0,
+            "LRa-het",         "Cluster",       0,        0,           0,
+            "LRapw-db",          "Person",       0,        0,           0,
+            "LRapw-het",          "Person",       0,        0,           0,
+            "LRi-crve",          "Person",       0,        0,           0,
+            "LRi-db",          "Person",       0,        0,           0,
+            "LRicw-crve",         "Cluster",       0,        0,           0,
+            "LRicw-db",         "Cluster",       0,        0,           0,
+            "MLM",         "Cluster",       1,        0,           0,
+            "DB_HT",          "Person",       0,        1,           1,
+            "DB_Raj",          "Person",       0,        1,           1,
+            "LRa-FE-db",         "Cluster",       1,        1,           0,
+            "LRa-FE-het",         "Cluster",       1,        1,           0,
+            "LRa-FIbw-db",   "Cluster-Block",       0,        1,           0,
+            "LRa-FIbw-het",   "Cluster-Block",       0,        1,           0,
+            "LRa-FIcw-db", "Cluster-Cluster",       0,        1,           0,
+            "LRa-FIcw-het", "Cluster-Cluster",       0,        1,           0,
+            "LRa-FIpw-db",  "Cluster-Person",       0,        1,           1,
+            "LRa-FIpw-het",  "Cluster-Person",       0,        1,           1,
+            "LRapw-FE-db",          "Person",       1,        1,           0,
+            "LRapw-FE-het",          "Person",       1,        1,           0,
+            "LRapw-FIbw-db",    "Person-Block",       0,        1,           0,
+            "LRapw-FIbw-het",    "Person-Block",       0,        1,           0,
+            "LRapw-FIcw-db",  "Person-Cluster",       0,        1,           1,
+            "LRapw-FIcw-het",  "Person-Cluster",       0,        1,           1,
+            "LRapw-FIpw-db",   "Person-Person",       0,        1,           0,
+            "LRapw-FIpw-het",   "Person-Person",       0,        1,           0,
+            "LRi-FE-crve",          "Person",       1,        1,           0,
+            "LRi-FE-db",          "Person",       1,        1,           0,
+            "LRi-FIbw-crve",    "Person-Block",       0,        1,           0,
+            "LRi-FIbw-db",    "Person-Block",       0,        1,           0,
+            "LRi-FIcw-crve",  "Person-Cluster",       0,        1,           1,
+            "LRi-FIcw-db",  "Person-Cluster",       0,        1,           1,
+            "LRi-FIpw-crve",   "Person-Person",       0,        1,           0,
+            "LRi-FIpw-db",   "Person-Person",       0,        1,           0,
+            "LRicw-FE-crve",         "Cluster",       1,        1,           0,
+            "LRicw-FE-db",         "Cluster",       1,        1,           0,
+            "LRicw-FIbw-crve",   "Cluster-Block",       0,        1,           0,
+            "LRicw-FIbw-db",   "Cluster-Block",       0,        1,           0,
+            "LRicw-FIcw-crve", "Cluster-Cluster",       0,        1,           0,
+            "LRicw-FIcw-db", "Cluster-Cluster",       0,        1,           0,
+            "LRicw-FIpw-crve",  "Cluster-Person",       0,        1,           1,
+            "LRicw-FIpw-db",  "Cluster-Person",       0,        1,           1,
+            "MLM-FE",         "Cluster",       1,        1,           0,
+            "MLM-FIRC",   "Cluster-Block",       1,        1,           0,
+            "MLM-FIbw",   "Cluster-Block",       1,        1,           0,
+            "MLM-FIcw",         "Cluster",       1,        1,           0,
+            "MLM-FIpw",         "Cluster",       1,        1,           1,
+            "MLM-RE",         "Cluster",       1,        1,           0,
+            "MLM-RIRC",   "Cluster-Block",       1,        1,           0
+        )
 
-    if ( FALSE ) {
-        cc %>% dplyr::select( method ) %>%
-            mutate( weight = "person",
-                    population = "super",
-                    biased = 0 ) %>% datapasta::tribble_paste()
-    }
 
-    mc <- tibble::tribble(
-        ~method,   ~weight, ~population, ~biased,  ~disfavored,
-        "LR_FE_CRVE", "person",          "super",       0,  0,
-        "LR_FI_CRVE_Block", "person/block",         "super",       1, 0,
-        "LR_FI_CRVE_Cluster", "person",         "super",       0,1,
-        "LR_FI_CRVE_Person", "person",          "super",       0,0,
-        "MLM_FE", "cluster",          "super",       1,0,
-        "MLM_RE", "cluster",          "super",       1,0,
-        "MLM_FI_Block", "cluster/block",         "super",       1,0,
-        "MLM_FI_Cluster", "cluster",         "super",       1,0,
-        "MLM_FI_Person", "cluster",          "super",       1,1,
-        "MLM_RIRC", "cluster/block",         "super",       1,0,
-        "MLM_FIRC", "cluster/block",         "super",       1,0,
-        "Agg_FE_Cluster", "cluster",         "super",       0,0,
-        "Agg_FE_Person", "person",          "super",       0,0,
-        "Agg_FI_Cluster_Block", "cluster/block",        "super",       1,0,
-        "Agg_FI_Cluster_Cluster", "cluster",         "super",       0,0,
-        "Agg_FI_Person_Block", "person/block",         "super",       1,0,
-        "Agg_FI_Person_Person", "person",          "super",       0,0,
-        "DB_FI_Person_Block", "person/block",         "super",       0,0,
-        "DB_FI_Person_Person", "person",          "super",       0,0,
-        "DB_FE_Person", "person",         "super",       1,0,
-        "DB_FI_Cluster_Block", "cluster/block",         "super",       1,0,
-        "DB_FI_Cluster_Cluster", "cluster",         "super",       0,0,
-        "DB_FE_Cluster", "cluster",         "super",       0,0,
-
-        "DBi_FI_Person_Block", "person/block",         "super",       0,0,
-        "DBi_FI_Person_Person", "person",          "super",       0,0,
-        "DBi_FE_Person", "person",         "super",       1,0,
-        "DBi_FI_Cluster_Block", "cluster/block",         "super",       1,0,
-        "DBi_FI_Cluster_Cluster", "cluster",         "super",       0,0,
-        "DBi_FE_Cluster", "cluster",         "super",       0,0,
-
-        "DB_HT", "person",         "super",       0,1,
-        "DB_Raj", "person",         "super",       0,1,
-
-        # Methods that are disfavored due to odd weighting
-        "DB_FI_Cluster_Person", "cluster",         "super",       1,1,
-        "DB_FI_Person_Cluster", "person",         "super",       1,1,
-        "Agg_FI_Cluster_Person", "cluster",         "super",       1,1,
-        "Agg_FI_Person_Cluster", "person",         "super",       1,1,
-
-        # Non-blocked estimators
-        "LR_CRVE", "person",      "super",       0,0,
-        "MLM", "cluster",     "super",       1,0,
-        "Agg_Cluster", "cluster",     "super",       0,0,
-        "Agg_Person", "person",      "super",       0,0,
-        "DB_Person", "person",      "super",       0,0,
-        "DB_Cluster", "cluster",     "super",       0,0,
-        "DBi_Person", "person",      "super",       0,0,
-        "DBi_Cluster", "cluster",     "super",       0,0,
-    )
-
+    # Let estimators define that in the guts of the code
+    mc$weight = NULL
 
     return( mc )
 }
@@ -262,16 +330,14 @@ compare_methods <- function(formula,
 
     if ( !include_dumb ) {
         summary_table <- summary_table %>%
-            filter( !grepl( "Person_Cluster", method ),
-                    !grepl( "Cluster_Person", method ),
-                    !grepl( "LR_FI_CRVE_Cluster|MLM_FI_Person", method ) )
+            filter( !grepl( "Cluster-Person|Person-Cluster", weight ) )
     }
 
     # Add info on the methods (e.g., what estimand they are targeting)
-    summary_table$weight = NULL
     if (include_method_characteristics) {
         mc <- method_characteristics()
-
+        mc$blocked = NULL
+        mc$weight = NULL
         summary_table <- left_join( summary_table, mc, by = "method" )
     }
 
@@ -279,5 +345,31 @@ compare_methods <- function(formula,
         summary_table = tibble::remove_rownames( summary_table )
     }
 
+    summary_table <- summary_table %>%
+        arrange( method )
+
     return(summary_table)
+}
+
+
+
+
+# Testing code ---
+
+if ( FALSE ) {
+
+    data( fakeCRT )
+    fakeCRT
+
+    design_based_estimators_individual( Yobs ~ T.x | S.id | D.id,
+                     control_formula = ~ X.jk + C.ijk,
+                     data = fakeCRT, weight="Cluster" )
+
+
+    compare_methods( Yobs ~ T.x | S.id | D.id,
+                     control_formula = ~ X.jk + C.ijk,
+                     include_dumb = FALSE,
+                     data = fakeCRT, include_method_characteristics = TRUE ) %>%
+        knitr::kable( digits = 2 )
+
 }

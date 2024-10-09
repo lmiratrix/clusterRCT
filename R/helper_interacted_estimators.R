@@ -77,9 +77,9 @@ calculate_avg_impacts <- function( ATE_hats,
     # weight by number of students
     ATE_indiv <- calc_agg_estimate(sizes$n, ATE_hats, SE2_hats, df=df )
 
-    rsp <- bind_rows( Block = ATE_eq,
-                      Cluster = ATE_cluster,
-                      Person = ATE_indiv, .id="weight" )
+    rsp <- bind_rows( bw = ATE_eq,
+                      cw = ATE_cluster,
+                      pw = ATE_indiv, .id="weight" )
 
     # if ( "weight" %in% names(sizes) ) {
     #     # weight by arbitrary weight, if given
@@ -89,6 +89,21 @@ calculate_avg_impacts <- function( ATE_hats,
     # }
 
     return( rsp )
+}
+
+
+
+make_weight_names <- function( regression_weight, block_weight ) {
+
+    # Replace the abbreviations with full names
+    block_weight <- stringr::str_replace_all(block_weight, c("pw" = "Person", "bw" = "Block", "cw" = "Cluster"))
+    regression_weight <- stringr::str_replace_all(regression_weight, c("pw" = "Person", "bw" = "Block", "cw" = "Cluster"))
+
+    wts <- paste0( regression_weight, "-", block_weight )
+    wts <- stringr::str_replace(wts, "^-", "")
+    wts <- stringr::str_replace(wts, "-$", "")
+
+    wts
 }
 
 
@@ -106,7 +121,9 @@ calculate_avg_impacts <- function( ATE_hats,
 generate_all_interacted_estimates <- function( fitModel, data,
                                                use_full_vcov = FALSE,
                                                SE_table = NULL,
-                                               method = "LR_FI_CRVE",
+                                               method = "LRi",
+                                               weight = NULL,
+                                               se_method = "crve",
                                                aggregated = FALSE,
                                                include_block_estimates = FALSE ) {
     J = length( unique( data$blockID ) )
@@ -169,8 +186,15 @@ generate_all_interacted_estimates <- function( fitModel, data,
         }
     }
 
+    # Make names for all the parts
+
+    if ( !is.null(se_method) ) {
+        se_method = paste0( "-", se_method )
+    } else {
+        se_method = ""
+    }
     ests <- ests %>%
-        mutate( method = paste0( method, "_", weight ) ) %>%
+        mutate( method = paste0( method, "-FI", weight, se_method ) ) %>%
         relocate( method )
 
     # Add block-level estimates to the output as an attribute
@@ -188,6 +212,8 @@ generate_all_interacted_estimates <- function( fitModel, data,
         ests$ATE_hat = rep( NA, nrow(ests) )
         ests$SE_hat = rep( NA, nrow(ests) )
     }
+
+    ests$weight = make_weight_names( weight, ests$weight )
 
     ests
 }

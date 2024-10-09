@@ -5,6 +5,8 @@
 #' using linear regression. Can optionally pass pre-aggregated data if
 #' desired.
 #'
+#' This automatically does both weighting approaches.
+#'
 #' @inheritParams linear_model_estimators
 #'
 #' @export
@@ -20,7 +22,7 @@ aggregation_estimators <- function( formula,
     }
 
     # Utility to convert model results to easy to use tibble
-    get_agg_ests <- function( M1, name = "<Unknown>" ) {
+    get_agg_ests <- function( M1, weight, name = "<Unknown>" ) {
         est1 <- M1$coefficients[["Z"]]
         se1 <- M1$std.error[["Z"]]
         pv1 <- M1$p.value[["Z"]]
@@ -29,6 +31,7 @@ aggregation_estimators <- function( formula,
         # Compile our results
         tibble(
             method = c( name ),
+            weight = c( weight ),
             ATE_hat = c( est1 ),
             SE_hat = c( se1 ),
             p_value = c( pv1 ),
@@ -59,21 +62,23 @@ aggregation_estimators <- function( formula,
         datagg = center_controls( datagg, control_formula )
     }
     M3 <- lm_robust( form, data=datagg, se_type = "HC2" )
-    Agg_FE_cluster = get_agg_ests( M3, ifelse( needFE, "Agg_FE_Cluster", "Agg_Cluster" ) )
+    Agg_FE_cluster = get_agg_ests( M3, "Cluster", ifelse( needFE, "LRa-FE-het", "LRa-het" ) )
 
 
     if ( control_interacted ) {
         datagg = center_controls( datagg, control_formula, weights = datagg$n )
     }
     M4 <- lm_robust( form, data=datagg, weights = n, se_type = "HC2" )
-    Agg_FE_person = get_agg_ests( M4, ifelse( needFE, "Agg_FE_Person", "Agg_Person" ) )
+    Agg_FE_person = get_agg_ests( M4, "Person", ifelse( needFE, "LRapw-FE-het", "LRapw-het" ) )
 
 
     if ( !needFE ) {
         return( bind_rows( Agg_FE_cluster, Agg_FE_person ) )
     }
 
-    # Interacted estimator that estimates within block and averages
+
+
+    # Interacted estimator that estimate within block and then average
     formI = make_regression_formula( Yobs = "Ybar",
                                      FE = needFE, interacted = TRUE,
                                      control_formula = control_formula,
@@ -87,14 +92,18 @@ aggregation_estimators <- function( formula,
     Agg_FI = generate_all_interacted_estimates( M5, aggd,
                                                 aggregated = TRUE,
                                                 use_full_vcov=TRUE,
-                                                method = "Agg_FI_Cluster" )
+                                                method = "LRa",
+                                                weight = "cw",
+                                                se_method = "het")
     Agg_FI$df = df
 
     M6 <- lm_robust( formI, data=datagg, se_type = "HC2", weights = n )
     Agg_wFI = generate_all_interacted_estimates( M6, aggd,
                                                  aggregated = TRUE,
                                                  use_full_vcov=TRUE,
-                                                 method = "Agg_FI_Person" )
+                                                 method = "LRapw",
+                                                 weight = "pw",
+                                                 se_method = "het")
     Agg_wFI$df = df #M6$df[[1]]
     # Note: The df for heteroskedastic seems to be an overall single
     # number, so the satterwhite approximation of the above is

@@ -181,8 +181,10 @@ design_based_estimators <- function( formula,
 
     require( estimatr )
 
+
     # Determine which version of the estimator we are doing.
     weight <- match.arg(weight)
+    est_method = ifelse( weight == "Person", "LRapw", "LRa" )
 
     if ( !aggregated ) {
         data = make_canonical_data( formula=formula, data=data,
@@ -197,14 +199,11 @@ design_based_estimators <- function( formula,
 
 
     # Make our weights variable
-    suff = ""
     if (weight == "Person") {
         data_agg$.weight <- data_agg$n
-        suff = "Person"
     } else {
         # data_agg$.weight <- 1 / data_agg$n
         data_agg$.weight <- 1
-        suff = "Cluster"
     }
 
     v = number_controls(control_formula)
@@ -232,7 +231,9 @@ design_based_estimators <- function( formula,
         ests = generate_all_interacted_estimates( mod, data = data_agg,
                                                   use_full_vcov = FALSE,
                                                   SE_table = block_tab,
-                                                  method = glue::glue("DB_FI_{suff}"),
+                                                  method = est_method,
+                                                  weight = weight,
+                                                  se_method = "db",
                                                   aggregated = TRUE,
                                                   include_block_estimates = include_block_estimates )
         # df = m - 2h - v* = #clusters - 2 #blocks - #covariates
@@ -280,11 +281,9 @@ design_based_estimators <- function( formula,
         data_agg$resid = residuals(mod_FE)
         SE_FE = schochet_FE_variance_formula( data_agg, v = v )
 
-        ests$weight = paste( suff, ests$weight, sep="_" )
-
         FE <- tibble(
-            method = c( glue::glue( "DB_FE_{suff}" ) ),
-            weight = suff,
+            method = paste0( est_method, "-FE-db" ),
+            weight = weight,
             ATE_hat = c( ATE_FE ),
             SE_hat = c( SE_FE$SE_hat ),
             df = c( SE_FE$df ),
@@ -321,7 +320,7 @@ design_based_estimators <- function( formula,
         df = nrow(data_agg) - 2 - v
 
         tibble(
-            method = glue::glue( "DB_{suff}" ),
+            method = paste0( est_method, "-db" ),
             ATE_hat = c( ATE_FE ),
             SE_hat = c( SE$SE_hat ),
             df = df,
@@ -353,22 +352,25 @@ design_based_estimators_individual <- function( formula,
 
     require( estimatr )
 
+    if ( !is.null(formula) ) {
+        data = make_canonical_data( formula=formula, data=data,
+                                control_formula = control_formula )
+    }
+
     # Determine which version of the estimator we are doing.
     weight <- match.arg(weight)
+    est_method = ifelse( weight == "Person", "LRi", "LRicw" )
 
     has_block = "blockID" %in% names( data )
 
     # Make our weights variable
-    suff = ""
     if (weight == "Person") {
         data$.weight <- 1
-        suff = "Person"
     } else {
         data <- data %>%
             group_by( clusterID ) %>%
             mutate( .weight = 1 / n() ) %>%
             ungroup()
-        suff = "Cluster"
     }
 
     v = number_controls(control_formula)
@@ -396,7 +398,9 @@ design_based_estimators_individual <- function( formula,
         ests = generate_all_interacted_estimates( mod, data = data,
                                                   use_full_vcov = FALSE,
                                                   SE_table = block_tab,
-                                                  method = glue::glue("DBi_FI_{suff}"),
+                                                  method = est_method,
+                                                  weight = weight,
+                                                  se_method = "db",
                                                   aggregated = FALSE,
                                                   include_block_estimates = include_block_estimates )
         df = J - 2*K - v
@@ -415,11 +419,10 @@ design_based_estimators_individual <- function( formula,
         data$resid = residuals(mod_FE)
         SE_FE = schochet_FE_variance_formula( data, v = v, aggregated=FALSE )
 
-        ests$weight = paste( suff, ests$weight, sep="_" )
 
         FE <- tibble(
-            method = c( glue::glue( "DBi_FE_{suff}" ) ),
-            weight = suff,
+            method = paste0( est_method, "-FE-db" ),
+            weight = weight,
             ATE_hat = c( ATE_FE ),
             SE_hat = c( SE_FE$SE_hat ),
             df = c( SE_FE$df ),
@@ -457,7 +460,7 @@ design_based_estimators_individual <- function( formula,
         df = J - 2 - v
 
         tibble(
-            method = glue::glue( "DBi_{suff}" ),
+            method = paste0( est_method, "-db" ),
             ATE_hat = c( ATE_FE ),
             SE_hat = c( SE$SE_hat ),
             df = df,
@@ -469,7 +472,7 @@ design_based_estimators_individual <- function( formula,
 
 
 
-
+# Exactly unbiased estimators ----
 
 
 #' Estimate ATE via Middleton & Aronow unbiased approach
@@ -576,6 +579,8 @@ middleton_aronow_estimator <- function( formula,
         attr( res, "blocks" ) <- tots
     }
 
+    res$weight = "Cluster"
+
     res
 }
 
@@ -584,140 +589,8 @@ middleton_aronow_estimator <- function( formula,
 
 
 
-#' Estimate ATE via canonical weights on the cluster means
-#'
-#' These estimators use the cluster means and the table of weights
-#' shown in the main paper to estimate the ATE across all combinations
-#' of weights at the block and the cluster level.
-#'
-#' There are no standard errors for this method.  It is purely to
-#' validate how the other estimators can be represented as given with
-#' the weight formula in the paper.
-#'
-#' @inheritParams linear_model_estimators
-#'
-#' @return tibble of estimates using different varieties of the
-#'   methods described in the paper.
-#'
-#' @export
-canonical_weight_estimators <- function( formula,
-                                         data = NULL,
-                                         data_agg = NULL ) {
 
-    stopifnot( !is.null( data ) )
-    data = make_canonical_data( formula=formula, data=data )
-
-    if ( is.null( data_agg ) ) {
-        # Collapse to clusters
-        data_agg = aggregate_data( data )
-    }
-
-    has_block = "blockID" %in% names( data )
-    if ( !has_block ) {
-        data_agg$blockID = "Uni"
-    }
-
-    calc_est <- function( data_agg, cw, bw ) {
-        if ( length( bw ) == 1 ) {
-            bw = rep( bw, nrow(data_agg) )
-        }
-        if ( length( cw ) == 1 ) {
-            cw = rep( cw, nrow(data_agg) )
-        }
-        if ( length( bw ) != nrow(data_agg) ) {
-            stop( "Block weight vector must be same length as data" )
-        }
-        if ( length( cw ) != nrow(data_agg) ) {
-            stop( "Cluster weight vector must be same length as data" )
-        }
-
-        data_agg$cw = cw
-        data_agg$bw = bw
-        s_dat <- data_agg %>%
-            group_by( blockID, Z, bw ) %>%
-            summarise( Ybar = weighted.mean( Ybar, w = cw ), .groups = "drop" )
-        stopifnot( nrow( s_dat ) == length( unique( data_agg$blockID ) ) * 2 )
-        s_dat <- s_dat %>%
-            group_by( Z ) %>%
-            summarise( ATE = weighted.mean( Ybar, w = bw ) )
-        if ( nrow( s_dat ) != 2 ) {
-            return( NA )
-        }
-        s_dat$ATE[[2]] - s_dat$ATE[[1]]
-    }
-
-    data_agg <- data_agg %>%
-        group_by( blockID ) %>%
-        mutate( N = sum( n ),
-                p = weighted.mean( Z, w=n ),
-                pc = mean( Z ),
-                J = n() )
-
-    person_person = calc_est( data_agg,
-                              cw = data_agg$n,
-                              bw = data_agg$N )
-
-    person_FE = calc_est( data_agg,
-                          cw = data_agg$n,
-                          bw = data_agg$N * data_agg$p * (1-data_agg$p) )
-
-    person_block = calc_est( data_agg,
-                             cw = data_agg$n,
-                             bw = 1 )
-
-    cluster_cluster = calc_est( data_agg,
-                                cw = 1,
-                                bw = data_agg$J )
-    cluster_FE = calc_est( data_agg,
-                           cw = 1,
-                           bw = data_agg$J * data_agg$pc * (1-data_agg$pc) )
-
-    cluster_block = calc_est( data_agg,
-                              cw = 1,
-                              bw = 1 )
-
-    form = make_regression_formula( FE = has_block, cluster_RE = TRUE )
-    M0 = lmer( form, data=data )
-    tau2 = VarCorr(M0)$clusterID[1,1]
-    sigma2 = sigma(M0)^2
-    formRE = make_regression_formula( FE = FALSE, cluster_RE = TRUE )
-    formRE = update( formRE, . ~ . + (1+Z|blockID) )
-    M1 = lmer( formRE, data=data )
-    eta2 = VarCorr(M1)$blockID[ 2, 2 ]
-
-    cw_MLM = 1 / (tau2 + sigma2 / data_agg$J)
-    bw_RIRC = 1 / (eta2 + tau2 / (data_agg$J * data_agg$pc * (1-data_agg$pc) ))
-
-    MLM_FI_cluster = calc_est( data_agg,
-                               cw = cw_MLM,
-                               bw = data_agg$J )
-    MLM_FE = calc_est( data_agg,
-                       cw = cw_MLM,
-                       bw = data_agg$N * data_agg$p * (1-data_agg$p) )
-    MLM_RIRC = calc_est( data_agg,
-                         cw = cw_MLM,
-                         bw = bw_RIRC )
-    MLM_FI_block = calc_est( data_agg,
-                             cw = cw_MLM,
-                             bw = 1 )
-
-    rs <- tibble( method = c( "Person_Person", "Person_FE", "Person_Block",
-                              "MLM_FI_Cluster", "MLM_FE", "MLM_RIRC", "MLM_Block",
-                              "Cluster_Cluster", "Cluster_FE", "Cluster_Block" ),
-                  ATE_hat = c( person_person, person_FE, person_block,
-                               MLM_FI_cluster, MLM_FE, MLM_RIRC, MLM_FI_block,
-                               cluster_cluster, cluster_FE, cluster_block ) )
-    rs$method = paste0( "WT_", rs$method )
-
-    return( rs )
-}
-
-
-
-
-
-
-#### Testing #####
+# Testing ----
 
 if ( FALSE ) {
 

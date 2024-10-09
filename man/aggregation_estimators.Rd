@@ -22,3 +22,6 @@ This method aggregates data at the cluster level, and analyzes
 using linear regression. Can optionally pass pre-aggregated data if
 desired.
 }
+\details{
+This automatically does both weighting approaches.
+}

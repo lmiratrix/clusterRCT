@@ -29,7 +29,7 @@ test_that("compare methods gives multiple estimates as expected", {
     # Now without blocking
     mtab <- compare_methods( Yobs ~ T.x | S.id, data=fakeCRT,
                              include_method_characteristics = TRUE)
-
+    mtab
     expect_true( is.data.frame(mtab) )
     expect_true( sum( is.na(mtab) ) == 0 )
     mtab

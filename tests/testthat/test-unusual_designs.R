@@ -73,8 +73,8 @@ test_that( "singleton tx or co designs get handled right", {
 
     # This must depend on amount of cross block variation?  For this
     # seed, df is small. But it can be bigger!
-    expect_true( comp$df[ comp$method == "MLM_RIRC" ] <= 3 )
-    expect_true( comp$df[ comp$method == "MLM_FIRC" ] <= 3 )
+    expect_true( comp$df[ comp$method == "MLM-RIRC" ] <= 3 )
+    expect_true( comp$df[ comp$method == "MLM-FIRC" ] <= 3 )
 
 
     # One block with 2 clusters
@@ -100,8 +100,8 @@ test_that( "singleton tx or co designs get handled right", {
     comp2 = compare_methods( Yobs ~ Z | B | D, data=blk, include_method_characteristics = FALSE )
     comp2
     expect_true( all( !is.na( comp2$ATE_hat ) ) )
-    expect_true( comp$df[ comp$method == "MLM_RIRC" ] <= 3 )
-    expect_true( comp$df[ comp$method == "MLM_FIRC" ] <= 3 )
+    expect_true( comp$df[ comp$method == "MLM-RIRC" ] <= 3 )
+    expect_true( comp$df[ comp$method == "MLM-FIRC" ] <= 3 )
 
     left_join( comp[ c(1:3) ], comp2[ c(1:3) ], by="method" )
     expect_equal( is.na( comp$SE_hat ), is.na( comp2$SE_hat ) )
@@ -157,7 +157,7 @@ test_that( "doubleton tx or co designs get handled right", {
     ))
     #))))))
     cc <- comp %>%
-        dplyr::filter( weight == "person" )
+        dplyr::filter( weight == "Person" | weight == "Person-Person" )
     cc
     expect_true( is.na( cc$ATE_hat[[2]] ) )
     expect_true( is.na( cc$ATE_hat[[3]] ) )
@@ -169,7 +169,7 @@ test_that( "doubleton tx or co designs get handled right", {
                                  include_MLM = FALSE, include_LM = FALSE  )
     ))
     cc <- comp %>%
-        dplyr::filter( weight == "person" )
+        dplyr::filter( weight == "Person" | weight == "Person-Person" )
     cc
     expect_true( !is.na( cc$ATE_hat[[2]] ) )
     expect_true( !is.na( cc$ATE_hat[[3]] ) )
@@ -186,18 +186,18 @@ test_that( "doubleton tx or co designs get handled right", {
     comp = compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X1 + X4,
                             include_MLM = FALSE, include_LM = FALSE  )
     cc <- comp %>%
-        dplyr::filter( weight == "person" )
+        dplyr::filter( weight == "Person" | weight == "Person-Person" )
     cc
     expect_equal( cc$ATE_hat[[2]], cc$ATE_hat[[3]] )
     expect_equal( cc$df[[2]], cc$df[[3]] )
-    expect_true( all( !is.na(cc) ) )
+    expect_true( all( !is.na(cc$ATE_hat) ) )
 
 
     # 2 degrees of freedom
     comp = compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X4,
                             include_MLM = FALSE, include_LM = FALSE  )
     cc <- comp %>%
-        dplyr::filter( weight == "person" )
+        dplyr::filter( weight == "Person" | weight == "Person-Person" )
     cc
     expect_equal( cc$df[[2]], cc$df[[3]] )
     expect_true( all( !is.na(cc) ) )
@@ -348,8 +348,11 @@ test_that( "matched pairs and matched doubles designs", {
 
     A = nC - nB - 1
     B = nC - 2*nB
-    the_dfs <- c( A, B, B, A, A, B, B, B, B, B, B, A, B, B, A,
-                  B, B, A, B, B, A,
+    the_dfs <- c( A, B, B, B, A, A,
+                  B, B, B, B, B, B, B, B, B, A,
+                  B, B, B, A,
+                  B, B, B, A,
+                  B, B, B, A,
                   B, B )
     round( as.numeric(df) - the_dfs, digits = 2 )
 
