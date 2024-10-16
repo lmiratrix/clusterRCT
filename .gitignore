@@ -11,3 +11,4 @@ luke_scratch/
 *.blg
 *.synctex.gz
 .texpadtmp
+simulations/pointwise_similarity_results.rds
