@@ -321,6 +321,7 @@ design_based_estimators <- function( formula,
 
         tibble(
             method = paste0( est_method, "-db" ),
+            weight = weight,
             ATE_hat = c( ATE_FE ),
             SE_hat = c( SE$SE_hat ),
             df = df,
@@ -461,6 +462,7 @@ design_based_estimators_individual <- function( formula,
 
         tibble(
             method = paste0( est_method, "-db" ),
+            weight = weight,
             ATE_hat = c( ATE_FE ),
             SE_hat = c( SE$SE_hat ),
             df = df,

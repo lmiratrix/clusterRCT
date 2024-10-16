@@ -50,12 +50,12 @@ if ( FALSE ) {
         ~method,           ~weight, ~biased, ~blocked, ~disfavored,
 
         "MLM-FE",         "Cluster",       1,        1,           0,
-        "MLM-FIRC",   "Cluster-Block",       1,        1,           0,
-        "MLM-FIbw",   "Cluster-Block",       1,        1,           0,
+        "MLM-FIRC",   "Cluster-Block",       1,        1,           1,
+        "MLM-FIbw",   "Cluster-Block",       1,        1,           1,
         "MLM-FIcw",         "Cluster",       1,        1,           0,
         "MLM-FIpw",         "Cluster",       1,        1,           1,
         "MLM-RE",         "Cluster",       1,        1,           0,
-        "MLM-RIRC",   "Cluster-Block",       1,        1,           0,
+        "MLM-RIRC",   "Cluster-Block",       1,        1,           1,
 
         "MLM",         "Cluster",       1,        0,           0,
         "DB_HT",          "Person",       0,        1,           1,
@@ -103,47 +103,48 @@ method_characteristics <- function() {
             "DB_Raj",          "Person",       0,        1,           1,
             "LRa-FE-db",         "Cluster",       1,        1,           0,
             "LRa-FE-het",         "Cluster",       1,        1,           0,
-            "LRa-FIbw-db",   "Cluster-Block",       0,        1,           0,
-            "LRa-FIbw-het",   "Cluster-Block",       0,        1,           0,
+            "LRa-FIbw-db",   "Cluster-Block",       0,        1,           1,
+            "LRa-FIbw-het",   "Cluster-Block",       0,        1,           1,
             "LRa-FIcw-db", "Cluster-Cluster",       0,        1,           0,
             "LRa-FIcw-het", "Cluster-Cluster",       0,        1,           0,
             "LRa-FIpw-db",  "Cluster-Person",       0,        1,           1,
             "LRa-FIpw-het",  "Cluster-Person",       0,        1,           1,
             "LRapw-FE-db",          "Person",       1,        1,           0,
             "LRapw-FE-het",          "Person",       1,        1,           0,
-            "LRapw-FIbw-db",    "Person-Block",       0,        1,           0,
-            "LRapw-FIbw-het",    "Person-Block",       0,        1,           0,
+            "LRapw-FIbw-db",    "Person-Block",       0,        1,           1,
+            "LRapw-FIbw-het",    "Person-Block",       0,        1,           1,
             "LRapw-FIcw-db",  "Person-Cluster",       0,        1,           1,
             "LRapw-FIcw-het",  "Person-Cluster",       0,        1,           1,
             "LRapw-FIpw-db",   "Person-Person",       0,        1,           0,
             "LRapw-FIpw-het",   "Person-Person",       0,        1,           0,
             "LRi-FE-crve",          "Person",       1,        1,           0,
             "LRi-FE-db",          "Person",       1,        1,           0,
-            "LRi-FIbw-crve",    "Person-Block",       0,        1,           0,
-            "LRi-FIbw-db",    "Person-Block",       0,        1,           0,
+            "LRi-FIbw-crve",    "Person-Block",       0,        1,           1,
+            "LRi-FIbw-db",    "Person-Block",       0,        1,           1,
             "LRi-FIcw-crve",  "Person-Cluster",       0,        1,           1,
             "LRi-FIcw-db",  "Person-Cluster",       0,        1,           1,
             "LRi-FIpw-crve",   "Person-Person",       0,        1,           0,
             "LRi-FIpw-db",   "Person-Person",       0,        1,           0,
             "LRicw-FE-crve",         "Cluster",       1,        1,           0,
             "LRicw-FE-db",         "Cluster",       1,        1,           0,
-            "LRicw-FIbw-crve",   "Cluster-Block",       0,        1,           0,
-            "LRicw-FIbw-db",   "Cluster-Block",       0,        1,           0,
+            "LRicw-FIbw-crve",   "Cluster-Block",       0,        1,           1,
+            "LRicw-FIbw-db",   "Cluster-Block",       0,        1,           1,
             "LRicw-FIcw-crve", "Cluster-Cluster",       0,        1,           0,
             "LRicw-FIcw-db", "Cluster-Cluster",       0,        1,           0,
             "LRicw-FIpw-crve",  "Cluster-Person",       0,        1,           1,
             "LRicw-FIpw-db",  "Cluster-Person",       0,        1,           1,
             "MLM-FE",         "Cluster",       1,        1,           0,
-            "MLM-FIRC",   "Cluster-Block",       1,        1,           0,
-            "MLM-FIbw",   "Cluster-Block",       1,        1,           0,
+            "MLM-FIRC",   "Cluster-Block",       1,        1,           1,
+            "MLM-FIbw",   "Cluster-Block",       1,        1,           1,
             "MLM-FIcw",         "Cluster",       1,        1,           0,
             "MLM-FIpw",         "Cluster",       1,        1,           1,
             "MLM-RE",         "Cluster",       1,        1,           0,
-            "MLM-RIRC",   "Cluster-Block",       1,        1,           0
+            "MLM-RIRC",   "Cluster-Block",       1,        1,           1
         )
 
 
-    # Let estimators define that in the guts of the code
+    # Should we let estimators define that in the guts of the code?
+    # Many of the estimators do.
     mc$weight = NULL
 
     return( mc )

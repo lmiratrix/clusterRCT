@@ -38,6 +38,7 @@ MLM_estimators <- function( formula,
         # Compile our results
         tibble(
             method = c( name ),
+            weight = "Cluster",
             ATE_hat = c( est1 ),
             SE_hat = c( se1 ),
             p_value = c( pv1 ),
@@ -114,7 +115,6 @@ MLM_estimators <- function( formula,
                      MLM_FI,
                      MLM_RIRC,
                      MLM_FIRC )
-
 
     res
 

@@ -6,7 +6,6 @@
 
 
 
-
 #' Estimate ATEs for a cluster RCT using linear model
 #'
 #' @param formula Formula for outcome and treatment and nesting.  If

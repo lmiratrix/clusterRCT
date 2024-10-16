@@ -152,15 +152,15 @@ test_that( "doubleton tx or co designs get handled right", {
     # -1 degrees of freedom
     #expect_warning( expect_warning( expect_warning( expect_warning(
     expect_warning( expect_warning(
-    comp <- compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X1 + X2 + X3 + X4,
-                             include_MLM = FALSE, include_LM = FALSE  )
+        comp <- compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X1 + X2 + X3 + X4,
+                                 include_MLM = FALSE, include_LM = FALSE  )
     ))
     #))))))
     cc <- comp %>%
         dplyr::filter( weight == "Person" | weight == "Person-Person" )
     cc
-    expect_true( is.na( cc$ATE_hat[[2]] ) )
     expect_true( is.na( cc$ATE_hat[[3]] ) )
+    expect_true( is.na( cc$ATE_hat[[4]] ) )
 
 
     # 0 degrees of freedom
@@ -174,7 +174,7 @@ test_that( "doubleton tx or co designs get handled right", {
     expect_true( !is.na( cc$ATE_hat[[2]] ) )
     expect_true( !is.na( cc$ATE_hat[[3]] ) )
     expect_true( is.na( cc$SE_hat[[3]] ) )
-    expect_true( is.na( cc$SE_hat[[2]] ) )
+    expect_true( is.na( cc$SE_hat[[4]] ) )
 
 
 
@@ -188,8 +188,8 @@ test_that( "doubleton tx or co designs get handled right", {
     cc <- comp %>%
         dplyr::filter( weight == "Person" | weight == "Person-Person" )
     cc
-    expect_equal( cc$ATE_hat[[2]], cc$ATE_hat[[3]] )
-    expect_equal( cc$df[[2]], cc$df[[3]] )
+    expect_equal( cc$ATE_hat[[3]], cc$ATE_hat[[4]] )
+    expect_equal( cc$df[[3]], cc$df[[4]] )
     expect_true( all( !is.na(cc$ATE_hat) ) )
 
 
@@ -199,7 +199,7 @@ test_that( "doubleton tx or co designs get handled right", {
     cc <- comp %>%
         dplyr::filter( weight == "Person" | weight == "Person-Person" )
     cc
-    expect_equal( cc$df[[2]], cc$df[[3]] )
+    expect_equal( cc$df[[4]], cc$df[[3]] )
     expect_true( all( !is.na(cc) ) )
 
 
@@ -348,15 +348,20 @@ test_that( "matched pairs and matched doubles designs", {
 
     A = nC - nB - 1
     B = nC - 2*nB
-    the_dfs <- c( A, B, B, B, A, A,
-                  B, B, B, B, B, B, B, B, B, A,
-                  B, B, B, A,
-                  B, B, B, A,
-                  B, B, B, A,
-                  B, B )
-    round( as.numeric(df) - the_dfs, digits = 2 )
+    A
+    B
+    expect_equal( setdiff( unique( round( df, digits=10 ) ), c(A,B) ), numeric(0) )
 
-    expect_equal( as.numeric(df), the_dfs,
+    the_dfs <- c( B, B, A, A, B, B, B, B,
+                  A, A, B, B, B, B,
+                  A, A,
+                  B, B, B, B,
+                  A, B, B )
+    names( the_dfs ) <- c("DB_HT", "DB_Raj", "LRa-FE-db", "LRa-FE-het", "LRa-FIbw-db", "LRa-FIbw-het", "LRa-FIcw-db", "LRa-FIcw-het", "LRapw-FE-db", "LRapw-FE-het", "LRapw-FIbw-db", "LRapw-FIbw-het", "LRapw-FIpw-db", "LRapw-FIpw-het", "LRi-FE-crve", "LRi-FE-db", "LRi-FIbw-crve", "LRi-FIbw-db", "LRi-FIpw-crve", "LRi-FIpw-db", "LRicw-FE-db", "LRicw-FIbw-db", "LRicw-FIcw-db")
+
+    round( as.numeric(df) - the_dfs[ names(df) ], digits = 2 )
+
+    expect_equal( as.numeric(df), as.numeric( the_dfs[ names(df) ] ),
                   tolerance = 0.000000001 )
 })
 
