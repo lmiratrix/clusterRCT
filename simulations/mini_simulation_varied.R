@@ -8,6 +8,8 @@
 #
 # Inspired by Mike Weiss questions on MLM
 #
+# This is a "superpopulation" simulation--each iteration is a new
+# dataset.
 
 
 set.seed( 1039 )
@@ -21,6 +23,8 @@ one_run <- function( blocks = TRUE, het_block = FALSE, simple = FALSE, ICC.2 = N
                      include_covariates = FALSE,
                      model.params = model.params.list ) {
 
+
+    # Make some data
     p = model.params
     if ( !is.null( ICC.2 ) ) {
         p$ICC.2 = ICC.2
@@ -35,6 +39,9 @@ one_run <- function( blocks = TRUE, het_block = FALSE, simple = FALSE, ICC.2 = N
                                        blocks = blocks, het_block = het_block )
     }
 
+
+
+    # Analyze the data
     form = Yobs ~ Tx | S.id | D.id
     if ( !blocks ) {
         form = Yobs ~ Tx | S.id
@@ -57,6 +64,8 @@ one_run <- function( blocks = TRUE, het_block = FALSE, simple = FALSE, ICC.2 = N
                                        include_dumb = FALSE,
                                        include_method_characteristics = FALSE )
 
+
+    # Add the "canonical weight" estimators as a point of comparison
     c2 <- clusterRCT::canonical_weight_estimators( form, sim.data )
 
     c1 = bind_rows( c1, c2 )
@@ -65,6 +74,8 @@ one_run <- function( blocks = TRUE, het_block = FALSE, simple = FALSE, ICC.2 = N
         sim.data$D.id = "sing"
     }
 
+
+    # Add in the true ATEs
     ds = sim.data %>%
         group_by( D.id, S.id ) %>%
         summarise( tauk = mean( Y1 - Y0 ),
@@ -89,7 +100,9 @@ one_run <- function( blocks = TRUE, het_block = FALSE, simple = FALSE, ICC.2 = N
     c1$n = ds$n
     c1$sdY0 = sd( sim.data$Y0 )
 
-    c1 %>% dplyr::select( -any_of( c( "weight", "df" ) ) )
+    # Return the results
+    c1 %>%
+        dplyr::select( -any_of( c( "weight", "df" ) ) )
 }
 
 

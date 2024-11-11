@@ -4,7 +4,7 @@
 \alias{aggregate_data}
 \title{Aggregate data to the cluster level.}
 \usage{
-aggregate_data(data, control_formula = NULL)
+aggregate_data(data, formula = NULL, control_formula = NULL)
 }
 \arguments{
 \item{data}{Dataframe with 'clusterID' and 'Z' as columns.

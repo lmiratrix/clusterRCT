@@ -178,8 +178,13 @@ if ( FALSE ) {
 #'   blockID, clusterID, and Z
 #'
 #' @export
-aggregate_data <- function( data, control_formula = NULL ) {
+aggregate_data <- function( data, formula = NULL, control_formula = NULL ) {
     # Aggregation to the cluster level
+
+    if ( !is.null( formula ) ) {
+        data = make_canonical_data( formula=formula, data=data,
+                                    control_formula=control_formula )
+    }
 
     datagg = NA
     stopifnot( all( c( "clusterID", "Z", "Yobs" ) %in% names(data) ) )
@@ -574,15 +579,20 @@ identify_singleton_blocks <- function( formula, data ) {
 #'   return TRUE.
 #' @export
 is_nested <- function( clusterID, blockID ) {
+
+    if ( is.null( blockID ) ) {
+        return( TRUE )
+    }
+
+    msg = is.na( clusterID ) | is.na( blockID )
+    clusterID = clusterID[ !msg ]
+    blockID = blockID[ !msg ]
+
     if ( is.factor(clusterID) ) {
         clusterID = droplevels(clusterID)
     }
     if ( is.factor(blockID) ) {
         blockID = droplevels(blockID)
-    }
-
-    if ( is.null( blockID ) ) {
-        return( TRUE )
     }
 
     blk = tapply( blockID, clusterID, function( x ) { length( unique( x ) ) } )

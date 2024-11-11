@@ -42,14 +42,16 @@ test_that( "degrees of freedom calculated right (compare_method)", {
 
     ss$X = sample( LETTERS[1:5], nrow(ss), replace=TRUE )
     md3 = linear_model_estimators( Yobs ~ T.x | S.id | D.id, data = ss,
-                           control_formula = ~ X.jk + C.ijk + X )
+                                   control_formula = ~ X.jk + C.ijk + X )
 
     # Throws a warning
     #md3 = aggregation_estimators( Yobs ~ T.x | S.id | D.id, data = ss,
     #                               control_formula = ~ X.jk + C.ijk + X )
 
-    expect_warning( expect_warning( md3 <- compare_methods( Yobs ~ T.x | S.id | D.id, data = ss,
-                           control_formula = ~ X.jk + C.ijk + X ) ) )
+    expect_message( expect_warning(
+        md3 <- compare_methods( Yobs ~ T.x | S.id | D.id, data = ss,
+                                control_formula = ~ X.jk + C.ijk + X )
+    ) )
     md$catCov = md3$df
 
     md

@@ -10,6 +10,8 @@
 library( clusterRCT )
 library( tidyverse )
 
+set.seed( 40440 )
+
 test_that( "matched pairs designs get handled right", {
 
     blk = blkvar::generate_blocked_data( n_k = c( 5, 10, 20, 10, 5, 10 ) )
@@ -31,15 +33,19 @@ test_that( "matched pairs designs get handled right", {
     expect_equal( dsc$num_doubletons, 0 )
 
 
-    expect_warning( expect_warning( comp <- compare_methods( Yobs ~ Z | B | D, data=blk,
-                                                             include_method_characteristics = FALSE ) ) )
+    expect_message( expect_warning(
+        comp <- compare_methods( Yobs ~ Z | B | D, data=blk,
+                                 include_method_characteristics = FALSE )
+    ) )
 
     comp
     expect_true( all( !is.na( comp$ATE_hat ) ) )
     expect_true( all( comp$df[ comp$method %in% c( "DB_FE_Person", "DB_FE_Cluster" ) ] == 2 ) )
 
     head(blk)
-    suppressWarnings( comp <- compare_methods( Yobs ~ Z | B | D, data=blk, control_formula = ~ X ) )
+    expect_message( expect_warning(
+        comp <- compare_methods( Yobs ~ Z | B | D, data=blk, control_formula = ~ X )
+    ))
     comp %>%
         filter( is.na( ATE_hat ) )
     expect_true( any( is.na( comp$ATE_hat ) ) )
@@ -151,10 +157,10 @@ test_that( "doubleton tx or co designs get handled right", {
 
     # -1 degrees of freedom
     #expect_warning( expect_warning( expect_warning( expect_warning(
-    expect_warning( expect_warning(
+    expect_message( expect_warning(
         comp <- compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X1 + X2 + X3 + X4,
                                  include_MLM = FALSE, include_LM = FALSE  )
-    ))
+    ) )
     #))))))
     cc <- comp %>%
         dplyr::filter( weight == "Person" | weight == "Person-Person" )
@@ -164,10 +170,10 @@ test_that( "doubleton tx or co designs get handled right", {
 
 
     # 0 degrees of freedom
-    expect_warning( expect_warning(
+    expect_message( expect_warning(
         comp <- compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X1 + X3 + X4,
                                  include_MLM = FALSE, include_LM = FALSE  )
-    ))
+    ) )
     cc <- comp %>%
         dplyr::filter( weight == "Person" | weight == "Person-Person" )
     cc
@@ -257,7 +263,7 @@ test_that( "degrees of freedom at margin", {
     expect_equal( dsc$num_doubletons, 0 )
 
     blk$X1 = sample( LETTERS[1:13], nrow(blk), replace=TRUE )
-    expect_warning( expect_warning(
+    expect_message( expect_warning(
         comp <- compare_methods( Yobs ~ Z | B | D, data=blk,
                                  control_formula = ~ X1,
                                  include_MLM = FALSE,
@@ -297,20 +303,22 @@ test_that( "matched pairs and matched doubles designs", {
     expect_true( !any( stringr::str_detect( attr( dsc, "notes" ), "singleton" ) ) )
     expect_equal( dsc$num_doubletons, 0 )
 
-    expect_warning( expect_warning( comp <- compare_methods( Yobs ~ Z | B | D, data=blk,
-                                                             include_method_characteristics = FALSE ) ) )
+    expect_message( expect_warning(
+        comp <- compare_methods( Yobs ~ Z | B | D, data=blk,
+                                             include_method_characteristics = FALSE )
+        ) )
     comp
     expect_true( all( !is.na( comp$ATE_hat ) ) )
 
     head( blk )
     blk$X = rnorm( nrow(blk) )
-    expect_warning( expect_warning(
+    expect_message( expect_warning(
         #expect_warning(
         #expect_warning( expect_warning( expect_warning(
         c2 <- compare_methods( Yobs ~ Z | B | D, data=blk,
                                include_method_characteristics = FALSE,
                                control_formula = ~ X )
-    ))
+    ) )
     #) ) ) )))
     c2
 

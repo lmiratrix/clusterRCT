@@ -268,7 +268,7 @@ compare_methods <- function(formula,
 
 
     # aggregate data once for efficiency.
-    aggdat = aggregate_data(data, control_formula)
+    aggdat = aggregate_data( data = data, control_formula = control_formula)
     control_formula_agg = attr( aggdat, "control_formula" )
 
 
@@ -314,11 +314,11 @@ compare_methods <- function(formula,
                                             aggregated = TRUE)
 
         db_res_ii <- design_based_estimators_individual(formula = NULL, data = data,
-                                            control_formula = control_formula,
-                                            weight = "Person")
+                                                        control_formula = control_formula,
+                                                        weight = "Person")
         db_res_ci <- design_based_estimators_individual(formula = NULL, data = data,
-                                            control_formula = control_formula,
-                                            weight = "Cluster")
+                                                        control_formula = control_formula,
+                                                        weight = "Cluster")
 
         db_middleton <- middleton_aronow_estimator(formula = NULL, data = aggdat,
                                                    control_formula = control_formula_agg,
@@ -341,6 +341,8 @@ compare_methods <- function(formula,
         mc$weight = NULL
         summary_table <- left_join( summary_table, mc, by = "method" )
     }
+    summary_table$weight = stringr::str_replace( summary_table$weight, "Cluster-Cluster", "Cluster" )
+    summary_table$weight = stringr::str_replace( summary_table$weight, "Person-Person", "Person" )
 
     if ( nrow( summary_table ) > 0 ) {
         summary_table = tibble::remove_rownames( summary_table )
@@ -359,18 +361,20 @@ compare_methods <- function(formula,
 
 if ( FALSE ) {
 
+    library( tidyverse )
+    library( clusterRCT )
     data( fakeCRT )
     fakeCRT
 
     design_based_estimators_individual( Yobs ~ T.x | S.id | D.id,
-                     control_formula = ~ X.jk + C.ijk,
-                     data = fakeCRT, weight="Cluster" )
+                                        control_formula = ~ X.jk + C.ijk,
+                                        data = fakeCRT, weight="Cluster" )
 
 
     compare_methods( Yobs ~ T.x | S.id | D.id,
                      control_formula = ~ X.jk + C.ijk,
                      include_dumb = FALSE,
-                     data = fakeCRT, include_method_characteristics = TRUE ) %>%
+                     data = fakeCRT ) %>%
         knitr::kable( digits = 2 )
 
 }

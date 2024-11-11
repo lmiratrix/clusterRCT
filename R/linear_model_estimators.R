@@ -4,6 +4,23 @@
 #### Linear model estimators ####
 
 
+# This helps catch warnings thrown when weights get weird with degrees
+# of freedom issues.
+lm_robust_quiet <- function( ... ) {
+    M6 <- NULL
+
+    # TODO: For small df datasets lm_robust can fall on its face.
+    # This catches warnings when that occurs.
+    withCallingHandlers(
+        {
+            M6 <- estimatr::lm_robust( ... )
+        }, warning = function(w) {
+            message("lm_robust threw warning due to df issues: ", conditionMessage(w))
+            invokeRestart("muffleWarning")  # Suppresses the warning
+        }
+    )
+    M6
+}
 
 
 #' Estimate ATEs for a cluster RCT using linear model
@@ -46,7 +63,7 @@ linear_model_estimators <- function( formula,
     form = make_regression_formula( FE = needFE,
                                     control_formula = control_formula )
 
-    M2 <- estimatr::lm_robust( form, data=data, clusters=clusterID, weights = .weight )
+    M2 <- lm_robust_quiet( form, data=data, clusters=clusterID, weights = .weight )
     est2 <- M2$coefficients[["Z"]]
     se2  <- M2$std.error[["Z"]]
     pv2 <- M2$p.value[["Z"]]
@@ -121,7 +138,7 @@ interacted_linear_model_estimators <- function( formula,
     form = make_regression_formula( FE = TRUE, interacted = TRUE,
                                     control_formula = control_formula )
 
-    M0.int <- estimatr::lm_robust( form, data=data, clusters=clusterID, weights = .weight )
+    M0.int <- lm_robust_quiet( form, data=data, clusters=clusterID, weights = .weight )
 
     ests <- generate_all_interacted_estimates( M0.int, data,
                                                method = est_method,
@@ -144,8 +161,8 @@ if ( FALSE ) {
     fakeCRT
 
     linear_model_estimators( Yobs ~ T.x | S.id | D.id,
-                            control_formula = ~ X.jk + C.ijk,
-                            data = fakeCRT )
+                             control_formula = ~ X.jk + C.ijk,
+                             data = fakeCRT )
 
     linear_model_estimators( Yobs ~ T.x | S.id | D.id,
                              control_formula = ~ X.jk + C.ijk,
@@ -169,8 +186,8 @@ if ( FALSE ) {
                                         data = fakeCRT )
 
     compare_methods( Yobs ~ T.x | S.id | D.id,
-                                        control_formula = ~ X.jk + C.ijk,
-                                        data = fakeCRT, include_method_characteristics = FALSE ) %>%
+                     control_formula = ~ X.jk + C.ijk,
+                     data = fakeCRT, include_method_characteristics = FALSE ) %>%
         knitr::kable( digits = 2 )
 }
 

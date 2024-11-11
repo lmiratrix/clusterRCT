@@ -47,6 +47,17 @@ test_that( "describer works", {
     bb
 
     expect_true( nrow(bb) == 2 )
+
+
+    # Not clustered, will stop!
+    dat = tibble( did = rep( c(0,1), c(50,50) ),
+                  sid = rep( 1:10, 10),
+                  Y = rnorm(100),
+                  Z = sample( c(0,1), 100,replace=TRUE ) )
+
+    expect_error( describe_clusterRCT( Y ~ Z | sid | did, data=dat ) )
+
+
 } )
 
 
@@ -211,7 +222,7 @@ test_that( "ICC calcs work", {
 
 
 test_that( "R2 calcs work", {
-
+    set.seed( 40440 )
     dd = data.frame( cid = rep( 1:10, 1:10 ) )
     dd = mutate( dd,
                  Ybar = cid,
@@ -232,6 +243,7 @@ test_that( "R2 calcs work", {
     expect_true( nrow( bt ) == 3 )
 
     desc <- describe_clusterRCT( Y ~ Z | cid | sid, data=dd)
+    desc
     dd <- dd %>%
         group_by( sid ) %>%
         mutate(   X1 = Y + rnorm(n(), sd=3),

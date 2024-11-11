@@ -17,6 +17,8 @@ describe_clusterRCT <- function( formula = NULL,
                                  control_formula = NULL,
                                  warn_missing = TRUE ) {
 
+
+
     if ( !is.null( formula ) ) {
         # Deal with multiple outcomes
         lhs_vars <- formula.tools::lhs.vars(formula)
@@ -41,6 +43,10 @@ describe_clusterRCT <- function( formula = NULL,
                                         drop_missing = FALSE,
                                         warn_missing = FALSE )
         }
+    }
+
+    if ( !is_nested( data$clusterID, data$Z ) ) {
+        stop( "Not a cluster randomized experiment" )
     }
 
     cnames = NULL
@@ -170,7 +176,9 @@ calc_ICCs <- function( data, is_blocked = TRUE ) {
     #if ( !is.null( control_formula ) ) {
     #    form = update( control_formula, Yobs ~ . + 1 + Z + (1 | blockID ) + (1 | clusterID ) )
     #}
-    M = lmer( form, data=data )
+    quiet_lmer = purrr::quietly( lmer )
+    M = quiet_lmer( form, data=data )$result
+
     #arm::display(M)
 
     a = VarCorr( M )

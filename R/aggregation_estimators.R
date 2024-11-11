@@ -46,7 +46,7 @@ aggregation_estimators <- function( formula,
 
     datagg = data
     if ( !aggregated ) {
-        datagg = aggregate_data(data, control_formula)
+        datagg = aggregate_data( data = data, control_formula = control_formula)
         control_formula = attr( datagg, "control_formula" )
     }
 
@@ -68,7 +68,7 @@ aggregation_estimators <- function( formula,
     if ( control_interacted ) {
         datagg = center_controls( datagg, control_formula, weights = datagg$n )
     }
-    M4 <- lm_robust( form, data=datagg, weights = n, se_type = "HC2" )
+    M4 <- lm_robust_quiet( form, data=datagg, weights = n, se_type = "HC2" )
     Agg_FE_person = get_agg_ests( M4, "Person", ifelse( needFE, "LRapw-FE-het", "LRapw-het" ) )
 
 
@@ -84,7 +84,7 @@ aggregation_estimators <- function( formula,
                                      control_formula = control_formula,
                                      control_interacted = control_interacted )
 
-    M5 <- lm_robust( formI, data=datagg, se_type = "HC2" )
+    M5 <- lm_robust_quiet( formI, data=datagg, se_type = "HC2" )
     df = nrow( datagg ) - length( coef( M5 ) )
     aggd <- datagg %>% group_by( blockID ) %>%
         summarise( n = sum( n ),
@@ -97,7 +97,8 @@ aggregation_estimators <- function( formula,
                                                 se_method = "het")
     Agg_FI$df = df
 
-    M6 <- lm_robust( formI, data=datagg, se_type = "HC2", weights = n )
+    M6 <- lm_robust_quiet( formI, data=datagg, se_type = "HC2", weights = n )
+
     Agg_wFI = generate_all_interacted_estimates( M6, aggd,
                                                  aggregated = TRUE,
                                                  use_full_vcov=TRUE,

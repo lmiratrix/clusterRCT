@@ -12,7 +12,7 @@ test_that( "aggregation works", {
     dd = clusterRCT:::make_canonical_data( Y ~ Z | clusterID | blockID, data=dd,
                                            control_formula = ~ x + x2 )
     dd$Z = randomizr::cluster_ra( clusters = dd$clusterID )
-    aa <- clusterRCT:::aggregate_data( dd )
+    aa <- clusterRCT:::aggregate_data( data = dd )
     aa
     expect_equal( names(aa), c("blockID", "clusterID","Z", "Ybar", "n"))
 
@@ -24,10 +24,10 @@ test_that( "aggregation works", {
 
 
     dd$blockID = NULL
-    a2 = clusterRCT:::aggregate_data( dd, control_formula = ~ x + x2 )
+    a2 = clusterRCT:::aggregate_data( data = dd, control_formula = ~ x + x2 )
     a2
 
-    a4 = clusterRCT:::aggregate_data( dd, control_formula = ~ x )
+    a4 = clusterRCT:::aggregate_data( data = dd, control_formula = ~ x )
     a4
     expect_true( all( a2$x == a4$x ) )
 })
