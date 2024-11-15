@@ -14,7 +14,8 @@
 MLM_estimators <- function( formula,
                             data = NULL,
                             control_formula = NULL,
-                            suppress_warnings = TRUE ) {
+                            suppress_warnings = TRUE,
+                            include_disfavored = FALSE ) {
 
     require( lme4 )
     require( lmerTest )
@@ -93,31 +94,34 @@ MLM_estimators <- function( formula,
     # df = #clusters - 2 * #blocks - #covariates
     MLM_FI$df = length(unique(data$clusterID)) - length( fixef(M1) )
 
-    formRIRC = make_regression_formula( FE = FALSE,
-                                        control_formula = control_formula,
-                                        cluster_RE = TRUE )
-    formRIRC = update( formRIRC, . ~ . + (1+Z|blockID) )
-    M_RIRC <- my_lmer( formRIRC, data=data )
-    MLM_RIRC = get_mlm_ests(M_RIRC, "MLM-RIRC")
-    MLM_RIRC$weight = "Cluster"
-
-    formFIRC = make_regression_formula( FE = TRUE,
-                                        control_formula = control_formula,
-                                        cluster_RE = TRUE )
-    formFIRC = update( formFIRC, . ~ 0 + . + (0+Z|blockID) )
-    M_FIRC <- my_lmer( formFIRC, data=data )
-    MLM_FIRC = get_mlm_ests(M_FIRC, "MLM-FIRC")
-    MLM_FIRC$weight = "Cluster"
-
-
     res = bind_rows( MLM_FE,
                      MLM_RE,
-                     MLM_FI,
-                     MLM_RIRC,
-                     MLM_FIRC )
+                     MLM_FI )
+
+    if ( include_disfavored ) {
+        # RIRC model
+        formRIRC = make_regression_formula( FE = FALSE,
+                                            control_formula = control_formula,
+                                            cluster_RE = TRUE )
+        formRIRC = update( formRIRC, . ~ . + (1+Z|blockID) )
+        M_RIRC <- my_lmer( formRIRC, data=data )
+        MLM_RIRC = get_mlm_ests(M_RIRC, "MLM-RIRC")
+        MLM_RIRC$weight = "Cluster"
+
+        formFIRC = make_regression_formula( FE = TRUE,
+                                            control_formula = control_formula,
+                                            cluster_RE = TRUE )
+        formFIRC = update( formFIRC, . ~ 0 + . + (0+Z|blockID) )
+        M_FIRC <- my_lmer( formFIRC, data=data )
+        MLM_FIRC = get_mlm_ests(M_FIRC, "MLM-FIRC")
+        MLM_FIRC$weight = "Cluster"
+
+        res = bind_rows( res,
+                         MLM_RIRC,
+                         MLM_FIRC )
+    }
 
     res
-
 
 }
 

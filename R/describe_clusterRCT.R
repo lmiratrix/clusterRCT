@@ -60,7 +60,7 @@ describe_clusterRCT <- function( formula = NULL,
     data = patch_data_set( NULL, data=data, control_formula = control_formula,
                            warn_missing = warn_missing )
 
-    is_blocked = "blockID" %in% colnames(data)
+    is_blocked = "blockID" %in% colnames(data) && (length( unique( data$blockID ) ) > 1)
 
     if ( is_blocked ) {
         data = patch_singleton_blocks(NULL, data=data,

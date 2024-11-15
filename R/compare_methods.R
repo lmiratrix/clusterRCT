@@ -200,6 +200,7 @@ compare_methods <- function(formula,
                             include_agg = TRUE,
                             warn_missing = TRUE,
                             include_dumb = FALSE,
+                            include_disfavored = FALSE,
                             patch_data = TRUE,
                             handle_singleton_blocks = c( "drop", "pool", "fail" ),
                             include_method_characteristics = TRUE ) {
@@ -255,7 +256,7 @@ compare_methods <- function(formula,
     }
 
 
-    # handle singleton blocks
+    # handle blocks with singletons
     if ( ("blockID" %in% names(data)) && handle_singleton_blocks != "fail" ) {
         data = patch_singleton_blocks( Yobs ~ Z | clusterID | blockID, data=data,
                                        drop_data = handle_singleton_blocks == "drop",
@@ -274,7 +275,11 @@ compare_methods <- function(formula,
 
     summary_table <- data.frame()
 
+    if ( "blockID" %in% colnames(data) && length( unique( data$blockID ) ) == 1 ) {
+        data$blockID = NULL
+    }
     has_blocks <- "blockID" %in% colnames(data)
+
 
     if (include_LM) {
         lms <- linear_model_estimators(formula = NULL, data = data,
@@ -291,7 +296,8 @@ compare_methods <- function(formula,
 
     if (include_MLM) {
         mlms <- MLM_estimators(formula = NULL, data = data,
-                               control_formula = control_formula )
+                               control_formula = control_formula,
+                               include_disfavored = include_disfavored )
         summary_table <- dplyr::bind_rows( summary_table, mlms )
     }
 
@@ -319,14 +325,17 @@ compare_methods <- function(formula,
         db_res_ci <- design_based_estimators_individual(formula = NULL, data = data,
                                                         control_formula = control_formula,
                                                         weight = "Cluster")
-
-        db_middleton <- middleton_aronow_estimator(formula = NULL, data = aggdat,
-                                                   control_formula = control_formula_agg,
-                                                   aggregated = TRUE)
         summary_table = dplyr::bind_rows( summary_table,
                                           db_res_i, db_res_c,
-                                          db_res_ii, db_res_ci,
-                                          db_middleton )
+                                          db_res_ii, db_res_ci )
+
+        if ( include_disfavored ) {
+            db_middleton <- middleton_aronow_estimator(formula = NULL, data = aggdat,
+                                                       control_formula = control_formula_agg,
+                                                       aggregated = TRUE)
+
+            summary_table = dplyr::bind_rows( summary_table, db_middleton )
+        }
     }
 
     if ( !include_dumb ) {
@@ -334,12 +343,18 @@ compare_methods <- function(formula,
             filter( !grepl( "Cluster-Person|Person-Cluster", weight ) )
     }
 
+
     # Add info on the methods (e.g., what estimand they are targeting)
     if (include_method_characteristics) {
         mc <- method_characteristics()
         mc$blocked = NULL
         mc$weight = NULL
         summary_table <- left_join( summary_table, mc, by = "method" )
+
+        if ( !include_disfavored ) {
+            summary_table <- filter( summary_table, disfavored == 0 )
+        }
+
     }
     summary_table$weight = stringr::str_replace( summary_table$weight, "Cluster-Cluster", "Cluster" )
     summary_table$weight = stringr::str_replace( summary_table$weight, "Person-Person", "Person" )
