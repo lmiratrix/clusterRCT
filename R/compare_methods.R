@@ -343,21 +343,25 @@ compare_methods <- function(formula,
             filter( !grepl( "Cluster-Person|Person-Cluster", weight ) )
     }
 
+    mc <- method_characteristics()
+    mc$blocked = NULL
+    mc$weight = NULL
+    summary_table <- left_join( summary_table, mc, by = "method" )
 
-    # Add info on the methods (e.g., what estimand they are targeting)
-    if (include_method_characteristics) {
-        mc <- method_characteristics()
-        mc$blocked = NULL
-        mc$weight = NULL
-        summary_table <- left_join( summary_table, mc, by = "method" )
-
-        if ( !include_disfavored ) {
-            summary_table <- filter( summary_table, disfavored == 0 )
-        }
-
+    if ( !include_disfavored ) {
+        summary_table <- filter( summary_table, disfavored == 0 )
     }
     summary_table$weight = stringr::str_replace( summary_table$weight, "Cluster-Cluster", "Cluster" )
     summary_table$weight = stringr::str_replace( summary_table$weight, "Person-Person", "Person" )
+
+    summary_table <- summary_table %>%
+        relocate( method, weight )
+
+    # If not desired, remove info on the methods (e.g., what estimand they are targeting)
+    if (!include_method_characteristics) {
+        summary_table <- summary_table %>%
+            dplyr::select( -weight, -biased, -disfavored )
+    }
 
     if ( nrow( summary_table ) > 0 ) {
         summary_table = tibble::remove_rownames( summary_table )

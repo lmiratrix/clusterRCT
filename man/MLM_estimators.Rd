@@ -8,7 +8,8 @@ MLM_estimators(
   formula,
   data = NULL,
   control_formula = NULL,
-  suppress_warnings = TRUE
+  suppress_warnings = TRUE,
+  include_disfavored = FALSE
 )
 }
 \arguments{

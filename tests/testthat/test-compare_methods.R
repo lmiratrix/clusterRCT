@@ -10,14 +10,19 @@ data( "fakeCRT" )
 test_that("compare methods gives multiple estimates as expected", {
 
     mtab <- compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
-                             include_method_characteristics = TRUE )
+                             include_method_characteristics = TRUE,
+                             include_disfavored = TRUE )
     mtab
     expect_true( is.data.frame(mtab) )
     expect_true( sum(is.na(mtab)) == 0 )
+    nrow( mtab )
 
     mtab_cov <-  compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
                                   control_formula = ~ X.jk + C.ijk,
-                                  include_method_characteristics = FALSE )
+                                  include_method_characteristics = FALSE,
+                                  include_disfavored = TRUE )
+
+    expect_equal( nrow( mtab ), nrow( mtab_cov ) )
 
     # Ensure covariate correction changes the estimates!  (I.e.,
     # control formula is getting propagated)
@@ -28,7 +33,7 @@ test_that("compare methods gives multiple estimates as expected", {
 
     # Now without blocking
     mtab <- compare_methods( Yobs ~ T.x | S.id, data=fakeCRT,
-                             include_method_characteristics = TRUE)
+                             include_method_characteristics = TRUE, include_disfavored = TRUE )
     mtab
     expect_true( is.data.frame(mtab) )
     expect_true( sum( is.na(mtab) ) == 0 )
@@ -36,6 +41,7 @@ test_that("compare methods gives multiple estimates as expected", {
 
     mtab_cov <- compare_methods( Yobs ~ T.x | S.id, data=fakeCRT,
                              include_method_characteristics = FALSE,
+                             include_disfavored = TRUE,
                              control_formula = ~ X.jk + C.ijk )
 
     mtab$dels = mtab$ATE_hat - mtab_cov$ATE_hat

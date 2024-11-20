@@ -16,6 +16,7 @@ compare_methods(
   include_agg = TRUE,
   warn_missing = TRUE,
   include_dumb = FALSE,
+  include_disfavored = FALSE,
   patch_data = TRUE,
   handle_singleton_blocks = c("drop", "pool", "fail"),
   include_method_characteristics = TRUE

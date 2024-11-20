@@ -48,7 +48,7 @@ test_that( "degrees of freedom calculated right (compare_method)", {
     #md3 = aggregation_estimators( Yobs ~ T.x | S.id | D.id, data = ss,
     #                               control_formula = ~ X.jk + C.ijk + X )
 
-    expect_message( expect_warning(
+    expect_message( expect_message(
         md3 <- compare_methods( Yobs ~ T.x | S.id | D.id, data = ss,
                                 control_formula = ~ X.jk + C.ijk + X )
     ) )

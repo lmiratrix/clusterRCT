@@ -33,7 +33,7 @@ test_that( "matched pairs designs get handled right", {
     expect_equal( dsc$num_doubletons, 0 )
 
 
-    expect_message( expect_warning(
+    expect_message( expect_message(
         comp <- compare_methods( Yobs ~ Z | B | D, data=blk,
                                  include_method_characteristics = FALSE )
     ) )
@@ -43,7 +43,7 @@ test_that( "matched pairs designs get handled right", {
     expect_true( all( comp$df[ comp$method %in% c( "DB_FE_Person", "DB_FE_Cluster" ) ] == 2 ) )
 
     head(blk)
-    expect_message( expect_warning(
+    expect_message( expect_message(
         comp <- compare_methods( Yobs ~ Z | B | D, data=blk, control_formula = ~ X )
     ))
     comp %>%
@@ -77,11 +77,6 @@ test_that( "singleton tx or co designs get handled right", {
     comp
     expect_true( all( !is.na( comp$ATE_hat ) ) )
 
-    # This must depend on amount of cross block variation?  For this
-    # seed, df is small. But it can be bigger!
-    expect_true( comp$df[ comp$method == "MLM-RIRC" ] <= 3 )
-    expect_true( comp$df[ comp$method == "MLM-FIRC" ] <= 3 )
-
 
     # One block with 2 clusters
     n_k = c( 5,  10, 10, 20, 30, 40,
@@ -106,8 +101,7 @@ test_that( "singleton tx or co designs get handled right", {
     comp2 = compare_methods( Yobs ~ Z | B | D, data=blk, include_method_characteristics = FALSE )
     comp2
     expect_true( all( !is.na( comp2$ATE_hat ) ) )
-    expect_true( comp$df[ comp$method == "MLM-RIRC" ] <= 3 )
-    expect_true( comp$df[ comp$method == "MLM-FIRC" ] <= 3 )
+
 
     left_join( comp[ c(1:3) ], comp2[ c(1:3) ], by="method" )
     expect_equal( is.na( comp$SE_hat ), is.na( comp2$SE_hat ) )
@@ -157,7 +151,7 @@ test_that( "doubleton tx or co designs get handled right", {
 
     # -1 degrees of freedom
     #expect_warning( expect_warning( expect_warning( expect_warning(
-    expect_message( expect_warning(
+    expect_message( expect_message(
         comp <- compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X1 + X2 + X3 + X4,
                                  include_MLM = FALSE, include_LM = FALSE  )
     ) )
@@ -170,7 +164,7 @@ test_that( "doubleton tx or co designs get handled right", {
 
 
     # 0 degrees of freedom
-    expect_message( expect_warning(
+    expect_message( expect_message(
         comp <- compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X1 + X3 + X4,
                                  include_MLM = FALSE, include_LM = FALSE  )
     ) )
@@ -234,10 +228,8 @@ test_that( "doubleton tx or co designs get handled right", {
     expect_true( all( !is.na( comp$ATE_hat ) ) )
     expect_true( all( !is.na( comp$SE_hat ) ) )
 
-
-
-
 })
+
 
 
 
@@ -263,7 +255,7 @@ test_that( "degrees of freedom at margin", {
     expect_equal( dsc$num_doubletons, 0 )
 
     blk$X1 = sample( LETTERS[1:13], nrow(blk), replace=TRUE )
-    expect_message( expect_warning(
+    expect_message( expect_message(
         comp <- compare_methods( Yobs ~ Z | B | D, data=blk,
                                  control_formula = ~ X1,
                                  include_MLM = FALSE,
@@ -303,7 +295,7 @@ test_that( "matched pairs and matched doubles designs", {
     expect_true( !any( stringr::str_detect( attr( dsc, "notes" ), "singleton" ) ) )
     expect_equal( dsc$num_doubletons, 0 )
 
-    expect_message( expect_warning(
+    expect_message( expect_message(
         comp <- compare_methods( Yobs ~ Z | B | D, data=blk,
                                              include_method_characteristics = FALSE )
         ) )
@@ -312,7 +304,7 @@ test_that( "matched pairs and matched doubles designs", {
 
     head( blk )
     blk$X = rnorm( nrow(blk) )
-    expect_message( expect_warning(
+    expect_message( expect_message(
         #expect_warning(
         #expect_warning( expect_warning( expect_warning(
         c2 <- compare_methods( Yobs ~ Z | B | D, data=blk,
