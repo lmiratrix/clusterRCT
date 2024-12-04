@@ -6,7 +6,8 @@
 \title{Fake Broken Cluster Randomized Trial data}
 \format{
 A data frame with 1500 rows and 7 variables: \describe{
- \item{\code{V.k}}{double District-level covariate (think standardized district-wide average test score relative to state).}
+ \item{\code{V.k}}{double District-level covariate (think standardized district-wide
+ average test score relative to state).}
  \item{\code{X.jk}}{double School-level (think percent on Free/Reduced Price Lunch).}
  \item{\code{C.ijk}}{double Student-level covariate (think baseline measured SES).}
  \item{\code{S.id}}{integer School ID.}
@@ -18,7 +19,8 @@ A data frame with 1500 rows and 7 variables: \describe{
 fakeBrokeCRT
 }
 \description{
-This dataset is a version of `fakeCRT` with missing data and some blocks that are all tx or all co.
+This dataset is a version of `fakeCRT` with missing data and some
+blocks that are all tx or all co.
 }
 \details{
 These data were generated via the PUMP package.

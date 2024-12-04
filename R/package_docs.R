@@ -9,7 +9,8 @@
 #'  control.  It is used to illustrate and test the clusterRCT pacakge.
 #'
 #'@format A data frame with 1500 rows and 7 variables: \describe{
-#'  \item{\code{V.k}}{double District-level covariate (think standardized district-wide average test score relative to state).}
+#'  \item{\code{V.k}}{double District-level covariate (think standardized district-wide
+#'   average test score relative to state).}
 #'  \item{\code{X.jk}}{double School-level (think percent on Free/Reduced Price Lunch).}
 #'  \item{\code{C.ijk}}{double Student-level covariate (think baseline measured SES).}
 #'  \item{\code{S.id}}{integer School ID.}
@@ -22,10 +23,12 @@
 
 #'@title Fake Broken Cluster Randomized Trial data
 #'
-#'@description This dataset is a version of `fakeCRT` with missing data and some blocks that are all tx or all co.
+#'@description This dataset is a version of `fakeCRT` with missing data and some
+#' blocks that are all tx or all co.
 #'
 #'@format A data frame with 1500 rows and 7 variables: \describe{
-#'  \item{\code{V.k}}{double District-level covariate (think standardized district-wide average test score relative to state).}
+#'  \item{\code{V.k}}{double District-level covariate (think standardized district-wide
+#'  average test score relative to state).}
 #'  \item{\code{X.jk}}{double School-level (think percent on Free/Reduced Price Lunch).}
 #'  \item{\code{C.ijk}}{double Student-level covariate (think baseline measured SES).}
 #'  \item{\code{S.id}}{integer School ID.}
