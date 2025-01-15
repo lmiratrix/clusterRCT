@@ -507,6 +507,34 @@ count_block_sizes <- function( clusterID, blockID ) {
 
 
 
+#' Given data, return a data frame with the structure of the data
+#'
+#' @inheritParams describe_clusterRCT
+#'
+#' @return Dataframe listing blockID, clusterID, treatment status, and
+#'   number of units in the cluster.
+#' @export
+get_structure <- function( formula = NULL, data ) {
+    if ( !is.null( formula ) ) {
+        data = clusterRCT:::make_canonical_data( formula=formula, data=data )
+    }
+    if ( !("blockID" %in% colnames(data)) ) {
+        data$blockID = ".single"
+    }
+    data <- data %>%
+        group_by( blockID, clusterID ) %>%
+        summarize( Z = mean( Z == 1 ),
+                   n = n(),
+                   .groups="drop" ) %>%
+        ungroup()
+    #if ( length( unique( data$blockID ) ) == 1 ) {
+    #    data$blockID = NULL
+    #}
+    data
+}
+
+
+
 
 #### Testing code ####
 

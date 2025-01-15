@@ -190,7 +190,7 @@ design_based_estimators <- function( formula,
         data = make_canonical_data( formula=formula, data=data,
                                     control_formula = control_formula )
         # Collapse to clusters
-        data_agg = aggregate_data( data, control_formula )
+        data_agg = aggregate_data( data=data, control_formula = control_formula )
         control_formula = attr( data_agg, "control_formula" )
     } else {
         data_agg = data

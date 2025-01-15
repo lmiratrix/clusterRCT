@@ -8,7 +8,8 @@ set.seed( 1039 )
 
 
 
-
+library( tidyverse )
+library( testthat )
 
 test_that( "describer works", {
 
@@ -23,6 +24,13 @@ test_that( "describer works", {
 
     dd = as.data.frame(d)
     expect_true( nrow( dd ) == 1 )
+
+    dstr <- get_structure( formula = Yobs ~ T.x | S.id | D.id, data=fakeCRT )
+
+    dstr
+    expect_equal( length( unique( dstr$blockID ) ), length( unique( fakeCRT$D.id) ) )
+    expect_equal( nrow(dstr), length( unique(fakeCRT$S.id) ) )
+
 
     # We can check nesting of School in District
     expect_true( is_nested( fakeCRT$S.id, fakeCRT$D.id ) )
@@ -81,6 +89,12 @@ test_that( "describer works with non-blocked data", {
     expect_equal( d2$ncov.1, d$ncov.1 )
     expect_equal( d2$R2.1, d$R2.1 )
     as.data.frame(d2)
+
+    d <- get_structure( formula = Yobs ~ T.x | S.id, data=fakeCRT )
+
+    d
+    expect_equal( length( unique( d$blockID ) ), 1 )
+    expect_equal( nrow(d), length( unique(fakeCRT$S.id) ) )
 })
 
 
