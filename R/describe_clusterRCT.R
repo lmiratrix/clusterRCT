@@ -400,7 +400,7 @@ make_block_table <- function(  formula = NULL,
 #' @family clusterRCTstats
 #'
 print.clusterRCTstats <- function( x, ... ) {
-    stopifnot( is.clusterRCTstats(x) )
+    #stopifnot( is.clusterRCTstats(x) )
 
     if ( nrow( x ) > 1 ) {
         rr <- print.data.frame( x, ... )
@@ -444,7 +444,7 @@ print.clusterRCTstats <- function( x, ... ) {
         scat( "\tR2.1: %.2f (%d covariates)\n", x$R2.1, x$ncov.1)
     }
 
-    if ( ".missing" %in% names(x) ) {
+    if ( ".missing" %in% names(x) && !is.na( x$.missing ) ) {
         scat( "missing data counts:\n" )
         print( x$.missing[[1]] )
     }

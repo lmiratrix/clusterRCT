@@ -5,10 +5,6 @@ library( clusterRCT )
 
 set.seed( 1039 )
 
-
-
-
-library( tidyverse )
 library( testthat )
 
 test_that( "describer works", {

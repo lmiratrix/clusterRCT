@@ -28,12 +28,15 @@ test_that("compare methods gives multiple estimates as expected", {
     # control formula is getting propagated)
     mtab$dels = mtab$ATE_hat - mtab_cov$ATE_hat
     mtab
+
+    # HT methods ignore covariates, so 2 should be the same
     expect_true( sum( mtab$dels == 0 ) == 2 )
 
 
     # Now without blocking
     mtab <- compare_methods( Yobs ~ T.x | S.id, data=fakeCRT,
-                             include_method_characteristics = TRUE, include_disfavored = TRUE )
+                             include_method_characteristics = TRUE,
+                             include_disfavored = TRUE )
     mtab
     expect_true( is.data.frame(mtab) )
     expect_true( sum( is.na(mtab) ) == 0 )
