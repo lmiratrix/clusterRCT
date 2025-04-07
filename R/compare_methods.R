@@ -85,7 +85,7 @@ if ( FALSE ) {
 #'
 #' @export
 #'
-method_characteristics <- function() {
+method_characteristics <- function( include_weight = TRUE ) {
 
     mc <-
         tibble::tribble(
@@ -99,8 +99,8 @@ method_characteristics <- function() {
             "LRicw-crve",         "Cluster",       0,        0,           0,
             "LRicw-db",         "Cluster",       0,        0,           0,
             "MLM",         "Cluster",       1,        0,           0,
-            "DB_HT",          "Person",       0,        1,           1,
-            "DB_Raj",          "Person",       0,        1,           1,
+            "DB_HT",          "Cluster",       0,        1,           1,
+            "DB_Raj",          "Cluster",       0,        1,           1,
             "LRa-FE-db",         "Cluster",       1,        1,           0,
             "LRa-FE-het",         "Cluster",       1,        1,           0,
             "LRa-FIbw-db",   "Cluster-Block",       0,        1,           1,
@@ -132,23 +132,61 @@ method_characteristics <- function() {
             "LRicw-FIcw-crve", "Cluster-Cluster",       0,        1,           0,
             "LRicw-FIcw-db", "Cluster-Cluster",       0,        1,           0,
             "LRicw-FIpw-crve",  "Cluster-Person",       0,        1,           1,
-            "LRicw-FIpw-db",  "Cluster-Person",       0,        1,           1,
-            "MLM-FE",         "Cluster",       1,        1,           0,
-            "MLM-FIRC",   "Cluster-Block",       1,        1,           1,
+            "LRicw-FIpw-db",    "Cluster-Person",       0,        1,           1,
+            "MLM-FE",           "Cluster",       1,        1,           0,
+            "MLM-FIRC",   "Cluster",       1,        1,           1,
             "MLM-FIbw",   "Cluster-Block",       1,        1,           1,
-            "MLM-FIcw",         "Cluster",       1,        1,           0,
+            "MLM-FIcw", "Cluster-Cluster",       1,        1,           0,
             "MLM-FIpw",         "Cluster",       1,        1,           1,
-            "MLM-RE",         "Cluster",       1,        1,           0,
-            "MLM-RIRC",   "Cluster-Block",       1,        1,           1
+            "MLM-RE",           "Cluster",       1,        1,           0,
+            "MLM-RIRC",   "Cluster",       1,        1,           1
         )
 
 
     # Should we let estimators define that in the guts of the code?
     # Many of the estimators do.
-    mc$weight = NULL
+    if ( !include_weight ) {
+        mc$weight = NULL
+    } else {
+        mc$weight = stringr::str_replace( mc$weight, "Cluster-Cluster", "Cluster" )
+        mc$weight = stringr::str_replace( mc$weight, "Person-Person", "Person" )
+
+    }
 
     return( mc )
 }
+
+
+#' Get the estimand for a given method.
+#'
+#' @seealso method_characteristics()
+#'
+#' @export
+get_estimand <- function( method, simple = TRUE ) {
+
+    mc = method_characteristics()
+
+    wts = mc$weight
+    names(wts) = mc$method
+    wts = wts[ as.character( method ) ]
+
+    if ( any( is.na( wts ) ) ) {
+        mth <- method[ is.na( wts ) ] %>%
+            paste( collapse = ", " )
+        warning( glue::glue( "Unrecognized methods {mth} in get_estimand()" ) )
+    }
+
+    if ( simple ) {
+        wts = stringr::str_replace( wts, "Cluster-(Cluster|Block)", "Cluster" )
+        wts = stringr::str_replace( wts, "Person-(Person|Block)", "Person" )
+    } else {
+        wts = stringr::str_replace( wts, "Cluster-Cluster", "Cluster" )
+        wts = stringr::str_replace( wts, "Person-Person", "Person" )
+    }
+
+    wts
+}
+
 
 
 
@@ -189,6 +227,11 @@ method_characteristics <- function() {
 #' @return Dataframe of point estimates and standard errors for each
 #'   method considered. If \code{include_method_characteristics=TRUE}
 #'   also add some features of the methods as additional columns.
+#'
+#' @examples
+#' data( fakeCRT )
+#' compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT )
+#'
 #' @export
 compare_methods <- function(formula,
                             data = NULL,

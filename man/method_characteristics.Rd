@@ -5,7 +5,7 @@
 \title{Get table of characteristics of all the methods implemented in this
 package.}
 \usage{
-method_characteristics()
+method_characteristics(include_weight = TRUE)
 }
 \value{
 Dataframe with columns for method, weight, population,

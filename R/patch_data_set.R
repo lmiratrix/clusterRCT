@@ -174,6 +174,9 @@ patch_singleton_blocks <- function( formula = NULL, data,
         if ( is.factor( data[[ parts$blockID ]] ) ) {
             data[parts$blockID] = droplevels( data[[parts$blockID]] )
         }
+        if ( is.factor( data[[ parts$clusterID ]] ) ) {
+            data[parts$clusterID] = droplevels( data[[parts$clusterID]] )
+        }
         return( data )
     }
 

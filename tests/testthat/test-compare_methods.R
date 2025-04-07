@@ -17,12 +17,37 @@ test_that("compare methods gives multiple estimates as expected", {
     expect_true( sum(is.na(mtab)) == 0 )
     nrow( mtab )
 
+    mtab
+
+
+    mc = method_characteristics( include_weight = TRUE )
+    expect_true( is.data.frame(mc) )
+
+    mtab$mm = get_estimand( mtab$method, simple = FALSE )
+    expect_true( all( !is.na( mtab$mm ) ) )
+
+    mm = left_join( mtab, mc, by = "method" )
+    if ( FALSE) {
+        table( mm$weight.x )
+        mm %>%
+            dplyr::select( method, weight.x, weight.y, mm ) %>%
+            filter( weight.x != weight.y | weight.x != mm )
+        names(mm)
+    }
+    expect_true( all( mm$weight.x == mm$weight.y ) )
+    expect_true( all( mm$mm == mm$weight.x ) )
+
+
+    mtab$m2 = get_estimand( mtab$method, simple = TRUE )
+    expect_equal( names( table( mtab$m2 ) ), c( "Cluster", "Person" ) )
+
     mtab_cov <-  compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
                                   control_formula = ~ X.jk + C.ijk,
                                   include_method_characteristics = FALSE,
                                   include_disfavored = TRUE )
 
     expect_equal( nrow( mtab ), nrow( mtab_cov ) )
+
 
     # Ensure covariate correction changes the estimates!  (I.e.,
     # control formula is getting propagated)
@@ -43,12 +68,21 @@ test_that("compare methods gives multiple estimates as expected", {
     mtab
 
     mtab_cov <- compare_methods( Yobs ~ T.x | S.id, data=fakeCRT,
-                             include_method_characteristics = FALSE,
-                             include_disfavored = TRUE,
-                             control_formula = ~ X.jk + C.ijk )
+                                 include_method_characteristics = FALSE,
+                                 include_disfavored = TRUE,
+                                 control_formula = ~ X.jk + C.ijk )
 
     mtab$dels = mtab$ATE_hat - mtab_cov$ATE_hat
     expect_true( sum( mtab$dels == 0 ) == 2 )
+
+    mm = left_join( mtab, mc, by = "method" )
+    if ( FALSE) {
+        mm %>%
+            dplyr::select( method, weight.x, weight.y ) %>%
+            filter( weight.x != weight.y )
+        names(mm)
+    }
+    expect_true( all( mm$weight.x == mm$weight.y ) )
 
 
 
@@ -130,7 +164,6 @@ test_that("missing data handled as desired", {
                                                      include_method_characteristics = FALSE ) ) )
     #expect_true( is.data.frame(mtab_cov) )
 })
-
 
 
 

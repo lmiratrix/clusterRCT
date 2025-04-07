@@ -28,13 +28,18 @@
 #' @export
 summarize_simulation_results <- function( rps, summarize_results = "method" ) {
 
+  if ( !is.data.frame(rps) ) {
+    rps <- bind_rows( rps, .id = "runID" )
+  }
+
+  if ( !( "weight" %in% names(rps) ) ) {
+    rps$weight = get_estimand( rps$method )
+  }
+
+
   if ( summarize_results == "cross" || summarize_results == "cross-agg" ) {
 
     # Calculate range across estimators
-    if ( !is.data.frame(rps) ) {
-      rps <- bind_rows( rps, .id = "runID" )
-    }
-
     rr_overall <- rps %>%
       group_by( runID ) %>%
       summarise( rangeATE = max(ATE_hat, na.rm=TRUE) - min(ATE_hat, na.rm=TRUE),
@@ -43,9 +48,9 @@ summarize_simulation_results <- function( rps, summarize_results = "method" ) {
                  na_SE = sum( is.na( SE_hat ) ) )
 
     rr_estimand <- rps %>%
-     # mutate( weight = forcats::fct_recode( weight,
-     #                              C = "Cluster",
-     #                              P = "Person" ) ) %>%
+      # mutate( weight = forcats::fct_recode( weight,
+      #                              C = "Cluster",
+      #                              P = "Person" ) ) %>%
       group_by( runID, weight ) %>%
       summarise( rangeATE = max(ATE_hat, na.rm=TRUE) - min(ATE_hat, na.rm=TRUE),
                  na_ATE = sum( is.na( ATE_hat ) ),
@@ -85,7 +90,6 @@ summarize_simulation_results <- function( rps, summarize_results = "method" ) {
   } else if ( summarize_results == "method" ) {
     # Calculate performance statistics for each method
     rps %>%
-      bind_rows() %>%
       group_by( method, weight, biased ) %>%
       summarise( EATE = mean( ATE_hat, na.rm=TRUE ),
                  SE = sd( ATE_hat, na.rm=TRUE ),
@@ -97,8 +101,7 @@ summarize_simulation_results <- function( rps, summarize_results = "method" ) {
                  Q90 = quantile( SE_hat, 0.9, na.rm=TRUE ),
                  .groups = "drop" )
   } else {
-    rps %>%
-      bind_rows( .id = "runID" )
+    rps
   }
 
 }
@@ -114,42 +117,100 @@ summarize_simulation_results <- function( rps, summarize_results = "method" ) {
 #' Run a finite sample simulation by permuting treatment assignment
 #' labels within each block.
 #'
-#' Call compare_methods repeatidly on the resulting treatment-permuted
-#' data.
+#' Before starting simulation, put data in canonical form, imputing
+#' missing values and so forth as needed. Call compare_methods
+#' repeatidly on the resulting treatment-permuted data.
 #'
 #' @param formula A formula object specifying the model to estimate.
+#' @param control_formula A formula object specifying the control
+#'   variables; passed to compare_methods().
 #' @param data A data frame containing the data to analyze.
 #' @param R The number of simulations to run.
 #' @param summarize_results If TRUE, summarize the results of the
 #'   compare_methods call, FALSE return raw estimates.
 #' @param parallel If TRUE, run simulations in parallel.
+#' @param include_empirical If TRUE, include the empirical results as
+#'   one of the "simulation replicates".  This will be included in any
+#'   summarization, so be warned.
 #' @param ... Additional arguments to pass to compare_methods.
 #'
 #' @export
 run_rerandomize_simulation <- function( formula,
                                         data,
                                         R = 100,
+                                        control_formula = NULL,
                                         summarize_results = FALSE,
+                                        include_empirical = TRUE,
+                                        warn_missing = TRUE,
+                                        patch_data = TRUE,
                                         parallel = FALSE, ... ) {
 
+  # Clean up the dataset
+  data = make_canonical_data( formula=formula, data=data,
+                              control_formula = control_formula,
+                              warn_missing = warn_missing,
+                              patch_data = patch_data )
+  if ( patch_data ) {
+    control_formula = attr( data, "control_formula" )
+  }
+
+
+
+  if ( is.null( data$blockID ) ) {
+    formula = Yobs ~ Z | clusterID
+  } else {
+    formula = Yobs ~ Z | clusterID | blockID
+
+    # handle blocks with singletons
+    data = patch_singleton_blocks( Yobs ~ Z | clusterID | blockID, data=data,
+                                   drop_data = TRUE,
+                                   warn_missing = warn_missing )
+
+  }
+
+  empirical = NULL
+  if ( include_empirical ) {
+    empirical <- compare_methods( formula = formula,
+                                  control_formula=control_formula,
+                                  data = data, ... )
+  }
 
   rerandomize_and_analyze <- function( formula, data,
                                        ... ) {
 
-    form <- clusterRCT:::deconstruct_var_formula( formula, data = data )
+    #form <- clusterRCT:::deconstruct_var_formula( formula, data = data )
+    #data[form$Z] = rerandomize( data[[form$Z]], data[[form$clusterID]], data[[form$blockID]] )
 
-    data[form$Z] = rerandomize( data[[form$Z]], data[[form$clusterID]], data[[form$blockID]] )
-
-    compare_methods( formula, data, ... )
+    data$Z = rerandomize( data$Z, data$clusterID, data$blockID )
+    compare_methods( formula = formula,
+                     control_formula=control_formula,
+                     data = data, ... )
   }
 
   if ( parallel ) {
     library( furrr )
-    plan(multisession, workers = parallel::detectCores() - 1 )
-    rps = furrr::future_map( 1:R, \(.) { rerandomize_and_analyze( formula, data, ... ) } )
+
+    if ( future::nbrOfWorkers() == 1 ) {
+      warning( "You should set future::plan yourself -- using default multisession numCores - 1 plan" )
+
+      oplan = plan(multisession, workers = parallel::detectCores() - 1 )
+
+      on.exit(plan(oplan), add = TRUE)
+
+    }
+    rps = furrr::future_map( 1:R, \(.) { rerandomize_and_analyze( formula, data, ... ) },
+                             .options = furrr_options( seed = TRUE )
+                             )
+
   } else {
     rps = purrr::map( 1:R, \(.) { rerandomize_and_analyze( formula, data, ... ) },
-               .progress = TRUE )
+                      .progress = TRUE )
+  }
+
+  names( rps ) = paste0( "R", 1:R )
+
+  if ( include_empirical ) {
+    rps = append(  list( empirical = empirical ), rps )
   }
 
   summarize_simulation_results( rps, summarize_results = summarize_results )

@@ -15,7 +15,7 @@ calculating range statistics across the set, grouping estimators
 by estimand within each runID.  If "cross-agg", aggregate the
 sets of ranges after doing this and return summary of that.  If
 "method", summarize the results for each method. Otherwise just
-stack the initial set of results.}
+stack the initial set of results (if not already stacked)}
 }
 \value{
 A data frame containing the summarized results.

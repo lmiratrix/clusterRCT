@@ -72,3 +72,8 @@ Dataframe of point estimates and standard errors for each
 This function calculates the point estimates and SE estimates for a
 variety of the estimators implemented by this package.
 }
+\examples{
+data( fakeCRT )
+compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT )
+
+}
