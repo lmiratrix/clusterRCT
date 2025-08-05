@@ -236,19 +236,19 @@ calc_covariate_R2s <- function( data, pooled = TRUE, is_blocked = TRUE ) {
 
     # Covert covariates to numerical, if they are not already.
     if ( is_blocked ) {
-        dm = model.matrix( Yobs ~ . - clusterID - blockID, data=data ) %>%
-            as.data.frame() %>%
-            dplyr::select( -`(Intercept)` )
+        dm = model.matrix( Yobs ~ . - clusterID - blockID, data=data )
     } else {
-        # NOTE: This annoying thing is neccessary as model.matrix
-        # bails before we can subtract out blockID, so prior block
+        # NOTE: This annoying thing is necessary as model.matrix
+        # bails before we can subtract out blockID, so prior code
         # doesn't work.
         data$blockID = NULL
-        dm = model.matrix( Yobs ~ . - clusterID, data=data ) %>%
-            as.data.frame() %>%
-            dplyr::select( -`(Intercept)` )
-
+        dm = model.matrix( Yobs ~ . - clusterID, data=data )
     }
+
+    dm <- dm %>%
+        as.data.frame() %>%
+        dplyr::select( -`(Intercept)` )
+
     cnames = colnames(dm)
 
     dm$clusterID = data$clusterID
@@ -274,33 +274,68 @@ calc_covariate_R2s <- function( data, pooled = TRUE, is_blocked = TRUE ) {
     # Drop centered covariates with no variation (i.e., level 2
     # covariates get dropped from level 1 consideration)
     cents = which( endsWith( colnames(result), "_cent" ) )
-    sds = purrr::map_dbl( cents, ~ sd( result[[ . ]] ) )
-    ncov.1 = sum( sds != 0 )
-    cov.1 = paste0( colnames(result)[ c( cents[sds != 0] ) ], collapse = ", " )
+    mns = which( endsWith( colnames(result), "_mn" ) )
 
-    result = result[ -c( cents[sds == 0] ) ]
-    ncov.2 = sum( endsWith( colnames(result), "_mn" ) ) - 1
-    cov.2 = paste0( setdiff( colnames(result)[ endsWith( colnames(result), "_mn" ) ], "Z_mn" ),
+    sds = purrr::map_dbl( cents, ~ sd( result[[ . ]] ) )
+    sds_mn = purrr::map_dbl( mns, ~ sd( result[[ . ]] ) )
+
+    cent_ok = sds > 0.00000001
+    mn_ok = sds_mn >= 0.00000001
+
+    ncov.1 <- sum( cent_ok )
+    cent_names <- colnames(result)[ cents ]
+    cent_names <- ifelse( mn_ok,
+                        cent_names,
+                        stringr::str_replace( cent_names, "_cent$", "" ) )
+    cent_names <- cent_names[ cent_ok ]
+    cov.1 = paste0( cent_names, collapse = ", " )
+
+
+    ncov.2 = sum( mn_ok )
+    if ( pooled ) {
+        ncov.2 = ncov.2 - 1
+    }
+    mn_names <- colnames(result)[ mns ]
+    mn_names <- ifelse( cent_ok,
+                        mn_names,
+                        stringr::str_replace( mn_names, "_mn$", "" ) )
+    mn_names = mn_names[ mn_ok ]
+    cov.2 = paste0( setdiff( mn_names, "Z" ),
                     collapse = ", " )
+
+    # drop useless covariates
+    result = result[ -c( cents[!cent_ok], mns[!mn_ok] ) ]
 
     result$Yobs = data$Yobs
 
+
+    # Now calculate R2 values out of the resulting covariates
     noLvl2 = result %>%
         dplyr::select( !ends_with( "_mn" ) )
+    if ( pooled ) {
+        # We don't want the treatment var to be part of explaining
+        # variation, so we subtract it out.
+        noLvl2$Z_mn = result$Z_mn
+    }
     noLvl1 = result %>%
         dplyr::select( !ends_with("_cent" ) )
 
-    # Calculate R2.1
+    # Calculate R2s
     if ( is_blocked ) {
         # browser()
-        Mfull = lmer( Yobs ~ 1 + . - blockID - clusterID + (1|clusterID), data=noLvl2 )
-        Mnull = lmer( Yobs ~ 1 + (1|clusterID), data=noLvl2 )
+
+        # Calculate R2.1
+        Mnull = lmer( Yobs ~ 1 + . - clusterID + (1|clusterID),
+                      data=noLvl1 )
+        Mfull = lmer( Yobs ~ 1 + . - clusterID + (1|clusterID),
+                      data=result )
         R2.1 = (sigma( Mnull )^2 - sigma(Mfull)^2) / sigma(Mnull)^2
 
-
         # Calculate R2.2
-        M2null = lmer( Yobs ~ 1 + . - clusterID + blockID + (1|clusterID), data=noLvl2 )
-        M2full = lmer( Yobs ~ 1 + . - clusterID + blockID + (1|clusterID), data=result )
+        M2null = lmer( Yobs ~ 1 + . - clusterID + (1|clusterID),
+                       data=noLvl2 )
+        M2full = lmer( Yobs ~ 1 + . - clusterID + (1|clusterID),
+                       data=result )
 
         vFull = as.numeric( VarCorr( M2full )$clusterID )
         vNull = as.numeric( VarCorr( M2null )$clusterID )

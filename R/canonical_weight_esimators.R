@@ -103,13 +103,8 @@ canonical_weight_estimators <- function( formula,
     M0 = lmer( form, data=data )
     tau2 = VarCorr(M0)$clusterID[1,1]
     sigma2 = sigma(M0)^2
-    formRE = make_regression_formula( FE = FALSE, cluster_RE = TRUE )
-    formRE = update( formRE, . ~ . + (1+Z|blockID) )
-    M1 = lmer( formRE, data=data )
-    eta2 = VarCorr(M1)$blockID[ 2, 2 ]
 
     cw_MLM = 1 / (tau2 + sigma2 / data_agg$J)
-    bw_RIRC = 1 / (eta2 + tau2 / (data_agg$J * data_agg$pc * (1-data_agg$pc) ))
 
     MLM_FI_cluster = calc_est( data_agg,
                                cw = cw_MLM,
@@ -117,12 +112,25 @@ canonical_weight_estimators <- function( formula,
     MLM_FE = calc_est( data_agg,
                        cw = cw_MLM,
                        bw = data_agg$N * data_agg$p * (1-data_agg$p) )
-    MLM_RIRC = calc_est( data_agg,
-                         cw = cw_MLM,
-                         bw = bw_RIRC )
-    MLM_FI_block = calc_est( data_agg,
+
+    if ( has_block ) {
+        formRE = make_regression_formula( FE = FALSE, cluster_RE = TRUE )
+        formRE = update( formRE, . ~ . + (1+Z|blockID) )
+        M1 = lmer( formRE, data=data )
+        eta2 = VarCorr(M1)$blockID[ 2, 2 ]
+
+        bw_RIRC = 1 / (eta2 + tau2 / (data_agg$J * data_agg$pc * (1-data_agg$pc) ))
+
+        MLM_RIRC = calc_est( data_agg,
                              cw = cw_MLM,
-                             bw = 1 )
+                             bw = bw_RIRC )
+        MLM_FI_block = calc_est( data_agg,
+                                 cw = cw_MLM,
+                                 bw = 1 )
+
+    } else {
+        MLM_RIRC = MLM_FI_block = NA
+    }
 
     rs <- tibble( method = c( "Person-Person", "Person-FE", "Person-Block",
                               "MLM-FI-Cluster", "MLM-FE", "MLM-RIRC", "MLM-Block",

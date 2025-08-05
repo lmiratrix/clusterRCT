@@ -4,7 +4,7 @@
 \alias{get_estimand}
 \title{Get the estimand for a given method.}
 \usage{
-get_estimand(method)
+get_estimand(method, simple = TRUE)
 }
 \description{
 Get the estimand for a given method.

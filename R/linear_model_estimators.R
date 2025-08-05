@@ -109,7 +109,8 @@ interacted_linear_model_estimators <- function( formula,
     est_method = ifelse( weight == "Person", "LRi", "LRicw" )
 
     if ( !is.null( formula ) ) {
-        data = clusterRCT:::make_canonical_data( formula=formula, data=data, control_formula=control_formula )
+        data = clusterRCT:::make_canonical_data( formula=formula, data=data,
+                                                 control_formula=control_formula )
     }
 
     # Make our weights variable

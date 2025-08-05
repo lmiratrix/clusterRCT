@@ -84,15 +84,28 @@ MLM_estimators <- function( formula,
     formFI = make_regression_formula( FE = TRUE, interacted = TRUE,
                                       control_formula = control_formula,
                                       cluster_RE = TRUE )
+
     M1 <- my_lmer( formFI, data=data )
-    MLM_FI = clusterRCT:::generate_all_interacted_estimates( M1, data,
-                                                             use_full_vcov = TRUE,
-                                                             method = "MLM",
-                                                             weight = "Cluster",
-                                                             se_method = NULL )
-    # Hack conservative DF calculation:
-    # df = #clusters - 2 * #blocks - #covariates
-    MLM_FI$df = length(unique(data$clusterID)) - length( fixef(M1) )
+    if ( !is.null( attr( model.matrix(M1), "col.dropped" ) ) ) {
+        k = length( attr( model.matrix(M1), "col.dropped" ) )
+        # Rank deficient.
+        MLM_FI = tibble( method = c( "MLM-FIcw", "MLM-FIpw" ),
+                         weight = c( "Cluster", "Person" ),
+                         ATE_hat = NA,
+                         SE_hat = NA,
+                         p_value = NA,
+                         df = length(unique(data$clusterID)) - length( fixef(M1) ) - k )
+    } else {
+        MLM_FI = clusterRCT:::generate_all_interacted_estimates( M1, data,
+                                                                 use_full_vcov = TRUE,
+                                                                 method = "MLM",
+                                                                 weight = "Cluster",
+                                                                 se_method = NULL )
+
+        # Hack conservative DF calculation:
+        # df = #clusters - 2 * #blocks - #covariates
+        MLM_FI$df = length(unique(data$clusterID)) - length( fixef(M1) )
+    }
 
     res = bind_rows( MLM_FE,
                      MLM_RE,

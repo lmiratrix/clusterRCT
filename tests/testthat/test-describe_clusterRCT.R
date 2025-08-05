@@ -232,7 +232,8 @@ test_that( "ICC calcs work", {
 
 
 test_that( "R2 calcs work", {
-    set.seed( 40440 )
+
+     set.seed( 40440 )
     dd = data.frame( cid = rep( 1:10, 1:10 ) )
     dd = mutate( dd,
                  Ybar = cid,
@@ -268,10 +269,42 @@ test_that( "R2 calcs work", {
     head( data )
     expect_true( ncol(data) == 8 )
 
+
+    # debug( clusterRCT:::calc_covariate_R2s )
     a <- clusterRCT:::calc_covariate_R2s( data )
     a
     expect_true( a$ncov.1 == 3 )
     expect_true( a$ncov.2 == 5 )
+    expect_equal( a$cov.1, "X1_cent, X4B_cent, X4C_cent" )
+    expect_equal( a$cov.2, "X1_mn, X2, X3, X4B_mn, X4C_mn" )
+
+    data <- data %>%
+        dplyr::select( -X4 ) %>%
+        group_by( clusterID ) %>%
+        mutate( X1 = X1 - mean(X1) ) %>%
+        ungroup()
+    a <- clusterRCT:::calc_covariate_R2s( data )
+    a
+    expect_equal( a$ncov.1, 1 )
+    expect_equal( a$ncov.2, 2 )
+    expect_equal( a$cov.1, "X1" )
+    expect_equal( a$cov.2, "X2, X3" )
+
+    a <- clusterRCT:::calc_covariate_R2s( data, pooled = FALSE )
+    a
+    expect_equal( a$ncov.1, 1 )
+    expect_equal( a$ncov.2, 2 )
+    expect_equal( a$cov.1, "X1" )
+    expect_equal( a$cov.2, "X2, X3" )
+
+    d2 = data %>%
+        mutate( Yobs = ifelse( Z, Yobs + 50, Yobs ) )
+    a2 <- clusterRCT:::calc_covariate_R2s( data, pooled = FALSE )
+    a2
+    a3 <- clusterRCT:::calc_covariate_R2s( data, pooled = TRUE )
+    a3
+
+
 
 
     set.seed( 445040 )
@@ -297,8 +330,10 @@ test_that( "R2 calcs work", {
     mean(kp)
     head( sim.data )
     sim.data = sim.data[ kp == 1, ]
-    cdat = clusterRCT:::make_canonical_data( Yobs ~ T.x | S.id | D.id, data=sim.data, control_formula = ~ C.ijk + X.jk )
+    cdat = clusterRCT:::make_canonical_data( Yobs ~ T.x | S.id | D.id, data=sim.data,
+                                             control_formula = ~ C.ijk + X.jk )
     desc = clusterRCT:::calc_covariate_R2s( cdat )
+
     expect_equal( desc$R2.1, 0.25, tolerance = 0.2 )
     expect_equal( desc$R2.2, 0.75, tolerance = 0.2 )
 
