@@ -184,7 +184,7 @@ design_based_estimators <- function( formula,
 
     # Determine which version of the estimator we are doing.
     weight <- match.arg(weight)
-    est_method = ifelse( weight == "Person", "LRapw", "LRa" )
+    est_method = ifelse( weight == "Person", "ARpw", "AR" )
 
     if ( !aggregated ) {
         data = make_canonical_data( formula=formula, data=data,
@@ -360,7 +360,7 @@ design_based_estimators_individual <- function( formula,
 
     # Determine which version of the estimator we are doing.
     weight <- match.arg(weight)
-    est_method = ifelse( weight == "Person", "LRi", "LRicw" )
+    est_method = ifelse( weight == "Person", "LR", "LRcw" )
 
     has_block = "blockID" %in% names( data )
 

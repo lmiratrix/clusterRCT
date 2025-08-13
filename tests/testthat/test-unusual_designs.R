@@ -358,15 +358,9 @@ test_that( "matched pairs and matched doubles designs", {
                   A, A, B, B,
                   A, A, B, B,
                   A, A, B, B )
-#                  A, A,
-#                  B, B, B, B,
-#                  A, B, B )
-#    names( the_dfs ) <- c("DB_HT", "DB_Raj", "LRa-FE-db", "LRa-FE-het", "LRa-FIbw-db", "LRa-FIbw-het", "LRa-FIcw-db", "LRa-FIcw-het", "LRapw-FE-db", "LRapw-FE-het", "LRapw-FIbw-db", "LRapw-FIbw-het", "LRapw-FIpw-db", "LRapw-FIpw-het", "LRi-FE-crve", "LRi-FE-db", "LRi-FIbw-crve", "LRi-FIbw-db", "LRi-FIpw-crve", "LRi-FIpw-db", "LRicw-FE-db", "LRicw-FIbw-db", "LRicw-FIcw-db")
-    names( the_dfs ) <-
-        c("LRa-FE-db", "LRa-FE-het", "LRa-FIcw-db", "LRa-FIcw-het", "LRapw-FE-db", "LRapw-FE-het", "LRapw-FIpw-db", "LRapw-FIpw-het", "LRi-FE-crve", "LRi-FE-db", "LRi-FIpw-crve", "LRi-FIpw-db", "LRicw-FE-crve", "LRicw-FE-db", "LRicw-FIcw-crve", "LRicw-FIcw-db")
 
-#        c("LRa-FE-db", "LRa-FE-het", "LRa-FIbw-db", "LRa-FIbw-het",
-#          "LRa-FIcw-db", "LRa-FIcw-het", "LRapw-FE-db", "LRapw-FE-het", #"LRapw-FIbw-db", "LRapw-FIbw-het", "LRapw-FIpw-db", "LRapw-FIpw-het", "LRi-FE-crve", "LRi-FE-db", "LRi-FIbw-crve", "LRi-FIbw-db", "LRi-FIpw-crve", # "LRi-FIpw-db", "LRicw-FE-db", "LRicw-FIbw-db", "LRicw-FIcw-db")
+    names( the_dfs ) <-
+        c("AR-FE-db", "AR-FE-het", "AR-FIcw-db", "AR-FIcw-het", "ARpw-FE-db", "ARpw-FE-het", "ARpw-FIpw-db", "ARpw-FIpw-het", "LR-FE-crve", "LR-FE-db", "LR-FIpw-crve", "LR-FIpw-db", "LRcw-FE-crve", "LRcw-FE-db", "LRcw-FIcw-crve", "LRcw-FIcw-db")
 
     round( as.numeric(df) - the_dfs[ names(df) ], digits = 2 )
 

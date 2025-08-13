@@ -21,6 +21,7 @@ test_that("compare methods gives multiple estimates as expected", {
 
 
     mc = method_characteristics( include_weight = TRUE )
+    mc
     expect_true( is.data.frame(mc) )
 
     mtab$mm = get_estimand( mtab$method, simple = FALSE )
@@ -72,6 +73,7 @@ test_that("compare methods gives multiple estimates as expected", {
                                  include_disfavored = TRUE,
                                  control_formula = ~ X.jk + C.ijk )
 
+    mtab_cov
     mtab$dels = mtab$ATE_hat - mtab_cov$ATE_hat
     expect_true( sum( mtab$dels == 0 ) == 2 )
 

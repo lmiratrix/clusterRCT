@@ -121,7 +121,7 @@ make_weight_names <- function( regression_weight, block_weight ) {
 generate_all_interacted_estimates <- function( fitModel, data,
                                                use_full_vcov = FALSE,
                                                SE_table = NULL,
-                                               method = "LRi",
+                                               method = "LR",
                                                weight = NULL,
                                                se_method = "crve",
                                                aggregated = FALSE,

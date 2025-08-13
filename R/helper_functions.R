@@ -497,7 +497,12 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
 #' @param datagg Aggregated data with blockID and Z columns.
 #'
 #' @return TRUE or FALSE
-has_singleton_clusters_agg <- function( datagg ) {
+#' @noRd
+has_singleton_clusters <- function( datagg ) {
+    datagg <- datagg %>%
+        group_by( blockID, clusterID, Z ) %>%
+        summarise( n = n(), .groups = "drop" )
+
     tb = table( datagg$blockID, datagg$Z )
     return( any( tb <= 1 ) )
 }

@@ -38,7 +38,7 @@ linear_model_estimators <- function( formula,
                                      weight = c( "Person", "Cluster" ) ) {
 
     weight = match.arg(weight)
-    est_method = ifelse( weight == "Person", "LRi", "LRicw" )
+    est_method = ifelse( weight == "Person", "LR", "LRcw" )
 
     require( estimatr )
 
@@ -106,7 +106,7 @@ interacted_linear_model_estimators <- function( formula,
 
     require( estimatr )
     weight = match.arg(weight)
-    est_method = ifelse( weight == "Person", "LRi", "LRicw" )
+    est_method = ifelse( weight == "Person", "LR", "LRcw" )
 
     if ( !is.null( formula ) ) {
         data = clusterRCT:::make_canonical_data( formula=formula, data=data,
@@ -127,6 +127,7 @@ interacted_linear_model_estimators <- function( formula,
     # Linear regression (possibly with fixed effects if block exists)
     needFE = "blockID" %in% names(data)
     if ( !needFE ) {
+        # Interaction not possible--just bail.
         return(     tibble(
             method = c(),
             ATE_hat = c(),
@@ -146,6 +147,12 @@ interacted_linear_model_estimators <- function( formula,
                                                weight = weight,
                                                se_method = "crve",
                                                use_full_vcov = use_full_vcov )
+
+    # Drop SEs if there are singleton treated or control blocks.
+    if ( has_singleton_clusters( data ) ) {
+        ests$SE_hat = NA
+        ests$p_value = NA
+    }
 
     ests
 }
