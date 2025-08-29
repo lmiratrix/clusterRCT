@@ -8,7 +8,8 @@ linear_model_estimators(
   formula,
   data = NULL,
   control_formula = NULL,
-  weight = c("Person", "Cluster")
+  weight = c("Person", "Cluster"),
+  blockCRVE = FALSE
 )
 }
 \arguments{

@@ -76,4 +76,21 @@ test_that("interacted linear models works", {
     e0 <- interacted_linear_model_estimators( Yobs ~ T.x | S.id,
                                               data = fakeCRT )
     expect_true( nrow( e0 ) == 0 )
-})
+
+
+    # Singletons means no interacted SEs
+    data( fakeCRT )
+    a = clusterRCT:::make_canonical_data(Yobs ~ T.x | S.id | D.id, data=fakeCRT )
+    expect_true( !clusterRCT:::has_singleton_clusters(a) )
+
+    # make a singleton
+    a <- filter( a, !(Z == 0 & blockID == 6 & clusterID != "6.164") )
+    expect_true( clusterRCT:::has_singleton_clusters(a) )
+
+    e0 <- interacted_linear_model_estimators( formula=NULL,
+                                              data = a )
+    e0
+    expect_true( all( is.na( e0$SE_hat ) ) )
+
+} )
+

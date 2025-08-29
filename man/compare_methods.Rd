@@ -14,6 +14,7 @@ compare_methods(
   include_DB = TRUE,
   include_LM = TRUE,
   include_agg = TRUE,
+  include_gee = TRUE,
   warn_missing = TRUE,
   include_dumb = FALSE,
   include_disfavored = FALSE,

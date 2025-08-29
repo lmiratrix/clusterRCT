@@ -35,7 +35,8 @@ lm_robust_quiet <- function( ... ) {
 linear_model_estimators <- function( formula,
                                      data = NULL,
                                      control_formula = NULL,
-                                     weight = c( "Person", "Cluster" ) ) {
+                                     weight = c( "Person", "Cluster" ),
+                                     blockCRVE = FALSE ) {
 
     weight = match.arg(weight)
     est_method = ifelse( weight == "Person", "LR", "LRcw" )
@@ -60,10 +61,20 @@ linear_model_estimators <- function( formula,
 
     # Linear regression (possibly with fixed effects if block exists)
     needFE = "blockID" %in% names(data)
+
+    if ( !needFE && blockCRVE ) {
+        stop( "Cannot have block CRVE if there are no blocks." )
+    }
+
     form = make_regression_formula( FE = needFE,
                                     control_formula = control_formula )
 
-    M2 <- lm_robust_quiet( form, data=data, clusters=clusterID, weights = .weight )
+    M2 = NA
+    if ( blockCRVE ) {
+        M2 <- lm_robust_quiet( form, data=data, clusters=blockID, weights = .weight )
+    } else {
+        M2 <- lm_robust_quiet( form, data=data, clusters=clusterID, weights = .weight )
+    }
     est2 <- M2$coefficients[["Z"]]
     se2  <- M2$std.error[["Z"]]
     pv2 <- M2$p.value[["Z"]]

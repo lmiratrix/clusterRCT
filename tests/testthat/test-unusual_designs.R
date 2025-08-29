@@ -334,6 +334,7 @@ test_that( "matched pairs and matched doubles designs", {
     expect_equal( dsc$num_doubletons, 8 )
 
     comp <- compare_methods( Yobs ~ Z | B | D, data=blk,
+                             include_gee = FALSE,
                              include_method_characteristics = FALSE )
     comp
     expect_true( all( !is.na( comp$ATE_hat ) ) )

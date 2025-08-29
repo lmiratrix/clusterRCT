@@ -139,7 +139,9 @@ method_characteristics <- function( include_weight = TRUE ) {
             "MLM-FIcw", "Cluster-Cluster",       1,        1,           0,
             "MLM-FIpw",         "Cluster",       1,        1,           1,
             "MLM-RE",           "Cluster",       1,        1,           0,
-            "MLM-RIRC",   "Cluster",       1,        1,           1
+            "MLM-RIRC",   "Cluster",       1,        1,           1,
+            "GEE", "Person", 0, 0, 0,
+            "GEE-FE", "Person", 1, 1, 0
         )
 
 
@@ -241,6 +243,7 @@ compare_methods <- function(formula,
                             include_DB = TRUE,
                             include_LM = TRUE,
                             include_agg = TRUE,
+                            include_gee = TRUE,
                             warn_missing = TRUE,
                             include_dumb = FALSE,
                             include_disfavored = FALSE,
@@ -344,6 +347,11 @@ compare_methods <- function(formula,
         }
     }
 
+    if ( include_gee ) {
+        gees <- gee_estimators(formula = NULL, data = data,
+                               control_formula = control_formula )
+        summary_table = dplyr::bind_rows(summary_table, gees)
+    }
 
     if (include_MLM) {
         mlms <- MLM_estimators(formula = NULL, data = data,
