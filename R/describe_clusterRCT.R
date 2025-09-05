@@ -11,6 +11,35 @@
 #' @inheritParams compare_methods
 #' @seealso [patch_data_set()]
 #'
+#' @return A list with the following elements:
+#' \item{n}{Total number of individuals.}
+#' \item{J}{Total number of clusters.}
+#' \item{nbar}{Average cluster size (n/J).}
+#' \item{ncv}{Coefficient of variation of cluster sizes (sd(n_j)/nbar).}
+#' \item{n.25}{25th percentile of cluster sizes.}
+#' \item{n.75}{75th percentile of cluster sizes.}
+#' \item{n.IQR}{Interquartile range of cluster sizes.}
+#' \item{p.tx}{Proportion of clusters assigned to treatment.}
+#' \item{K}{Total number of blocks.}
+#' \item{Jbar}{Average number of clusters per block.}
+#' \item{Jcv}{Coefficient of variation of clusters per block.}
+#' \item{J.25}{25th percentile of clusters per block.}
+#' \item{J.75}{75th percentile of clusters per block.}
+#' \item{J.IQR}{Interquartile range of clusters per block.}
+#' \item{n_block}{Average number of individuals per block.}
+#' \item{n_block_cv}{Coefficient of variation of individuals per block.}
+#' \item{tx.avg}{Average proportion of clusters treated across blocks (not the same as p.tx).}
+#' \item{tx.cv}{Coefficient of variation of proportion clusters treated across blocks.}
+#' \item{tx.25}{25th percentile of proportion clusters treated across blocks.}
+#' \item{tx.75}{75th percentile of proportion clusters treated across blocks.}
+#' \item{tx.IQR}{Interquartile range of proportion clusters treated across blocks.}
+#' \item{cluster_ICC}{Intraclass correlation coefficient at the cluster level.}
+#' \item{block_ICC}{Intraclass correlation coefficient at the block level.}
+#' \item{sdY0}{Estimated standard deviation of the outcome under control.}
+#' \item{matched_pairs}{TRUE/FALSE of being matched pairs experiment.}
+#' \item{num_singletons}{Number of treatment arms wihtin a block with only a single cluster.}
+#' \item{num_doubletons}{Number of treatment arms wihtin a block with exactly two clusters.}
+#'
 #' @export
 describe_clusterRCT <- function( formula = NULL,
                                  data = NULL,
@@ -18,6 +47,10 @@ describe_clusterRCT <- function( formula = NULL,
                                  warn_missing = TRUE ) {
 
 
+    if ( is.data.frame(formula) && is.null(data) ) {
+        data = formula
+        formula = NULL
+    }
 
     if ( !is.null( formula ) ) {
         # Deal with multiple outcomes
@@ -412,7 +445,8 @@ make_block_table <- function(  formula = NULL,
         group_by( blockID, clusterID, Z ) %>%
         summarise( n = n(), .groups = "drop" )
 
-    sstat = sizes %>% group_by( blockID ) %>%
+    sstat = sizes %>%
+        group_by( blockID ) %>%
         summarise( J = n(),
                    nbar = mean(n),
                    ncv = sd(n) / nbar,
@@ -622,6 +656,8 @@ if ( FALSE ) {
     dsc = describe_clusterRCT( formula = Yobs ~ T.x | S.id | D.id, data=fakeCRT )
     class( dsc )
     print( dsc )
+
+    names(dsc)
 
     # Check R2 calculations
     head( fakeCRT )

@@ -18,6 +18,36 @@ specified by blockID).}
 \item{control_formula}{What variables to control for, in the form
 of "~ X1 + X2".}
 }
+\value{
+A list with the following elements:
+\item{n}{Total number of individuals.}
+\item{J}{Total number of clusters.}
+\item{nbar}{Average cluster size (n/J).}
+\item{ncv}{Coefficient of variation of cluster sizes (sd(n_j)/nbar).}
+\item{n.25}{25th percentile of cluster sizes.}
+\item{n.75}{75th percentile of cluster sizes.}
+\item{n.IQR}{Interquartile range of cluster sizes.}
+\item{p.tx}{Proportion of clusters assigned to treatment.}
+\item{K}{Total number of blocks.}
+\item{Jbar}{Average number of clusters per block.}
+\item{Jcv}{Coefficient of variation of clusters per block.}
+\item{J.25}{25th percentile of clusters per block.}
+\item{J.75}{75th percentile of clusters per block.}
+\item{J.IQR}{Interquartile range of clusters per block.}
+\item{n_block}{Average number of individuals per block.}
+\item{n_block_cv}{Coefficient of variation of individuals per block.}
+\item{tx.avg}{Average proportion of clusters treated across blocks (not the same as p.tx).}
+\item{tx.cv}{Coefficient of variation of proportion clusters treated across blocks.}
+\item{tx.25}{25th percentile of proportion clusters treated across blocks.}
+\item{tx.75}{75th percentile of proportion clusters treated across blocks.}
+\item{tx.IQR}{Interquartile range of proportion clusters treated across blocks.}
+\item{cluster_ICC}{Intraclass correlation coefficient at the cluster level.}
+\item{block_ICC}{Intraclass correlation coefficient at the block level.}
+\item{sdY0}{Estimated standard deviation of the outcome under control.}
+\item{matched_pairs}{TRUE/FALSE of being matched pairs experiment.}
+\item{num_singletons}{Number of treatment arms wihtin a block with only a single cluster.}
+\item{num_doubletons}{Number of treatment arms wihtin a block with exactly two clusters.}
+}
 \description{
 Calculate various statistics describing total clusters, etc.  If
 formula is NULL, data assumed to be in canonical form.
