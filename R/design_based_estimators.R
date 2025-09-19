@@ -158,7 +158,7 @@ schochet_FE_variance_formula <- function( adt, v, aggregated=TRUE ) {
 #' E. Pashley, Luke W. Miratrix, and Tim Kautz.
 #'
 #' It runs a weighted linear regression, as discussed in that paper.
-#' The paper discusses two possabilities: running on the aggregate, or
+#' The paper discusses two possibilities: running on the aggregate, or
 #' running on the individual.
 #'
 #' In this implementation, we run the regression on the
@@ -374,7 +374,7 @@ design_based_estimators_individual <- function( formula,
             ungroup()
     }
 
-    v = number_controls(control_formula)
+    v = number_level2_controls(control_formula=control_formula, data=data)
     J = length( unique( data$clusterID ) )
 
     # block level stuff: only if we have a blockID do we fit an
@@ -406,8 +406,10 @@ design_based_estimators_individual <- function( formula,
                                                   include_block_estimates = include_block_estimates )
         df = J - 2*K - v
         ests$df = df
-        if ( no_estimate || df < 0 ) {
+        if ( no_estimate ) {
             ests$ATE_hat = NA
+        }
+        if ( no_estimate || df < 0 ) {
             ests$SE_hat = NA
             ests$p_value = NA
         }

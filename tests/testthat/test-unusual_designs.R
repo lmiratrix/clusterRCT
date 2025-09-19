@@ -40,16 +40,38 @@ test_that( "matched pairs designs get handled right", {
 
     comp
     expect_true( all( !is.na( comp$ATE_hat ) ) )
-    expect_true( all( comp$df[ comp$method %in% c( "DB_FE_Person", "DB_FE_Cluster" ) ] == 2 ) )
+    expect_true( all( comp$df[ comp$method %in% c( "DB_FE_Person",
+                                                   "DB_FE_Cluster" ) ] == 2 ) )
 
     head(blk)
     expect_message( expect_message(
-        comp <- compare_methods( Yobs ~ Z | B | D, data=blk, control_formula = ~ X )
+        compX <- compare_methods( Yobs ~ Z | B | D, data=blk,
+                                  control_formula = ~ X )
     ))
-    comp %>%
+    compX
+    cc <- compX %>%
         filter( is.na( ATE_hat ) )
-    expect_true( any( is.na( comp$ATE_hat ) ) )
+    cc
+    expect_true( any( is.na( compX$ATE_hat ) ) )
+    expect_true( all( startsWith( cc$method, "AR" ) ) )
 
+    blk <- blk %>%
+        group_by( B, D ) %>%
+        mutate( W = mean(X) ) %>%
+        ungroup()
+
+    expect_message( expect_message(
+        compW <- compare_methods( Yobs ~ Z | B | D, data=blk, control_formula = ~ W )
+    ))
+    round( compX$df - compW$df, digits = 2 )
+    cc <- compW %>%
+        filter( is.na( ATE_hat ) )
+    cc
+    expect_true( any( is.na( compW$ATE_hat ) ) )
+    expect_true( all( startsWith( cc$method, "AR" ) | str_detect( cc$method, "FI" ) ) )
+    cc2 <- compW %>%
+        filter( !is.na( ATE_hat ) )
+    expect_true( all( !str_detect( cc2$method, "FI" ) ) )
 })
 
 
@@ -73,7 +95,8 @@ test_that( "singleton tx or co designs get handled right", {
     expect_true( !dsc$matched_pairs )
     expect_equal( dsc$num_singletons, 1 )
 
-    comp = compare_methods( Yobs ~ Z | B | D, data=blk, include_method_characteristics = FALSE )
+    comp = compare_methods( Yobs ~ Z | B | D, data=blk,
+                            include_method_characteristics = FALSE )
     comp
     expect_true( all( !is.na( comp$ATE_hat ) ) )
 
@@ -361,7 +384,9 @@ test_that( "matched pairs and matched doubles designs", {
                   A, A, B, B )
 
     names( the_dfs ) <-
-        c("AR-FE-db", "AR-FE-het", "AR-FIcw-db", "AR-FIcw-het", "ARpw-FE-db", "ARpw-FE-het", "ARpw-FIpw-db", "ARpw-FIpw-het", "LR-FE-crve", "LR-FE-db", "LR-FIpw-crve", "LR-FIpw-db", "LRcw-FE-crve", "LRcw-FE-db", "LRcw-FIcw-crve", "LRcw-FIcw-db")
+        c("AR-FE-db", "AR-FE-het", "AR-FIcw-db", "AR-FIcw-het", "ARpw-FE-db", "ARpw-FE-het",
+          "ARpw-FIpw-db", "ARpw-FIpw-het", "LR-FE-crve", "LR-FE-db", "LR-FIpw-crve", "LR-FIpw-db",
+          "LRcw-FE-crve", "LRcw-FE-db", "LRcw-FIcw-crve", "LRcw-FIcw-db")
 
     round( as.numeric(df) - the_dfs[ names(df) ], digits = 2 )
 

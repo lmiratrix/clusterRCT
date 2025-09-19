@@ -171,6 +171,87 @@ test_that("missing data handled as desired", {
 
 
 
+test_that("covariate adjustment works", {
+
+    data( fakeCRT )
+
+    c1 <- compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT )
+
+
+    set.seed( 40440 )
+    fakeCRT$X = fakeCRT$Yobs + rnorm( nrow(fakeCRT), sd=0.25 )
+    cor( fakeCRT$X, fakeCRT$Yobs )
+
+    c2 <- compare_methods( Yobs ~ T.x | S.id | D.id, data=fakeCRT,
+                           control_formula = ~ X )
+
+
+    expect_true( min( c1$ATE_hat - c2$ATE_hat  ) > 0.1 )
+    expect_true( all( c2$SE_hat / c1$SE_hat < 0.2 ) )
+
+
+
+    # Check for matched pairs experiment
+    mp <- fakeCRT %>%
+        group_by( T.x, D.id ) %>%
+        mutate( blockID = cur_group_id() ) %>%
+        ungroup()
+
+    # individual level covariate
+    mp$X = mp$Yobs + rnorm( nrow(mp), sd=0.75 )
+    mp
+    str( mp$X )
+
+    mp <- mp %>%
+        group_by( blockID ) %>%
+        mutate( W = mean(X) )
+
+    describe_clusterRCT( Yobs ~ T.x | blockID | D.id, data = mp,
+                         control_formula = ~ X )
+    describe_clusterRCT( Yobs ~ T.x | blockID | D.id, data = mp,
+                         control_formula = ~ W )
+
+    expect_message( expect_message (
+        c1 <- compare_methods( Yobs ~ T.x | blockID | D.id, data=mp,
+                           include_method_characteristics = FALSE )
+    ))
+    expect_message( expect_message (
+        c2 <- compare_methods( Yobs ~ T.x | blockID | D.id, data=mp,
+                           control_formula = ~ X,
+                           include_method_characteristics = FALSE )
+    ))
+    expect_message( expect_message (
+        c3 <- compare_methods( Yobs ~ T.x | blockID | D.id, data=mp,
+                           control_formula = ~ W,
+                           include_method_characteristics = FALSE )
+
+    ))
+    c1
+    c2
+    c3
+
+    cc = left_join( c1[1:3], c2[1:3], by = "method", suffix = c("", ".X") ) %>%
+        left_join( c3[1:3], by = "method", suffix = c( "", ".W") ) %>%
+        relocate( method, ATE_hat, ATE_hat.X, ATE_hat.W,
+                  SE_hat, SE_hat.X, SE_hat.W )
+    cc
+
+    ccc = filter( cc, !is.na( SE_hat.W ) )
+    if ( FALSE ) {
+        sort( ccc$SE_hat.X / ccc$SE_hat )
+        sort( ccc$SE_hat.W / ccc$SE_hat )
+    }
+    expect_true( min( c1$ATE_hat - c2$ATE_hat, na.rm=TRUE ) > 0.1 )
+    expect_true( min( c1$ATE_hat - c3$ATE_hat, na.rm=TRUE ) > 0.1 )
+    #expect_true( all( ccc$SE_hat.W / ccc$SEc2$SE_hat / c1$SE_hat < 0.2 ) )
+
+
+})
+
+
+
+
+
 
 
 

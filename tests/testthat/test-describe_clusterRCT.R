@@ -341,6 +341,46 @@ test_that( "R2 calcs work", {
 
 
 
+test_that( "Counting covariates works", {
+
+    data( fakeCRT )
+    fakeCRT$clusterID = fakeCRT$S.id
+    cc <- count_covariates( data=fakeCRT, ~ V.k + X.jk + C.ijk )
+    cc
+    expect_equal( cc$level, c("lvl 2", "lvl 2", "both" ) )
+
+    fakeCRT$CC = 1
+    fakeCRT <- fakeCRT %>%
+        group_by( clusterID  ) %>%
+        mutate( C2 = C.ijk - mean( C.ijk, na.rm=TRUE ),
+                Cbar = mean(C.ijk, na.rm=TRUE ) )
+    cc <- count_covariates( data=fakeCRT, ~ V.k + C2 + Cbar + X.jk + C.ijk + CC, just_count = TRUE)
+    cc
+    #expect_equal( as.numeric( cc$n ), c( 1, 3, 1, 1 ) )
+    expect_equal( as.numeric( cc ), c(2,3) )
+
+    cc <- count_covariates( data=fakeCRT, ~ V.k + C2 + Cbar + X.jk + C.ijk + CC, just_count = TRUE, pure=FALSE)
+    cc
+    expect_equal( as.numeric( cc ), c(2,4) )
+
+    cc <- count_covariates( data=fakeCRT, ~ V.k, just_count = TRUE)
+    cc
+    #expect_equal( as.numeric( cc$n ), c(0,1,0,0) )
+    expect_equal( as.numeric( cc ), c( 0, 1 ) )
+
+    # Categorical
+    cc <- count_covariates( data=fakeCRT, ~ X, just_count = TRUE)
+
+    expect_equal( as.numeric( cc ),
+                  c( n_distinct( fakeCRT$X ) - 1, 0 ) )
+
+    fakeCRT$X[ fakeCRT$clusterID == fakeCRT$clusterID[[1]] ] = "SPEC"
+    cc <- count_covariates( data=fakeCRT, ~ X, just_count = TRUE)
+    expect_equal( as.numeric( cc ),
+                  c( n_distinct( fakeCRT$X ) - 2, 1 ) )
+
+})
+
 
 
 

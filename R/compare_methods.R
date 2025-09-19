@@ -369,15 +369,18 @@ compare_methods <- function(formula,
     }
 
     if (include_DB) {
-        db_res_i <- design_based_estimators(formula = NULL, data = aggdat,
-                                            control_formula = control_formula_agg,
-                                            weight = "Person",
-                                            aggregated = TRUE)
-        db_res_c <- design_based_estimators(formula = NULL, data = aggdat,
-                                            control_formula = control_formula_agg,
-                                            weight = "Cluster",
-                                            aggregated = TRUE)
-
+        if ( include_agg ) {
+            db_res_i <- design_based_estimators(formula = NULL, data = aggdat,
+                                                control_formula = control_formula_agg,
+                                                weight = "Person",
+                                                aggregated = TRUE)
+            db_res_c <- design_based_estimators(formula = NULL, data = aggdat,
+                                                control_formula = control_formula_agg,
+                                                weight = "Cluster",
+                                                aggregated = TRUE)
+            summary_table = dplyr::bind_rows( summary_table,
+                                              db_res_i, db_res_c )
+        }
         db_res_ii <- design_based_estimators_individual(formula = NULL, data = data,
                                                         control_formula = control_formula,
                                                         weight = "Person")
@@ -385,7 +388,6 @@ compare_methods <- function(formula,
                                                         control_formula = control_formula,
                                                         weight = "Cluster")
         summary_table = dplyr::bind_rows( summary_table,
-                                          db_res_i, db_res_c,
                                           db_res_ii, db_res_ci )
 
         if ( include_disfavored ) {

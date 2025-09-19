@@ -437,6 +437,10 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
 
     parts = deconstruct_var_formula(formula, data)
 
+    data <- data %>%
+        as_tibble() %>%
+        ungroup()
+
     Y = data[[ parts$outcome ]] # model.part( formula, data=data, lhs=1, drop = TRUE)
     Z = data[[ parts$Z ]] # model.part( formula, data=data, rhs=1, drop = TRUE)
     clusterID = data[[ parts$clusterID ]] # model.part( formula, data=data, rhs=2, drop=TRUE )

@@ -78,6 +78,6 @@ test_that( "get degrees of freedom hack right (MLM)", {
     md = MLM_estimators( Yobs ~ T.x | S.id | D.id, data = ss,
                          control_formula = ~ X.jk + C.ijk + X )
     md
-    expect_equal( md$df[3:5], c( 0,0,0) )
+    expect_equal( md$df[3:5], c( 0,0,0 ) )
 })
 
