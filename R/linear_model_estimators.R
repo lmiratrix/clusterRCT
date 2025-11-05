@@ -159,6 +159,12 @@ interacted_linear_model_estimators <- function( formula,
                                                se_method = "crve",
                                                use_full_vcov = use_full_vcov )
 
+    if ( any( is.na( M0.int$coefficients ) ) ) {
+        # Rank deficient--no estimates.
+        ests$ATE_hat = NA
+        ests$SE_hat = NA
+        ests$p_value = NA
+    }
     # Drop SEs if there are singleton treated or control blocks.
     if ( has_singleton_clusters( data ) ) {
         ests$SE_hat = NA

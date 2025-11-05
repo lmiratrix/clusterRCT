@@ -354,12 +354,14 @@ test_that( "Counting covariates works", {
         group_by( clusterID  ) %>%
         mutate( C2 = C.ijk - mean( C.ijk, na.rm=TRUE ),
                 Cbar = mean(C.ijk, na.rm=TRUE ) )
-    cc <- count_covariates( data=fakeCRT, ~ V.k + C2 + Cbar + X.jk + C.ijk + CC, just_count = TRUE)
+    cc <- count_covariates( data=fakeCRT, ~ V.k + C2 + Cbar + X.jk + C.ijk + CC,
+                            just_count = TRUE)
     cc
     #expect_equal( as.numeric( cc$n ), c( 1, 3, 1, 1 ) )
     expect_equal( as.numeric( cc ), c(2,3) )
 
-    cc <- count_covariates( data=fakeCRT, ~ V.k + C2 + Cbar + X.jk + C.ijk + CC, just_count = TRUE, pure=FALSE)
+    cc <- count_covariates( data=fakeCRT, ~ V.k + C2 + Cbar + X.jk + C.ijk + CC,
+                            just_count = TRUE, pure=FALSE)
     cc
     expect_equal( as.numeric( cc ), c(2,4) )
 

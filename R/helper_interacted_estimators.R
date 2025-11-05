@@ -207,11 +207,11 @@ generate_all_interacted_estimates <- function( fitModel, data,
 
     # Now a check: if rank deficient, then give NAs for all ATEs
     # to signal something is wrong
-    if ( any( is.na( cc ) ) ) {
+    #if ( any( is.na( cc ) ) ) {
         # warning( "Some coefficients of linear model undefined, likely due to colinearity in covariates and block dummies", call. = FALSE )
-        ests$ATE_hat = rep( NA, nrow(ests) )
-        ests$SE_hat = rep( NA, nrow(ests) )
-    }
+    #    ests$ATE_hat = rep( NA, nrow(ests) )
+    #    ests$SE_hat = rep( NA, nrow(ests) )
+    #}
 
     ests$weight = make_weight_names( weight, ests$weight )
 

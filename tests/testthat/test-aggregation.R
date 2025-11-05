@@ -59,6 +59,19 @@ test_that( "aggregation estimators work", {
                                   control_interacted = TRUE,
                                   data = fakeCRT )
     expect_true( is.data.frame(e3) )
+
+
+
+    # Aggregation of a person centered covariate
+    sim.data <- fakeCRT %>%
+        group_by( D.id, S.id ) %>%
+        mutate( C_mn = mean(C.ijk),
+                C_gc = C.ijk - C_mn ) %>%
+        ungroup()
+
+    aggregation_estimators( Yobs ~ T.x | S.id | D.id, data=sim.data,
+                                 control_formula = ~ C_mn + C_gc )
+
 })
 
 

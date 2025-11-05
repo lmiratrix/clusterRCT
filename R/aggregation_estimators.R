@@ -112,6 +112,11 @@ aggregation_estimators <- function( formula,
     # Note2: Setting to just obs and covariates, ignoring weights
 
     # Drop SEs if there are singleton treated or control blocks.
+    if ( df < 0 ) {
+        Agg_FI$ATE_hat = NA
+        Agg_wFI$ATE_hat = NA
+    }
+
     if ( has_singleton_clusters( datagg ) || df <= 0 ) {
         Agg_FI$SE_hat = NA
         Agg_FI$p_value = NA

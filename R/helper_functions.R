@@ -171,6 +171,10 @@ if ( FALSE ) {
 #' to dummy variables and then averaged (even if they are only level-2
 #' or level-3 covariates)
 #'
+#' Will convert data to canonical form with Yobs, Z, clusterID and
+#' blockID as the names of outcome, treatment, cluster id and block
+#' id.
+#'
 #' @param data  Dataframe with 'clusterID' and 'Z' as columns.
 #'   'blockID' optional column.  This is data in the "canonical form".
 #'

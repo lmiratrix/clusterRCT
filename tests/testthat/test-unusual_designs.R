@@ -54,7 +54,14 @@ test_that( "matched pairs designs get handled right", {
     cc
     expect_true( any( is.na( compX$ATE_hat ) ) )
     expect_true( all( startsWith( cc$method, "AR" ) ) )
+    if ( FALSE ) {
+        debug( interacted_linear_model_estimators )
+        interacted_linear_model_estimators( Yobs ~ Z | B | D, data=blk,
+                                            control_formula = ~ X   )
+    }
 
+
+    # Make level 2 covariate
     blk <- blk %>%
         group_by( B, D ) %>%
         mutate( W = mean(X) ) %>%
@@ -63,6 +70,14 @@ test_that( "matched pairs designs get handled right", {
     expect_message( expect_message(
         compW <- compare_methods( Yobs ~ Z | B | D, data=blk, control_formula = ~ W )
     ))
+
+    if ( FALSE ) {
+        describe_clusterRCT( Yobs ~ Z | B | D, data=blk, control_formula = ~ W )
+        debug( interacted_linear_model_estimators )
+        interacted_linear_model_estimators( Yobs ~ Z | B | D, data=blk,
+                                        control_formula = ~ W   )
+    }
+
     round( compX$df - compW$df, digits = 2 )
     cc <- compW %>%
         filter( is.na( ATE_hat ) )
@@ -161,11 +176,12 @@ test_that( "doubleton tx or co designs get handled right", {
 
     # Now cut down to smaller experiment and add some covariates!
     # table( blk$B, blk$D, blk$Z )
+    set.seed( 4044 )
     b2 <- blk %>%
         filter( B %in% paste0( "B", c( 1,4, 11,7, 12,13,
                                        2,3,5,10,8,14,15,17) ) )
     # describe_clusterRCT( Yobs ~ Z | B | D, data=b2 )
-    comp = compare_methods( Yobs ~ Z | B | D, data=b2 )
+    #comp = compare_methods( Yobs ~ Z | B | D, data=b2 )
     nrow(b2)
     b2$X4 = sample( LETTERS[1:7], nrow(b2), replace=TRUE )
     b2$X1 = rnorm(nrow(b2))
@@ -173,12 +189,16 @@ test_that( "doubleton tx or co designs get handled right", {
     b2$X3 = rnorm(nrow(b2))
 
     # -1 degrees of freedom
-    #expect_warning( expect_warning( expect_warning( expect_warning(
     expect_message( expect_message(
         comp <- compare_methods( Yobs ~ Z | B | D, data=b2, control_formula = ~ X1 + X2 + X3 + X4,
                                  include_MLM = FALSE, include_LM = FALSE  )
     ) )
-    #))))))
+
+    if ( FALSE ) {
+        debug( aggregation_estimators )
+        aggregation_estimators( Yobs ~ Z | B | D, data=b2,
+                                        control_formula = ~ X1 + X2 + X3 + X4   )
+    }
     cc <- comp %>%
         dplyr::filter( weight == "Person" | weight == "Person-Person" )
     cc
