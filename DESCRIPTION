@@ -43,3 +43,5 @@ Suggests:
 Config/testthat/edition: 3
 RoxygenNote: 7.3.3
 VignetteBuilder: knitr
+URL: https://lmiratrix.github.io/clusterRCT/, https://github.com/lmiratrix/clusterRCT
+BugReports: https://github.com/lmiratrix/clusterRCT/issues
