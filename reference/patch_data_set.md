@@ -1,0 +1,49 @@
+# Fill in missing values and convert data to canonical form
+
+This method will fill in means for all missing covariate values and
+return a dataset where rows with missing outcome, cluster or block
+membership, and treatment assignment are all dropped and everything else
+is filled in. To do this, it will convert categorical covariates to a
+set of dummy variables (dropping the reference group).
+
+## Usage
+
+``` r
+patch_data_set(
+  formula = NULL,
+  data = NULL,
+  control_formula = NULL,
+  warn_missing = FALSE
+)
+```
+
+## Arguments
+
+- formula:
+
+  Notation for Y ~ Z \| clusterID \| blockID (\| blockID is optional).
+  If NULL, \`data\` is assumed to already be in canonical form.
+
+- data:
+
+  Dataframe to patch.
+
+- control_formula:
+
+  What variables to control for, in the form of "~ X1 + X2".
+
+- warn_missing:
+
+  If TRUE, warn when rows are dropped or covariates are imputed.
+
+## Details
+
+It will drop missing data indicators that are co-linear with prior
+missing data indicators.
+
+If there are categorical covariates, then it will convert those to dummy
+variables regardless of missingness. The \`control_formula\` attribute
+handed back will give the updated control_formula in this case.
+
+This attribute will also have all missing value indicators added in as
+covariates.
