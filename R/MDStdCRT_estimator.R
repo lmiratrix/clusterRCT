@@ -6,6 +6,9 @@
 
 #' Estimate ATEs for a cluster RCT using the MRStdCRT pacakge
 #'
+#' NOT YET FUNCTIONAL -- future work.  Not exported from the package;
+#' kept here as a skeleton to finish later.  See FUTURE_WORK.md.
+#'
 #' NOTE: You will have to manually install this package via GitHub:
 #' Use:
 #'
@@ -15,14 +18,13 @@
 #'   NULL, data is assumed to be in canonical form (see vignette for
 #'   further discussion).
 #'
-#' @export
+#' @noRd
 MRStdCRT_estimator <- function( formula,
                             data = NULL,
                             control_formula = NULL,
                             weight = c( "Person", "Cluster" ) ) {
 
     warning( "This method does not yet work due to difficulties mapping to the call" )
-    require( MRStdCRT )
 
     if ( !is.null( formula ) ) {
         data = make_canonical_data( formula=formula, data=data, control_formula=control_formula )
@@ -73,7 +75,6 @@ MRStdCRT_estimator <- function( formula,
     weight = match.arg(weight)
     est_method = ifelse( weight == "Person", "GEE", "GEEcw" )
 
-    require( estimatr )
 
     if ( !is.null( formula ) ) {
         data = make_canonical_data( formula=formula, data=data, control_formula=control_formula )

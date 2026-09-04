@@ -66,7 +66,7 @@ describe_clusterRCT <- function( formula = NULL,
                         formula1,
                         data = data,
                         control_formula = control_formula ) %>%
-                        dplyr::mutate(outcome = v, .before=n)
+                        dplyr::mutate(outcome = v, .before="n")
                 }) %>%
                 purrr::list_rbind()
             return(res)
@@ -114,36 +114,36 @@ describe_clusterRCT <- function( formula = NULL,
 
     # Get cluster sizes
     sizes = data %>%
-        group_by( blockID, clusterID, Z ) %>%
+        group_by( .data$blockID, .data$clusterID, .data$Z ) %>%
         summarise( n = n(), .groups = "drop" )
 
     cstat = sizes %>%
         summarise( J = n(),
-                   nbar = mean(n),
-                   ncv = sd(n) / nbar,
-                   n.25 = quantile( n, 0.25 ),
-                   n.75 = quantile( n, 0.75 ),
-                   n.IQR = n.75 - n.25,
-                   p.tx = mean(Z) )
+                   nbar = mean(.data$n),
+                   ncv = sd(.data$n) / .data$nbar,
+                   n.25 = quantile( .data$n, 0.25 ),
+                   n.75 = quantile( .data$n, 0.75 ),
+                   n.IQR = .data$n.75 - .data$n.25,
+                   p.tx = mean(.data$Z) )
 
     sstat = sizes %>%
-        group_by( blockID ) %>%
+        group_by( .data$blockID ) %>%
         summarise( J = n(),
-                   n = sum(n),
-                   p.tx = mean(Z) ) %>%
+                   n = sum(.data$n),
+                   p.tx = mean(.data$Z) ) %>%
         summarise( K = n(),
-                   Jbar = mean(J),
-                   Jcv = sd(J) / Jbar,
-                   J.25 = quantile( J, 0.25 ),
-                   J.75 = quantile( J, 0.75 ),
-                   J.IQR = J.75 - J.25,
-                   n_block = mean(n),
-                   n_block_cv = sd( n ) / n_block,
-                   tx.avg = mean( p.tx ),
-                   tx.cv = sd( p.tx ) / tx.avg,
-                   tx.25 = quantile( p.tx, 0.25 ),
-                   tx.75 = quantile( p.tx, 0.75 ),
-                   tx.IQR = tx.75 - tx.25 )
+                   Jbar = mean(.data$J),
+                   Jcv = sd(.data$J) / .data$Jbar,
+                   J.25 = quantile( .data$J, 0.25 ),
+                   J.75 = quantile( .data$J, 0.75 ),
+                   J.IQR = .data$J.75 - .data$J.25,
+                   n_block = mean(.data$n),
+                   n_block_cv = sd( .data$n ) / .data$n_block,
+                   tx.avg = mean( .data$p.tx ),
+                   tx.cv = sd( .data$p.tx ) / .data$tx.avg,
+                   tx.25 = quantile( .data$p.tx, 0.25 ),
+                   tx.75 = quantile( .data$p.tx, 0.75 ),
+                   tx.IQR = .data$tx.75 - .data$tx.25 )
 
 
     ICCs = calc_ICCs(data, is_blocked = is_blocked )
@@ -254,7 +254,7 @@ count_covariates <- function( data,
             stop( glue::glue( "Variable {v} in control_formula not found in data" ) )
         }
         tmp <- data %>%
-            group_by(clusterID) %>%
+            group_by(.data$clusterID) %>%
             summarise(
                 mean = mean(.data[[v]]),
                 var_within = if (n() == 1) 0 else var(.data[[v]], na.rm = TRUE),
@@ -308,9 +308,13 @@ number_level2_controls <- function( data, control_formula,
 #' Use a multilevel model to calculate ICCs.  Treated units included,
 #' using a constant treatment effect model.
 #'
+#' @param data Data in canonical form.
+#' @param is_blocked TRUE if the data has a blockID column to include
+#'   a block-level random effect for.
+#' @importFrom lme4 VarCorr fixef lmer
+#' @noRd
 calc_ICCs <- function( data, is_blocked = TRUE ) {
 
-    require( lme4 )
 
     if ( is_blocked ) {
         form = Yobs ~ 1 + Z + (1 | blockID ) + (1 | clusterID )
@@ -339,7 +343,7 @@ calc_ICCs <- function( data, is_blocked = TRUE ) {
         C.ICC = as.numeric( a$clusterID )
         S.ICC = NA
         tvar = (C.ICC + sigma2)
-        C.ISS = C.ICC / tvar
+        C.ICC = C.ICC / tvar
     }
 
     list( C.ICC = C.ICC, S.ICC = S.ICC )
@@ -369,12 +373,14 @@ calc_ICCs <- function( data, is_blocked = TRUE ) {
 #' @param pooled Calculate pooled Tx and Co groups, attempting to
 #'   remove systematic shift of average treatment effect.  If FALSE,
 #'   subset to control observations only.
-#'
+#' @param is_blocked TRUE if the data has a blockID column to include
+#'   block fixed effects for.
+#' @noRd
 calc_covariate_R2s <- function( data, pooled = TRUE, is_blocked = TRUE ) {
 
     # Calculating R2.1
     if ( !pooled ) {
-        data = filter( data, Z == 0 )
+        data = filter( data, .data$Z == 0 )
         data$Z = NULL
     }
 
@@ -391,7 +397,7 @@ calc_covariate_R2s <- function( data, pooled = TRUE, is_blocked = TRUE ) {
 
     dm <- dm %>%
         as.data.frame() %>%
-        dplyr::select( -`(Intercept)` )
+        dplyr::select( -"(Intercept)" )
 
     cnames = colnames(dm)
 
@@ -405,7 +411,7 @@ calc_covariate_R2s <- function( data, pooled = TRUE, is_blocked = TRUE ) {
     # Add group means and group mean-centered versions of all
     # covariates
     result <- dm %>%
-        group_by(blockID, clusterID) %>%
+        group_by(.data$blockID, .data$clusterID) %>%
         mutate(
             across( everything(),
                     list(mn = ~ mean(.),
@@ -532,6 +538,13 @@ calc_covariate_R2s <- function( data, pooled = TRUE, is_blocked = TRUE ) {
 #' Given individual/school/block data of a blocked, cluster RCT,
 #' calculate statistics for each block (block).
 #'
+#' @param formula Notation for Y ~ Z | clusterID | blockID.  If NULL,
+#'   `data` is assumed to already be in canonical form.
+#' @param data Dataframe holding the outcome, treatment, and
+#'   clustering/blocking columns referenced by `formula` (or already
+#'   in canonical form if `formula` is NULL).
+#' @param control_formula What variables to control for, in the form
+#'   of "~ X1 + X2".
 #' @param check_data_integrity TRUE means runs some checks and give
 #'   errors if data fails them (e.g., incorrectly processed treatment
 #'   vector.). FALSE means calculate statistics without these checks.
@@ -553,18 +566,18 @@ make_block_table <- function(  formula = NULL,
     K = length( unique( data$blockID ) )
 
     sizes = data %>%
-        group_by( blockID, clusterID, Z ) %>%
+        group_by( .data$blockID, .data$clusterID, .data$Z ) %>%
         summarise( n = n(), .groups = "drop" )
 
     sstat = sizes %>%
-        group_by( blockID ) %>%
+        group_by( .data$blockID ) %>%
         summarise( J = n(),
-                   nbar = mean(n),
-                   ncv = sd(n) / nbar,
-                   n.25 = quantile( n, 0.25 ),
-                   n.75 = quantile( n, 0.75 ),
-                   n.IQR = n.75 - n.25,
-                   p.tx = mean(Z) )
+                   nbar = mean(.data$n),
+                   ncv = sd(.data$n) / .data$nbar,
+                   n.25 = quantile( .data$n, 0.25 ),
+                   n.75 = quantile( .data$n, 0.75 ),
+                   n.IQR = .data$n.75 - .data$n.25,
+                   p.tx = mean(.data$Z) )
     sstat
 }
 
@@ -646,7 +659,6 @@ print.clusterRCTstats <- function( x, ... ) {
 #' Is object a clusterRCTstats object?
 #'
 #' @export
-#' @aliases clusterRCTstats
 #' @param x the object to check.
 #' @family clusterRCTstats
 is.clusterRCTstats = function( x ) {
@@ -659,13 +671,15 @@ is.clusterRCTstats = function( x ) {
 #' Cast cluster RCT info result to data.frame
 #'
 #' @export
-#' @aliases clusterRCTstats
 #' @param x the clusterRCTstats object to covert
+#' @param row.names NULL or a character vector giving row names (see \code{\link{as.data.frame}})
+#' @param optional passed to \code{\link{as.data.frame}} (unused)
+#' @param ... additional arguments (unused)
 #' @family clusterRCTstats
-as.data.frame.clusterRCTstats = function( x ) {
+as.data.frame.clusterRCTstats = function( x, row.names = NULL, optional = FALSE, ... ) {
     x$.missing = NULL
     class(x) = "list"
-    x <- as.data.frame( x )
+    x <- as.data.frame( x, row.names = row.names, optional = optional, ... )
     rownames(x) = 1:nrow(x)
 
     x
@@ -678,9 +692,9 @@ as.data.frame.clusterRCTstats = function( x ) {
 count_block_sizes <- function( clusterID, blockID ) {
     tt = tibble( clusterID = clusterID, blockID = blockID )
     t2 <- tt %>%
-        group_by( blockID ) %>%
+        group_by( .data$blockID ) %>%
         summarize( n = n(),
-                   J = length( unique( clusterID ) ) )
+                   J = length( unique( .data$clusterID ) ) )
 
     t2
 }
@@ -696,14 +710,14 @@ count_block_sizes <- function( clusterID, blockID ) {
 #' @export
 get_structure <- function( formula = NULL, data ) {
     if ( !is.null( formula ) ) {
-        data = clusterRCT:::make_canonical_data( formula=formula, data=data )
+        data = make_canonical_data( formula=formula, data=data )
     }
     if ( !("blockID" %in% colnames(data)) ) {
         data$blockID = ".single"
     }
     data <- data %>%
-        group_by( blockID, clusterID ) %>%
-        summarize( Z = mean( Z == 1 ),
+        group_by( .data$blockID, .data$clusterID ) %>%
+        summarize( Z = mean( .data$Z == 1 ),
                    n = n(),
                    .groups="drop" ) %>%
         ungroup()
@@ -749,7 +763,7 @@ if ( FALSE ) {
     data = slice_sample( data, n = nrow(data) / 2 )
     dd = sample( unique(data$S.id), 10 )
     data = filter( data, !( S.id %in% dd ) )
-    data <- clusterRCT:::make_canonical_data( Yobs ~ T.x | S.id | D.id, data=data )
+    data <- make_canonical_data( Yobs ~ T.x | S.id | D.id, data=data )
     head( data )
 
 
@@ -811,7 +825,7 @@ if ( FALSE ) {
         ungroup()
 
 
-    data = clusterRCT:::make_canonical_data( Y ~ Z | cid | sid, data=dd,
+    data = make_canonical_data( Y ~ Z | cid | sid, data=dd,
                                              control_formula = ~ X1 + X2 + X3 + X4 )
     head( data )
 

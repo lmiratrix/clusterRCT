@@ -16,6 +16,20 @@ middleton_aronow_estimator(
 \item{formula}{Formula for outcome and treatment and nesting.  If
 NULL, data is assumed to be in canonical form (see vignette for
 further discussion).}
+
+\item{data}{Data frame holding the outcome, treatment, and
+clustering/blocking columns referenced by `formula` (or already
+in canonical form if `formula` is NULL).}
+
+\item{control_formula}{What variables to control for, in the form
+of "~ X1 + X2".}
+
+\item{aggregated}{TRUE means data is already aggregated (and in
+canonical form).  FALSE means it is not.}
+
+\item{include_block_estimates}{If TRUE, also return the
+block-by-block estimates used to build the overall estimate, in
+addition to the aggregate estimate.}
 }
 \value{
 tibble of estimates using different varieties of the

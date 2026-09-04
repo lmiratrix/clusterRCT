@@ -76,6 +76,9 @@ if ( FALSE ) {
 #' Get table of characteristics of all the methods implemented in this
 #' package.
 #'
+#' @param include_weight If TRUE (default), include the `weight`
+#'   column (the estimand each method targets).  If FALSE, drop it.
+#'
 #' @return Dataframe with columns for method, weight, population,
 #'   biased, and disfavored (whether we do not like the estimator due
 #'   to odd weighting or instability).
@@ -161,6 +164,13 @@ method_characteristics <- function( include_weight = TRUE ) {
 
 #' Get the estimand for a given method.
 #'
+#' @param method Character vector of method name(s), as they appear
+#'   in `method_characteristics()`'s `method` column.
+#' @param simple If TRUE, collapse "Cluster-Block"/"Person-Block"
+#'   weight labels down to "Cluster"/"Person".  If FALSE, collapse
+#'   only "Cluster-Cluster"/"Person-Person" (leaving "-Block" labels
+#'   distinct).
+#'
 #' @seealso method_characteristics()
 #'
 #' @export
@@ -198,14 +208,13 @@ get_estimand <- function( method, simple = TRUE ) {
 #' This function calculates the point estimates and SE estimates for a
 #' variety of the estimators implemented by this package.
 #'
-#' @param Yobs vector observed outcomes (or column name in data)
-#' @param Z vector of assignment indicators (1==treated) (or column
-#'   name in data)
-#' @param B vector of block ids (or column name in data)
-#' @param blockID block ids (variable name as string if data frame
-#'   passed) (if randomization blocks are nested in block).
-#' @param data frame holding Y, Z, B and (possibly a column with name
-#'   specified by blockID).
+#' @param formula Formula of the form `Yobs ~ Z | clusterID` (or `Yobs
+#'   ~ Z | clusterID | blockID` if blocked).  If NULL, `data` is
+#'   assumed to already be in canonical form (columns `Yobs`, `Z`,
+#'   `clusterID`, and optionally `blockID`).
+#' @param data Data frame holding the outcome, treatment, and
+#'   clustering/blocking columns referenced by `formula` (or already
+#'   in canonical form if `formula` is NULL).
 #' @param include_MLM Include MLM estimators
 #' @param include_DB Include Design-Based estimators (taken from
 #'   RCTYes documentation and prior literature).
@@ -213,15 +222,28 @@ get_estimand <- function( method, simple = TRUE ) {
 #'   Huber-White SEs, etc.)
 #' @param include_agg Include estimators applied to aggregated data,
 #'   aggregated at the cluster level.
+#' @param include_gee Include GEE estimators.  Off by default: the GEE
+#'   implementation is still in development and can fail on
+#'   rank-deficient designs (see `gee_estimators()`).
 #' @param include_dumb Include "dumb" estimators (i.e., those
 #'   interacted estimators that weight by both person and cluster or
 #'   vice versa).
 #' @param control_formula What variables to control for, in the form
 #'   of "~ X1 + X2".
+#' @param warn_missing If TRUE, warn when rows are dropped or imputed
+#'   due to missing data.
+#' @param include_disfavored Include estimators flagged as
+#'   "disfavored" in `method_characteristics()` (odd weighting or
+#'   known instability).  Also determines whether unrecognized method
+#'   names are dropped (default) or kept with NA characteristics.
 #' @param patch_data If TRUE impute all missing covariates with mean
 #'   imputation (adding dummy variables as needed) via the
 #'   `patch_data()` method.  Will drop all rows with missing outcome,
 #'   treatment, or clustering info.  If FALSE do not do this.
+#' @param handle_singleton_blocks How to handle blocks with a
+#'   treatment or control arm containing only a single cluster:
+#'   "drop" the block, "pool" it with another singleton block, or
+#'   "fail" with an error.
 #' @param include_method_characteristics Include details of the
 #'   methods (target estimands and sampling framework assumed) in the
 #'   return value.
@@ -238,12 +260,11 @@ get_estimand <- function( method, simple = TRUE ) {
 compare_methods <- function(formula,
                             data = NULL,
                             control_formula = NULL,
-                            weight = c( "individual", "cluster" ),
                             include_MLM = TRUE,
                             include_DB = TRUE,
                             include_LM = TRUE,
                             include_agg = TRUE,
-                            include_gee = TRUE,
+                            include_gee = FALSE,
                             warn_missing = TRUE,
                             include_dumb = FALSE,
                             include_disfavored = FALSE,
@@ -271,11 +292,13 @@ compare_methods <- function(formula,
                         formula1,
                         data = data,
                         control_formula = control_formula,
-                        weight = weight,
                         include_MLM = include_MLM,
                         include_DB = include_DB,
                         include_LM = include_LM,
                         include_agg = include_agg,
+                        include_gee = include_gee,
+                        include_dumb = include_dumb,
+                        include_disfavored = include_disfavored,
                         include_method_characteristics = include_method_characteristics,
                         patch_data = patch_data,
                         handle_singleton_blocks = handle_singleton_blocks,
@@ -401,7 +424,7 @@ compare_methods <- function(formula,
 
     if ( !include_dumb ) {
         summary_table <- summary_table %>%
-            filter( !grepl( "Cluster-Person|Person-Cluster", weight ) )
+            filter( !grepl( "Cluster-Person|Person-Cluster", .data$weight ) )
     }
 
     mc <- method_characteristics()
@@ -410,18 +433,22 @@ compare_methods <- function(formula,
     summary_table <- left_join( summary_table, mc, by = "method" )
 
     if ( !include_disfavored ) {
-        summary_table <- filter( summary_table, disfavored == 0 )
+        # Methods not registered in method_characteristics() get NA for
+        # disfavored via the left_join above; keep them (rather than
+        # silently dropping them) so an unrecognized/new method is still
+        # visible in the output instead of vanishing without a trace.
+        summary_table <- filter( summary_table, is.na(.data$disfavored) | .data$disfavored == 0 )
     }
     summary_table$weight = stringr::str_replace( summary_table$weight, "Cluster-Cluster", "Cluster" )
     summary_table$weight = stringr::str_replace( summary_table$weight, "Person-Person", "Person" )
 
     summary_table <- summary_table %>%
-        relocate( method, weight )
+        relocate( "method", "weight" )
 
     # If not desired, remove info on the methods (e.g., what estimand they are targeting)
     if (!include_method_characteristics) {
         summary_table <- summary_table %>%
-            dplyr::select( -weight, -biased, -disfavored )
+            dplyr::select( -"weight", -"biased", -"disfavored" )
     }
 
     if ( nrow( summary_table ) > 0 ) {
@@ -429,7 +456,7 @@ compare_methods <- function(formula,
     }
 
     summary_table <- summary_table %>%
-        arrange( method )
+        arrange( .data$method )
 
     return(summary_table)
 }

@@ -6,6 +6,15 @@
 \usage{
 get_estimand(method, simple = TRUE)
 }
+\arguments{
+\item{method}{Character vector of method name(s), as they appear
+in `method_characteristics()`'s `method` column.}
+
+\item{simple}{If TRUE, collapse "Cluster-Block"/"Person-Block"
+weight labels down to "Cluster"/"Person".  If FALSE, collapse
+only "Cluster-Cluster"/"Person-Person" (leaving "-Block" labels
+distinct).}
+}
 \description{
 Get the estimand for a given method.
 }

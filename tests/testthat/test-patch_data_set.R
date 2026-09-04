@@ -1,5 +1,6 @@
 
 library( testthat)
+library( formula.tools )
 
 test_that("patch data works", {
 

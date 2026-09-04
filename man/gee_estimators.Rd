@@ -8,13 +8,23 @@ gee_estimators(
   formula,
   data = NULL,
   control_formula = NULL,
-  weight = c("Person", "Cluster")
+  weight = c("Person")
 )
 }
 \arguments{
 \item{formula}{Formula for outcome and treatment and nesting.  If
 NULL, data is assumed to be in canonical form (see vignette for
 further discussion).}
+
+\item{data}{Data frame holding the outcome, treatment, and
+clustering/blocking columns referenced by `formula` (or already
+in canonical form if `formula` is NULL).}
+
+\item{control_formula}{What variables to control for, in the form
+of "~ X1 + X2".}
+
+\item{weight}{Weighting scheme for the GEE.  Only "Person" is
+currently implemented; see FUTURE_WORK.md for cluster weighting.}
 }
 \description{
 Estimate ATEs for a cluster RCT using a GEE approach

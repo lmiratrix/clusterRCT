@@ -22,7 +22,7 @@
 #' @return tibble of estimates using different varieties of the
 #'   methods described in the paper.
 #'
-#' @export
+#' @noRd
 canonical_weight_estimators <- function( formula,
                                          data = NULL,
                                          data_agg = NULL ) {
@@ -57,12 +57,12 @@ canonical_weight_estimators <- function( formula,
         data_agg$cw = cw
         data_agg$bw = bw
         s_dat <- data_agg %>%
-            group_by( blockID, Z, bw ) %>%
-            summarise( Ybar = weighted.mean( Ybar, w = cw ), .groups = "drop" )
+            group_by( .data$blockID, .data$Z, .data$bw ) %>%
+            summarise( Ybar = weighted.mean( .data$Ybar, w = .data$cw ), .groups = "drop" )
         stopifnot( nrow( s_dat ) == length( unique( data_agg$blockID ) ) * 2 )
         s_dat <- s_dat %>%
-            group_by( Z ) %>%
-            summarise( ATE = weighted.mean( Ybar, w = bw ) )
+            group_by( .data$Z ) %>%
+            summarise( ATE = weighted.mean( .data$Ybar, w = .data$bw ) )
         if ( nrow( s_dat ) != 2 ) {
             return( NA )
         }
@@ -70,10 +70,10 @@ canonical_weight_estimators <- function( formula,
     }
 
     data_agg <- data_agg %>%
-        group_by( blockID ) %>%
-        mutate( N = sum( n ),
-                p = weighted.mean( Z, w=n ),
-                pc = mean( Z ),
+        group_by( .data$blockID ) %>%
+        mutate( N = sum( .data$n ),
+                p = weighted.mean( .data$Z, w=.data$n ),
+                pc = mean( .data$Z ),
                 J = n() )
 
     person_person = calc_est( data_agg,
@@ -101,7 +101,7 @@ canonical_weight_estimators <- function( formula,
 
     form = make_regression_formula( FE = has_block, cluster_RE = TRUE )
     M0 = lmer( form, data=data )
-    tau2 = VarCorr(M0)$clusterID[1,1]
+    tau2 = VarCorr(M0)$clusterID["(Intercept)","(Intercept)"]
     sigma2 = sigma(M0)^2
 
     cw_MLM = 1 / (tau2 + sigma2 / data_agg$J)
@@ -117,7 +117,7 @@ canonical_weight_estimators <- function( formula,
         formRE = make_regression_formula( FE = FALSE, cluster_RE = TRUE )
         formRE = update( formRE, . ~ . + (1+Z|blockID) )
         M1 = lmer( formRE, data=data )
-        eta2 = VarCorr(M1)$blockID[ 2, 2 ]
+        eta2 = VarCorr(M1)$blockID[ "Z", "Z" ]
 
         bw_RIRC = 1 / (eta2 + tau2 / (data_agg$J * data_agg$pc * (1-data_agg$pc) ))
 

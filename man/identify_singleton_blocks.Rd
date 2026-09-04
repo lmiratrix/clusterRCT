@@ -6,6 +6,12 @@
 \usage{
 identify_singleton_blocks(formula, data)
 }
+\arguments{
+\item{formula}{Notation for Y ~ Z | clusterID | blockID.  If NULL,
+`data` is assumed to already be in canonical form.}
+
+\item{data}{Dataframe to check.}
+}
 \value{
 Dataframe of block IDs corresponding to all tx or all co
   blocks along with number of units and tx status.  Returns NULL if

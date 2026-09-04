@@ -19,31 +19,27 @@ Depends:
     dplyr,
     lme4,
     R (>= 3.3.2)
-Imports: 
-    Formula,
-    ggplot2,
-    lmtest,
-    magrittr,
-    MASS,
-    nlme,
+Imports:
     purrr,
-    rlang,
-    sandwich,
-    survey,
     arm,
-    msm,
     tibble,
     tidyr,
     estimatr,
     formula.tools,
     glue,
     lmerTest,
-    PUMP,
-    randomizr
-Suggests: 
+    randomizr,
+    geepack,
+    broom,
+    stringr
+Suggests:
     knitr,
     rmarkdown,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    PUMP,
+    furrr,
+    future,
+    tidyverse
 Config/testthat/edition: 3
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 VignetteBuilder: knitr

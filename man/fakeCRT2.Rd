@@ -5,13 +5,15 @@
 \alias{fakeCRT2}
 \title{Fake Cluster Randomized Trial data (set 2)}
 \format{
-A data frame with 1500 rows and 7 variables: \describe{
- \item{\code{S.id}}{integer School ID.}
- \item{\code{D.id}}{integer District ID.}
+A data frame with 860 rows and 8 variables: \describe{
+ \item{\code{S.id}}{character School ID.}
+ \item{\code{D.id}}{character District ID.}
  \item{\code{Y1}}{double Potential outcome under treatment.}
  \item{\code{Y0}}{double Potential outcome under no treatment.}
  \item{\code{Yobs}}{double Observed outcome (think test score).)}
- \item{\code{T.x}}{integer Treatment assignment (1 treated, 0 control).} }
+ \item{\code{T.x}}{integer Treatment assignment (1 treated, 0 control).}
+ \item{\code{X.jk}}{double School-level covariate.}
+ \item{\code{C.ijk}}{double Student-level covariate.} }
 }
 \usage{
 fakeCRT2

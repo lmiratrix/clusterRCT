@@ -2,13 +2,18 @@
 % Please edit documentation in R/describe_clusterRCT.R
 \name{as.data.frame.clusterRCTstats}
 \alias{as.data.frame.clusterRCTstats}
-\alias{clusterRCTstats}
 \title{Cast cluster RCT info result to data.frame}
 \usage{
-\method{as.data.frame}{clusterRCTstats}(x)
+\method{as.data.frame}{clusterRCTstats}(x, row.names = NULL, optional = FALSE, ...)
 }
 \arguments{
 \item{x}{the clusterRCTstats object to covert}
+
+\item{row.names}{NULL or a character vector giving row names (see \code{\link{as.data.frame}})}
+
+\item{optional}{passed to \code{\link{as.data.frame}} (unused)}
+
+\item{...}{additional arguments (unused)}
 }
 \description{
 Cast cluster RCT info result to data.frame

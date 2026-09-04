@@ -13,6 +13,11 @@ patch_singleton_blocks(
 )
 }
 \arguments{
+\item{formula}{Notation for Y ~ Z | clusterID | blockID.  If NULL,
+`data` is assumed to already be in canonical form.}
+
+\item{data}{Dataframe to patch.}
+
 \item{drop_data}{Drop the troublesome blocks if TRUE, pool them if
 FALSE.}
 

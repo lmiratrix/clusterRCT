@@ -41,21 +41,21 @@ summarize_simulation_results <- function( rps, summarize_results = "method" ) {
 
     # Calculate range across estimators
     rr_overall <- rps %>%
-      group_by( runID ) %>%
-      summarise( rangeATE = max(ATE_hat, na.rm=TRUE) - min(ATE_hat, na.rm=TRUE),
-                 na_ATE = sum( is.na( ATE_hat ) ),
-                 ratioSE = max( SE_hat, na.rm=TRUE ) / min( SE_hat, na.rm=TRUE ),
-                 na_SE = sum( is.na( SE_hat ) ) )
+      group_by( .data$runID ) %>%
+      summarise( rangeATE = max(.data$ATE_hat, na.rm=TRUE) - min(.data$ATE_hat, na.rm=TRUE),
+                 na_ATE = sum( is.na( .data$ATE_hat ) ),
+                 ratioSE = max( .data$SE_hat, na.rm=TRUE ) / min( .data$SE_hat, na.rm=TRUE ),
+                 na_SE = sum( is.na( .data$SE_hat ) ) )
 
     rr_estimand <- rps %>%
       # mutate( weight = forcats::fct_recode( weight,
       #                              C = "Cluster",
       #                              P = "Person" ) ) %>%
-      group_by( runID, weight ) %>%
-      summarise( rangeATE = max(ATE_hat, na.rm=TRUE) - min(ATE_hat, na.rm=TRUE),
-                 na_ATE = sum( is.na( ATE_hat ) ),
-                 ratioSE = max( SE_hat, na.rm=TRUE ) / min( SE_hat, na.rm=TRUE ),
-                 na_SE = sum( is.na( SE_hat ) ),
+      group_by( .data$runID, .data$weight ) %>%
+      summarise( rangeATE = max(.data$ATE_hat, na.rm=TRUE) - min(.data$ATE_hat, na.rm=TRUE),
+                 na_ATE = sum( is.na( .data$ATE_hat ) ),
+                 ratioSE = max( .data$SE_hat, na.rm=TRUE ) / min( .data$SE_hat, na.rm=TRUE ),
+                 na_SE = sum( is.na( .data$SE_hat ) ),
                  .groups ="drop" )
 
     rr_overall$weight = "Overall"
@@ -64,18 +64,18 @@ summarize_simulation_results <- function( rps, summarize_results = "method" ) {
 
     if ( summarize_results == "cross-agg" ) {
       ragg <- rr %>%
-        group_by( weight ) %>%
-        rename( group = weight ) %>%
-        summarise( mn_rngATE = mean( rangeATE ),
-                   sd_rngATE = sd( rangeATE ),
-                   prob_10p = mean( rangeATE > 0.10 ),
-                   mn_ratSE = mean( ratioSE ),
-                   prob_2x = mean( ratioSE >= 2 ),
-                   sd_ratSE = sd( ratioSE ),
-                   mn_naATE = mean( na_ATE ),
-                   sd_naATE = sd( na_ATE ),
-                   mn_naSE = mean( na_SE ),
-                   sd_naSE = sd( na_SE ),
+        group_by( .data$weight ) %>%
+        rename( group = "weight" ) %>%
+        summarise( mn_rngATE = mean( .data$rangeATE ),
+                   sd_rngATE = sd( .data$rangeATE ),
+                   prob_10p = mean( .data$rangeATE > 0.10 ),
+                   mn_ratSE = mean( .data$ratioSE ),
+                   prob_2x = mean( .data$ratioSE >= 2 ),
+                   sd_ratSE = sd( .data$ratioSE ),
+                   mn_naATE = mean( .data$na_ATE ),
+                   sd_naATE = sd( .data$na_ATE ),
+                   mn_naSE = mean( .data$na_SE ),
+                   sd_naSE = sd( .data$na_SE ),
                    .groups = "drop" )
 
       stopifnot( nrow( ragg ) == 3 )
@@ -90,15 +90,15 @@ summarize_simulation_results <- function( rps, summarize_results = "method" ) {
   } else if ( summarize_results == "method" ) {
     # Calculate performance statistics for each method
     rps %>%
-      group_by( method, weight, biased ) %>%
-      summarise( EATE = mean( ATE_hat, na.rm=TRUE ),
-                 SE = sd( ATE_hat, na.rm=TRUE ),
-                 p.noATE = mean( is.na( ATE_hat ) ),
-                 p.noSE = mean( is.na( SE_hat ) ),
-                 ESEhat = sqrt( mean( SE_hat^2, na.rm=TRUE ) ),
-                 sdSEhat = sd( SE_hat, na.rm=TRUE ),
-                 Q10 = quantile( SE_hat, 0.1, na.rm=TRUE ),
-                 Q90 = quantile( SE_hat, 0.9, na.rm=TRUE ),
+      group_by( .data$method, .data$weight ) %>%
+      summarise( EATE = mean( .data$ATE_hat, na.rm=TRUE ),
+                 SE = sd( .data$ATE_hat, na.rm=TRUE ),
+                 p.noATE = mean( is.na( .data$ATE_hat ) ),
+                 p.noSE = mean( is.na( .data$SE_hat ) ),
+                 ESEhat = sqrt( mean( .data$SE_hat^2, na.rm=TRUE ) ),
+                 sdSEhat = sd( .data$SE_hat, na.rm=TRUE ),
+                 Q10 = quantile( .data$SE_hat, 0.1, na.rm=TRUE ),
+                 Q90 = quantile( .data$SE_hat, 0.9, na.rm=TRUE ),
                  .groups = "drop" )
   } else {
     rps
@@ -132,6 +132,10 @@ summarize_simulation_results <- function( rps, summarize_results = "method" ) {
 #' @param include_empirical If TRUE, include the empirical results as
 #'   one of the "simulation replicates".  This will be included in any
 #'   summarization, so be warned.
+#' @param warn_missing If TRUE, warn when rows are dropped or
+#'   covariates are imputed while canonicalizing/patching the data.
+#' @param patch_data If TRUE, impute missing covariates via
+#'   `patch_data_set()` before simulating.
 #' @param ... Additional arguments to pass to compare_methods.
 #'
 #' @export
@@ -188,18 +192,20 @@ run_rerandomize_simulation <- function( formula,
   }
 
   if ( parallel ) {
-    library( furrr )
+    if ( !requireNamespace( "furrr", quietly = TRUE ) ) {
+      stop( "parallel = TRUE requires the 'furrr' package. Install it with install.packages('furrr').", call. = FALSE )
+    }
 
     if ( future::nbrOfWorkers() == 1 ) {
       warning( "You should set future::plan yourself -- using default multisession numCores - 1 plan" )
 
-      oplan = plan(multisession, workers = parallel::detectCores() - 1 )
+      oplan = future::plan(future::multisession, workers = parallel::detectCores() - 1 )
 
-      on.exit(plan(oplan), add = TRUE)
+      on.exit(future::plan(oplan), add = TRUE)
 
     }
     rps = furrr::future_map( 1:R, \(.) { rerandomize_and_analyze( formula, data, ... ) },
-                             .options = furrr_options( seed = TRUE )
+                             .options = furrr::furrr_options( seed = TRUE )
                              )
 
   } else {
@@ -223,6 +229,16 @@ run_rerandomize_simulation <- function( formula,
 
 
 #' Return new treatment assignment based on passed one.
+#'
+#' Rerandomizes treatment at the cluster level (within block, if
+#' `blockID` is given), preserving the original per-block (or
+#' overall) proportion of clusters treated.
+#'
+#' @param Z Vector of original treatment assignments (1 = treated, 0 =
+#'   control), one entry per row/unit.
+#' @param clusterID Vector of cluster IDs, one entry per row/unit.
+#' @param blockID Vector of block IDs, one entry per row/unit. If
+#'   NULL, rerandomization ignores blocking.
 #'
 #' @return vector of 1s and 0s.
 #'

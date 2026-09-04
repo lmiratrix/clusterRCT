@@ -23,6 +23,14 @@
 #' This attribute will also have all missing value indicators added in
 #' as covariates.
 #'
+#' @param formula Notation for Y ~ Z | clusterID | blockID (| blockID
+#'   is optional).  If NULL, `data` is assumed to already be in
+#'   canonical form.
+#' @param data Dataframe to patch.
+#' @param control_formula What variables to control for, in the form
+#'   of "~ X1 + X2".
+#' @param warn_missing If TRUE, warn when rows are dropped or
+#'   covariates are imputed.
 #' @export
 patch_data_set <- function( formula = NULL,
                             data = NULL,
@@ -38,7 +46,7 @@ patch_data_set <- function( formula = NULL,
 
     mod_data = NULL
     if ( !is.null( control_formula ) ) {
-        mod_data <- clusterRCT:::expand_control_variables( data, control_formula )
+        mod_data <- expand_control_variables( data, control_formula )
         data = mod_data$data
         control_formula = mod_data$control_formula
     }
@@ -47,14 +55,14 @@ patch_data_set <- function( formula = NULL,
     n = nrow(data)
 
     data = filter( data,
-                   !is.na( Z ), !is.na( Yobs ),
-                   !is.na( clusterID ) )
+                   !is.na( .data$Z ), !is.na( .data$Yobs ),
+                   !is.na( .data$clusterID ) )
     if ( is.factor(data$clusterID) ) {
         data$clusterID = droplevels(data$clusterID)
     }
 
     if ( "blockID" %in% colnames(data) ) {
-        data <- filter( data, !is.na( blockID ) )
+        data <- filter( data, !is.na( .data$blockID ) )
         if ( is.factor(data$blockID) ) {
             data$blockID = droplevels(data$blockID)
         }
@@ -135,6 +143,9 @@ patch_data_set <- function( formula = NULL,
 #' Also, depending on pool_clusters, pool the clusters in each of
 #' these identified blocks into single clusters.
 #'
+#' @param formula Notation for Y ~ Z | clusterID | blockID.  If NULL,
+#'   `data` is assumed to already be in canonical form.
+#' @param data Dataframe to patch.
 #' @param drop_data Drop the troublesome blocks if TRUE, pool them if
 #'   FALSE.
 #' @param pool_clusters If pooling blocks rather than dropping them,
@@ -260,7 +271,7 @@ if ( FALSE ) {
 
 
     #### Code for debugging ####
-    data <- clusterRCT:::make_canonical_data( Y ~ T.x | S.id | D.id, data=data,
+    data <- make_canonical_data( Y ~ T.x | S.id | D.id, data=data,
                                               control_formula = ~ X + R + Q + W + RR,
                                               drop_missing = FALSE )
     data
@@ -285,7 +296,7 @@ if ( FALSE ) {
     data
 
     data( "fakeCRT" )
-    data <- clusterRCT:::make_canonical_data( Yobs ~ T.x | S.id | D.id, data=fakeCRT )
+    data <- make_canonical_data( Yobs ~ T.x | S.id | D.id, data=fakeCRT )
     head( data )
 
 

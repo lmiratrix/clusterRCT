@@ -17,6 +17,17 @@ interacted_linear_model_estimators(
 NULL, data is assumed to be in canonical form (see vignette for
 further discussion).}
 
+\item{data}{Data frame holding the outcome, treatment, and
+clustering/blocking columns referenced by `formula` (or already
+in canonical form if `formula` is NULL).}
+
+\item{control_formula}{What variables to control for, in the form
+of "~ X1 + X2".}
+
+\item{weight}{"Person" to weight the regression by individual
+(unweighted OLS), "Cluster" to weight so each cluster
+contributes equally (inverse cluster-size weights).}
+
 \item{use_full_vcov}{TRUE/FALSE. When calculating standard errors,
 should the full variance-covariance matrix of the block-level
 estimates be used, or just the diagonal of standard errors?}

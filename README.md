@@ -1,14 +1,24 @@
 # clusterRCT - code for analyzing blocked, cluster-randomized trials
 
-# USERS TAKE NOTE
-
-This package is under development, and I would not use it if I were you.  (The package is public only to make things easy to put on cluster computing.) We will eventually remove this message! :-)
-
-
 # Introduction
 This is the companion codebase for a large-scale comparison of different estimators applied to a suite of cluster RCT experiments in Education and the social sciences.
 
 Core methods are `compare_methods()` which compares the estimates from a collection of different estimation strategies on a given dataset, and `describe_clusterRCT()` which describes overall characteristics of a given dataset.
+
+
+# Installation
+
+```
+devtools::install_github("lmiratrix/clusterRCT")
+```
+
+## Replicating the paper
+
+This package is the companion to "An Applied Researcher's Guide to Estimating Effects from Multisite Cluster Randomized Trials: Estimands, Estimators, and Estimates." For the paper's replication files, we used a slightly older, less cleaned-up version of the package than what is on the main branch today. Ongoing cleanup (dependency fixes, bug fixes, documentation) is not intended to change any reported estimates, but to install the exact version used to produce the paper's results, use the tagged release instead of the latest version:
+
+```
+devtools::install_github("lmiratrix/clusterRCT", ref = "jree-submission-snapshot-2025-11-20")
+```
 
 
 ## Acknowledgements

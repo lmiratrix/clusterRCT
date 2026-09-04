@@ -5,7 +5,7 @@
 \alias{fakeCRT}
 \title{Fake Cluster Randomized Trial data}
 \format{
-A data frame with 1500 rows and 7 variables: \describe{
+A data frame with 1500 rows and 8 variables: \describe{
  \item{\code{V.k}}{double District-level covariate (think standardized district-wide
   average test score relative to state).}
  \item{\code{X.jk}}{double School-level (think percent on Free/Reduced Price Lunch).}
@@ -13,7 +13,8 @@ A data frame with 1500 rows and 7 variables: \describe{
  \item{\code{S.id}}{integer School ID.}
  \item{\code{D.id}}{integer District ID.}
  \item{\code{Yobs}}{double Observed outcome (think test score).)}
- \item{\code{T.x}}{integer Treatment assignment (1 treated, 0 control).} }
+ \item{\code{T.x}}{integer Treatment assignment (1 treated, 0 control).}
+ \item{\code{X}}{character A categorical (4-level) student-level covariate, for testing categorical covariate handling.} }
 }
 \usage{
 fakeCRT

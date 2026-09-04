@@ -11,6 +11,19 @@ patch_data_set(
   warn_missing = FALSE
 )
 }
+\arguments{
+\item{formula}{Notation for Y ~ Z | clusterID | blockID (| blockID
+is optional).  If NULL, `data` is assumed to already be in
+canonical form.}
+
+\item{data}{Dataframe to patch.}
+
+\item{control_formula}{What variables to control for, in the form
+of "~ X1 + X2".}
+
+\item{warn_missing}{If TRUE, warn when rows are dropped or
+covariates are imputed.}
+}
 \description{
 This method will fill in means for all missing covariate values and
 return a dataset where rows with missing outcome, cluster or block

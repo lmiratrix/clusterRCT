@@ -9,12 +9,11 @@ compare_methods(
   formula,
   data = NULL,
   control_formula = NULL,
-  weight = c("individual", "cluster"),
   include_MLM = TRUE,
   include_DB = TRUE,
   include_LM = TRUE,
   include_agg = TRUE,
-  include_gee = TRUE,
+  include_gee = FALSE,
   warn_missing = TRUE,
   include_dumb = FALSE,
   include_disfavored = FALSE,
@@ -24,8 +23,14 @@ compare_methods(
 )
 }
 \arguments{
-\item{data}{frame holding Y, Z, B and (possibly a column with name
-specified by blockID).}
+\item{formula}{Formula of the form `Yobs ~ Z | clusterID` (or `Yobs
+~ Z | clusterID | blockID` if blocked).  If NULL, `data` is
+assumed to already be in canonical form (columns `Yobs`, `Z`,
+`clusterID`, and optionally `blockID`).}
+
+\item{data}{Data frame holding the outcome, treatment, and
+clustering/blocking columns referenced by `formula` (or already
+in canonical form if `formula` is NULL).}
 
 \item{control_formula}{What variables to control for, in the form
 of "~ X1 + X2".}
@@ -41,28 +46,35 @@ Huber-White SEs, etc.)}
 \item{include_agg}{Include estimators applied to aggregated data,
 aggregated at the cluster level.}
 
+\item{include_gee}{Include GEE estimators.  Off by default: the GEE
+implementation is still in development and can fail on
+rank-deficient designs (see `gee_estimators()`).}
+
+\item{warn_missing}{If TRUE, warn when rows are dropped or imputed
+due to missing data.}
+
 \item{include_dumb}{Include "dumb" estimators (i.e., those
 interacted estimators that weight by both person and cluster or
 vice versa).}
+
+\item{include_disfavored}{Include estimators flagged as
+"disfavored" in `method_characteristics()` (odd weighting or
+known instability).  Also determines whether unrecognized method
+names are dropped (default) or kept with NA characteristics.}
 
 \item{patch_data}{If TRUE impute all missing covariates with mean
 imputation (adding dummy variables as needed) via the
 `patch_data()` method.  Will drop all rows with missing outcome,
 treatment, or clustering info.  If FALSE do not do this.}
 
+\item{handle_singleton_blocks}{How to handle blocks with a
+treatment or control arm containing only a single cluster:
+"drop" the block, "pool" it with another singleton block, or
+"fail" with an error.}
+
 \item{include_method_characteristics}{Include details of the
 methods (target estimands and sampling framework assumed) in the
 return value.}
-
-\item{Yobs}{vector observed outcomes (or column name in data)}
-
-\item{Z}{vector of assignment indicators (1==treated) (or column
-name in data)}
-
-\item{B}{vector of block ids (or column name in data)}
-
-\item{blockID}{block ids (variable name as string if data frame
-passed) (if randomization blocks are nested in block).}
 }
 \value{
 Dataframe of point estimates and standard errors for each

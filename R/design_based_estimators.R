@@ -28,10 +28,10 @@ get_overall_ATE <- function( mod, weights ) {
 agg_residuals <- function( data ) {
 
     data_agg <- data %>%
-        group_by( blockID, clusterID, Z ) %>%
+        group_by( .data$blockID, .data$clusterID, .data$Z ) %>%
         summarise( n = n(),
-                   .weight = sum( .weight ),
-                   resid = mean( resid ) )
+                   .weight = sum( .data$.weight ),
+                   resid = mean( .data$resid ) )
     data_agg
 }
 
@@ -56,9 +56,6 @@ agg_residuals <- function( data ) {
 # @param v Degrees of freedom.  Use v=# covariates.
 schochet_variance_formula_block <- function( adt, v, aggregated=TRUE ) {
 
-    require( tidyr )
-    require( dplyr )
-
     stopifnot( !is.null( adt$resid ) )
     stopifnot( !is.null( adt$Z ) )
 
@@ -77,21 +74,21 @@ schochet_variance_formula_block <- function( adt, v, aggregated=TRUE ) {
 
     W = sum( adt$.weight )
     adtw <- adt %>%
-        group_by( blockID, Z ) %>%
+        group_by( .data$blockID, .data$Z ) %>%
         summarize( m = n(),
-                   n = sum( n ),
-                   totwt = sum( .weight ),
-                   s2 = calc_s2_partial( .weight, resid ),
+                   n = sum( .data$n ),
+                   totwt = sum( .data$.weight ),
+                   s2 = calc_s2_partial( .data$.weight, .data$resid ),
                    .groups = "drop" ) %>%
-        dplyr::group_by( blockID ) %>%
-        dplyr::mutate( p = m / sum(m),
-                       weight = sum( totwt ) ) %>%
-        dplyr::select( -totwt ) %>%
+        dplyr::group_by( .data$blockID ) %>%
+        dplyr::mutate( p = .data$m / sum(.data$m),
+                       weight = sum( .data$totwt ) ) %>%
+        dplyr::select( -"totwt" ) %>%
         ungroup() %>%
-        dplyr::mutate( q = weight / W ) %>%
-        dplyr::group_by( Z ) %>%
-        dplyr::mutate( sdf = (m - v * p * q - 1),
-                       s2 = s2 / sdf ) %>%
+        dplyr::mutate( q = .data$weight / W ) %>%
+        dplyr::group_by( .data$Z ) %>%
+        dplyr::mutate( sdf = (.data$m - v * .data$p * .data$q - 1),
+                       s2 = .data$s2 / .data$sdf ) %>%
         ungroup()
 
     # calc_s2_partial can give negative numbers on order of 10^-32
@@ -101,16 +98,16 @@ schochet_variance_formula_block <- function( adt, v, aggregated=TRUE ) {
 
     pt2 <- adtw %>%
         tidyr::pivot_wider( names_from = "Z",
-                            values_from = c( s2, sdf, m, n, p ) ) %>%
-        dplyr::mutate( varD = s2_1 / m_1 + s2_0 / m_0,
-                       SE_hat = sqrt( varD ),
-                       n = n_0 + n_1,
-                       m = m_0 + m_1 )
+                            values_from = c( "s2", "sdf", "m", "n", "p" ) ) %>%
+        dplyr::mutate( varD = .data$s2_1 / .data$m_1 + .data$s2_0 / .data$m_0,
+                       SE_hat = sqrt( .data$varD ),
+                       n = .data$n_0 + .data$n_1,
+                       m = .data$m_0 + .data$m_1 )
 
 
     pt2 <- pt2 %>%
-        dplyr::select( -p_0 ) %>%
-        rename( p = p_1 )
+        dplyr::select( -"p_0" ) %>%
+        rename( p = "p_1" )
 
     pt2$weight = pt2$weight / sum(pt2$weight)   # normalize weights to avoid overflow
 
@@ -135,13 +132,13 @@ schochet_FE_variance_formula <- function( adt, v, aggregated=TRUE ) {
     h = length( unique(adt$blockID) )
 
     SE_ATE <- adt %>%
-        group_by( blockID ) %>%
-        summarize( p_b = mean(Z),
+        group_by( .data$blockID ) %>%
+        summarize( p_b = mean(.data$Z),
                    m_b = n(),
-                   wbar_b = mean(.weight),
-                   num = sum(.weight^2 * (Z-p_b)^2 * resid^2)) %>%
-        summarize( SE_ATE = sqrt( m / (m-h-v-1) * sum(num) /
-                                      sum(m_b*p_b*(1-p_b)*wbar_b)^2 )) %>%
+                   wbar_b = mean(.data$.weight),
+                   num = sum(.data$.weight^2 * (.data$Z-.data$p_b)^2 * .data$resid^2)) %>%
+        summarize( SE_ATE = sqrt( m / (m-h-v-1) * sum(.data$num) /
+                                      sum(.data$m_b*.data$p_b*(1-.data$p_b)*.data$wbar_b)^2 )) %>%
         pull(SE_ATE)
 
     df = m - v - h - 1
@@ -164,12 +161,30 @@ schochet_FE_variance_formula <- function( adt, v, aggregated=TRUE ) {
 #' In this implementation, we run the regression on the
 #' cluster-aggregated data.
 #'
+#' Degrees of freedom: this function receives already
+#' cluster-aggregated data, so every covariate in \code{control_formula}
+#' is, by construction, a cluster- (level 2) covariate.  The degrees of
+#' freedom adjustment therefore uses \code{number_controls()}, which
+#' counts all covariates in \code{control_formula}.  This is equivalent
+#' to counting level-2 covariates only, matching the technical
+#' supplement's benchmark degrees of freedom of \code{J - K - g - 1}
+#' (\code{g} = number of level-2 covariates).  Contrast with
+#' \code{\link{design_based_estimators_individual}()}, which works on
+#' individual-level data where \code{control_formula} may mix level-1
+#' and level-2 covariates, and so explicitly uses
+#' \code{number_level2_controls()} to count only the level-2 ones.
+#'
 #' @inheritParams linear_model_estimators
 #' @param aggregated TRUE means data is already aggregated (and in
 #'   canonical form).  FALSE means it is not.
+#' @param include_block_estimates If TRUE, also return the
+#'   block-by-block estimates used to build the overall estimate, in
+#'   addition to the aggregate estimate.
 #'
 #' @return tibble of estimates using different varieties of the
 #'   methods described in the paper.
+#'
+#' @importFrom tidyr pivot_wider
 #'
 #' @export
 design_based_estimators <- function( formula,
@@ -179,7 +194,6 @@ design_based_estimators <- function( formula,
                                      aggregated = FALSE,
                                      include_block_estimates = FALSE ) {
 
-    require( estimatr )
 
 
     # Determine which version of the estimator we are doing.
@@ -287,7 +301,7 @@ design_based_estimators <- function( formula,
             ATE_hat = c( ATE_FE ),
             SE_hat = c( SE_FE$SE_hat ),
             df = c( SE_FE$df ),
-            p_value = two_sided_p( ATE_hat, SE_hat, df )
+            p_value = two_sided_p( .data$ATE_hat, .data$SE_hat, df )
         )
 
         # Pack up results
@@ -325,7 +339,7 @@ design_based_estimators <- function( formula,
             ATE_hat = c( ATE_FE ),
             SE_hat = c( SE$SE_hat ),
             df = df,
-            p_value = two_sided_p(ATE_hat, SE_hat, df )
+            p_value = two_sided_p(.data$ATE_hat, .data$SE_hat, df )
         )
     }
 }
@@ -339,6 +353,16 @@ design_based_estimators <- function( formula,
 #' This function follows `design_based_estimators`, but runs the
 #' regression on the individual level data.
 #'
+#' Degrees of freedom: unlike \code{\link{design_based_estimators}()},
+#' this function works directly on individual-level data, so
+#' \code{control_formula} may mix level-1 (individual) and level-2
+#' (cluster) covariates.  The degrees of freedom adjustment here uses
+#' \code{number_level2_controls()}, which counts only the level-2
+#' covariates -- level-1 covariates do not cost the same degrees of
+#' freedom in this design-based framework (see the technical supplement's
+#' benchmark degrees of freedom of \code{J - K - g - 1}, where \code{g}
+#' is the number of level-2 covariates beyond the treatment indicator).
+#'
 #' @inheritParams design_based_estimators
 #'
 #' @return tibble of estimates using different varieties of the
@@ -351,7 +375,6 @@ design_based_estimators_individual <- function( formula,
                                                 weight = c( "Person", "Cluster" ),
                                                 include_block_estimates = FALSE ) {
 
-    require( estimatr )
 
     if ( !is.null(formula) ) {
         data = make_canonical_data( formula=formula, data=data,
@@ -369,7 +392,7 @@ design_based_estimators_individual <- function( formula,
         data$.weight <- 1
     } else {
         data <- data %>%
-            group_by( clusterID ) %>%
+            group_by( .data$clusterID ) %>%
             mutate( .weight = 1 / n() ) %>%
             ungroup()
     }
@@ -429,7 +452,7 @@ design_based_estimators_individual <- function( formula,
             ATE_hat = c( ATE_FE ),
             SE_hat = c( SE_FE$SE_hat ),
             df = c( SE_FE$df ),
-            p_value = two_sided_p( ATE_hat, SE_hat, df )
+            p_value = two_sided_p( .data$ATE_hat, .data$SE_hat, df )
         )
 
         # Pack up results
@@ -468,7 +491,7 @@ design_based_estimators_individual <- function( formula,
             ATE_hat = c( ATE_FE ),
             SE_hat = c( SE$SE_hat ),
             df = df,
-            p_value = two_sided_p(ATE_hat, SE_hat, df )
+            p_value = two_sided_p(.data$ATE_hat, .data$SE_hat, df )
         )
     }
 }
@@ -494,6 +517,11 @@ design_based_estimators_individual <- function( formula,
 #' adjust for additioanl controls at this time.
 #'
 #' @inheritParams linear_model_estimators
+#' @param aggregated TRUE means data is already aggregated (and in
+#'   canonical form).  FALSE means it is not.
+#' @param include_block_estimates If TRUE, also return the
+#'   block-by-block estimates used to build the overall estimate, in
+#'   addition to the aggregate estimate.
 #'
 #' @return tibble of estimates using different varieties of the
 #'   methods described in the paper.
@@ -529,7 +557,7 @@ middleton_aronow_estimator <- function( formula,
     m_t = sum( data_agg$Z )
 
     data_agg <- data_agg %>%
-        mutate( Ytot = Ybar * n )
+        mutate( Ytot = .data$Ybar * .data$n )
 
     # Calculate relationship of cluster total and cluster size
     alpha = 0
@@ -540,34 +568,40 @@ middleton_aronow_estimator <- function( formula,
 
     # Calculate totals and U
     data_agg <- data_agg %>%
-        group_by( blockID ) %>%
-        mutate( n_bar = mean( n ) ) %>%
+        group_by( .data$blockID ) %>%
+        mutate( n_bar = mean( .data$n ) ) %>%
         ungroup() %>%
-        mutate( U = Ytot - alpha*(n - n_bar) )
+        mutate( U = .data$Ytot - alpha*(.data$n - .data$n_bar) )
 
     # Calculate point estimates
     tots <- data_agg %>%
-        group_by( blockID, Z ) %>%
-        summarise( Ybar = mean(Ytot),
-                   Ubar = mean(U),
-                   S2Y = var(Ytot),
-                   S2U = var(U),
+        group_by( .data$blockID, .data$Z ) %>%
+        summarise( Ybar = mean(.data$Ytot),
+                   Ubar = mean(.data$U),
+                   S2Y = var(.data$Ytot),
+                   S2U = var(.data$U),
                    J = n(),
-                   N = sum(n) )
+                   N = sum(.data$n) )
 
     tots <- pivot_wider( tots,
-                         names_from = Z,
-                         values_from = c( Ybar, Ubar, S2Y, S2U, J, N ) ) %>%
-        mutate( J = J_0 + J_1,
-                N = N_0 + N_1,
-                ATE_HT = (J/N) * (Ybar_1 - Ybar_0),
-                ATE_Raj = (J/N) * (Ubar_1 - Ubar_0),
-                SE_HT = ((J^2)/(N^2)) * (S2Y_1/J_1 + S2Y_0/J_0),
-                SE_Raj = ((J^2)/(N^2)) * (S2U_1/J_1 + S2U_0/J_0) )
+                         names_from = "Z",
+                         values_from = c( "Ybar", "Ubar", "S2Y", "S2U", "J", "N" ) ) %>%
+        mutate( J = .data$J_0 + .data$J_1,
+                N = .data$N_0 + .data$N_1,
+                ATE_HT = (.data$J/.data$N) * (.data$Ybar_1 - .data$Ybar_0),
+                ATE_Raj = (.data$J/.data$N) * (.data$Ubar_1 - .data$Ubar_0),
+                SE2_HT = ((.data$J^2)/(.data$N^2)) * (.data$S2Y_1/.data$J_1 + .data$S2Y_0/.data$J_0),
+                SE2_Raj = ((.data$J^2)/(.data$N^2)) * (.data$S2U_1/.data$J_1 + .data$S2U_0/.data$J_0) )
     stopifnot( nrow( tots ) == n_block )
 
-    ATE_HT = calc_agg_estimate( tots$N, tots$ATE_HT, tots$SE_HT, df=rep( NA, length(tots$N) ) )
-    ATE_Raj = calc_agg_estimate( tots$N, tots$ATE_Raj, tots$SE_Raj, df=rep( NA, length(tots$N) ) )
+    ATE_HT = calc_agg_estimate( tots$N,
+                                tots$ATE_HT,
+                                tots$SE2_HT,
+                                df=rep( NA, length(tots$N) ) )
+    ATE_Raj = calc_agg_estimate( tots$N,
+                                 tots$ATE_Raj,
+                                 tots$SE2_Raj,
+                                 df=rep( NA, length(tots$N) ) )
 
     df = M - 2*n_block
 
@@ -576,7 +610,7 @@ middleton_aronow_estimator <- function( formula,
         ATE_hat = c( ATE_HT$ATE_hat, ATE_Raj$ATE_hat ),
         SE_hat = c( ATE_HT$SE_hat, ATE_Raj$SE_hat ),
         df = c( df, df ),
-        p_value = two_sided_p(ATE_hat, SE_hat, df )
+        p_value = two_sided_p(.data$ATE_hat, .data$SE_hat, df )
     )
 
     if ( include_block_estimates ) {

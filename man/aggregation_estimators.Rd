@@ -16,6 +16,21 @@ aggregation_estimators(
 \item{formula}{Formula for outcome and treatment and nesting.  If
 NULL, data is assumed to be in canonical form (see vignette for
 further discussion).}
+
+\item{data}{Data frame holding the outcome, treatment, and
+clustering/blocking columns referenced by `formula` (or already
+in canonical form if `formula` is NULL).}
+
+\item{control_formula}{What variables to control for, in the form
+of "~ X1 + X2".}
+
+\item{control_interacted}{If TRUE, also fit block-by-covariate
+interacted control models.  Ignored if `control_formula` is
+NULL.}
+
+\item{aggregated}{TRUE means `data` is already aggregated to the
+cluster level (and in canonical form).  FALSE means it is not
+and will be aggregated internally.}
 }
 \description{
 This method aggregates data at the cluster level, and analyzes

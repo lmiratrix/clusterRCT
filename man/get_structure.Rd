@@ -7,8 +7,14 @@
 get_structure(formula = NULL, data)
 }
 \arguments{
-\item{data}{frame holding Y, Z, B and (possibly a column with name
-specified by blockID).}
+\item{formula}{Formula of the form `Yobs ~ Z | clusterID` (or `Yobs
+~ Z | clusterID | blockID` if blocked).  If NULL, `data` is
+assumed to already be in canonical form (columns `Yobs`, `Z`,
+`clusterID`, and optionally `blockID`).}
+
+\item{data}{Data frame holding the outcome, treatment, and
+clustering/blocking columns referenced by `formula` (or already
+in canonical form if `formula` is NULL).}
 }
 \value{
 Dataframe listing blockID, clusterID, treatment status, and

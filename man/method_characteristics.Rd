@@ -7,6 +7,10 @@ package.}
 \usage{
 method_characteristics(include_weight = TRUE)
 }
+\arguments{
+\item{include_weight}{If TRUE (default), include the `weight`
+column (the estimand each method targets).  If FALSE, drop it.}
+}
 \value{
 Dataframe with columns for method, weight, population,
   biased, and disfavored (whether we do not like the estimator due

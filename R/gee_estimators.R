@@ -11,6 +11,13 @@
 #' @param formula Formula for outcome and treatment and nesting.  If
 #'   NULL, data is assumed to be in canonical form (see vignette for
 #'   further discussion).
+#' @param data Data frame holding the outcome, treatment, and
+#'   clustering/blocking columns referenced by `formula` (or already
+#'   in canonical form if `formula` is NULL).
+#' @param control_formula What variables to control for, in the form
+#'   of "~ X1 + X2".
+#' @param weight Weighting scheme for the GEE.  Only "Person" is
+#'   currently implemented; see FUTURE_WORK.md for cluster weighting.
 #'
 #' @importFrom geepack geeglm
 #'
@@ -18,12 +25,11 @@
 gee_estimators <- function( formula,
                                      data = NULL,
                                      control_formula = NULL,
-                                     weight = c( "Person", "Cluster" ) ) {
+                                     weight = c( "Person" ) ) {
 
     weight = match.arg(weight)
     est_method = ifelse( weight == "Person", "GEE", "GEEcw" )
 
-    require( estimatr )
 
     if ( !is.null( formula ) ) {
         data = make_canonical_data( formula=formula, data=data, control_formula=control_formula )
@@ -34,6 +40,9 @@ gee_estimators <- function( formula,
     if (weight == "Person") {
         data$.weight <- 1
     } else {
+        # Skeleton for future development -- cluster weighting for the GEE
+        # approach is not yet implemented.  "Cluster" is deliberately not a
+        # documented/selectable value of `weight` above until this is done.
         stop( "weighting not yet implemented for GEE approach" )
         data <- data %>%
             group_by( clusterID ) %>%
@@ -50,7 +59,7 @@ gee_estimators <- function( formula,
 
     # Fix the factors
     data$clusterID = as.numeric( as.factor( data$clusterID ) )
-    data <- arrange( data, clusterID )
+    data <- arrange( data, .data$clusterID )
 
     gee_model <- geepack::geeglm(
         formula = form,
@@ -63,7 +72,7 @@ gee_estimators <- function( formula,
 
     npar = length( gee_model$coefficients )
     tt = broom::tidy( gee_model ) %>%
-        filter( term == "Z")
+        filter( .data$term == "Z")
 
     # Compile our results
     nm = paste0( est_method,

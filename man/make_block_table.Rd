@@ -12,6 +12,16 @@ make_block_table(
 )
 }
 \arguments{
+\item{formula}{Notation for Y ~ Z | clusterID | blockID.  If NULL,
+`data` is assumed to already be in canonical form.}
+
+\item{data}{Dataframe holding the outcome, treatment, and
+clustering/blocking columns referenced by `formula` (or already
+in canonical form if `formula` is NULL).}
+
+\item{control_formula}{What variables to control for, in the form
+of "~ X1 + X2".}
+
 \item{check_data_integrity}{TRUE means runs some checks and give
 errors if data fails them (e.g., incorrectly processed treatment
 vector.). FALSE means calculate statistics without these checks.}

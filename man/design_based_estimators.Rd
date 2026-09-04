@@ -18,8 +18,23 @@ design_based_estimators(
 NULL, data is assumed to be in canonical form (see vignette for
 further discussion).}
 
+\item{data}{Data frame holding the outcome, treatment, and
+clustering/blocking columns referenced by `formula` (or already
+in canonical form if `formula` is NULL).}
+
+\item{control_formula}{What variables to control for, in the form
+of "~ X1 + X2".}
+
+\item{weight}{"Person" to weight the regression by individual
+(unweighted OLS), "Cluster" to weight so each cluster
+contributes equally (inverse cluster-size weights).}
+
 \item{aggregated}{TRUE means data is already aggregated (and in
 canonical form).  FALSE means it is not.}
+
+\item{include_block_estimates}{If TRUE, also return the
+block-by-block estimates used to build the overall estimate, in
+addition to the aggregate estimate.}
 }
 \value{
 tibble of estimates using different varieties of the
@@ -37,4 +52,17 @@ running on the individual.
 
 In this implementation, we run the regression on the
 cluster-aggregated data.
+
+Degrees of freedom: this function receives already
+cluster-aggregated data, so every covariate in \code{control_formula}
+is, by construction, a cluster- (level 2) covariate.  The degrees of
+freedom adjustment therefore uses \code{number_controls()}, which
+counts all covariates in \code{control_formula}.  This is equivalent
+to counting level-2 covariates only, matching the technical
+supplement's benchmark degrees of freedom of \code{J - K - g - 1}
+(\code{g} = number of level-2 covariates).  Contrast with
+\code{\link{design_based_estimators_individual}()}, which works on
+individual-level data where \code{control_formula} may mix level-1
+and level-2 covariates, and so explicitly uses
+\code{number_level2_controls()} to count only the level-2 ones.
 }

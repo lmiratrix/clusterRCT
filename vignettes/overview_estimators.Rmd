@@ -24,16 +24,11 @@ This package is designed to make comparing different estimators for the average 
 There are a host of methods that will estimate the ATE using different modeling approaches (linear regression models, multilevel models, design-based methods, aggregate-then-analyze approaches).
 There is also an overall method `compare_methods()` that compares all the estimators in one large table of results.
 
-<!--
-This doesn't work yet since package is private.
-To install the package off of GitHub you can do this:
+To install the package:
 
 ```{r install_package, eval=FALSE}
-devtools::install_github( "https://github.com/lmiratrix/clusterRCT" )
+devtools::install_github( "lmiratrix/clusterRCT" )
 ```
--->
-
-To install the package, download the directory from GitHub (`https://github.com/lmiratrix/clusterRCT`), and then open RStudio and select "Install" under the Build menu.  You can also click on "Test" to see if the package is working on your system. (In the rough state, it might not be advertising all package dependencies correctly, yet.)
 
 Once installed, to load the package, first call `library()`:
 ```{r setup}

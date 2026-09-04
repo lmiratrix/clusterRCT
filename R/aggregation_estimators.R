@@ -8,6 +8,12 @@
 #' This automatically does both weighting approaches.
 #'
 #' @inheritParams linear_model_estimators
+#' @param control_interacted If TRUE, also fit block-by-covariate
+#'   interacted control models.  Ignored if `control_formula` is
+#'   NULL.
+#' @param aggregated TRUE means `data` is already aggregated to the
+#'   cluster level (and in canonical form).  FALSE means it is not
+#'   and will be aggregated internally.
 #'
 #' @export
 aggregation_estimators <- function( formula,
@@ -68,7 +74,7 @@ aggregation_estimators <- function( formula,
     if ( control_interacted ) {
         datagg = center_controls( datagg, control_formula, weights = datagg$n )
     }
-    M4 <- lm_robust_quiet( form, data=datagg, weights = n, se_type = "HC2" )
+    M4 <- lm_robust_quiet( form, data=datagg, weights = datagg$n, se_type = "HC2" )
     Agg_FE_person = get_agg_ests( M4, "Person", ifelse( needFE, "ARpw-FE-het", "ARpw-het" ) )
 
 
@@ -86,8 +92,8 @@ aggregation_estimators <- function( formula,
 
     M5 <- lm_robust_quiet( formI, data=datagg, se_type = "HC2" )
     df = nrow( datagg ) - length( coef( M5 ) )
-    aggd <- datagg %>% group_by( blockID ) %>%
-        summarise( n = sum( n ),
+    aggd <- datagg %>% group_by( .data$blockID ) %>%
+        summarise( n = sum( .data$n ),
                    J = n() )
     Agg_FI = generate_all_interacted_estimates( M5, aggd,
                                                 aggregated = TRUE,
@@ -97,7 +103,7 @@ aggregation_estimators <- function( formula,
                                                 se_method = "het")
     Agg_FI$df = df
 
-    M6 <- lm_robust_quiet( formI, data=datagg, se_type = "HC2", weights = n )
+    M6 <- lm_robust_quiet( formI, data=datagg, se_type = "HC2", weights = datagg$n )
 
     Agg_wFI = generate_all_interacted_estimates( M6, aggd,
                                                  aggregated = TRUE,
@@ -149,7 +155,7 @@ if ( FALSE ) {
 
     formula =  Yobs ~ T.x | S.id | D.id
     control_formula = ~ X.jk + C.ijk
-    data = clusterRCT:::make_canonical_data(formula=formula, data=fakeCRT,
+    data = make_canonical_data(formula=formula, data=fakeCRT,
                                             control_formula = control_formula)
 
     aggregated = FALSE

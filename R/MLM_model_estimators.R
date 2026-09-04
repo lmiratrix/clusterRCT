@@ -9,6 +9,11 @@
 #' vanilla MLM that one would typically fit.
 #'
 #' @inheritParams linear_model_estimators
+#' @param suppress_warnings If TRUE, suppress the (typically benign)
+#'   convergence/singularity warnings `lmer()` throws.
+#' @param include_disfavored Include the full random-intercept- and
+#'   random-slope-by-block (RIRC/FIRC) MLM variants, which are
+#'   considered disfavored due to instability with few blocks.
 #'
 #' @export
 MLM_estimators <- function( formula,
@@ -17,8 +22,6 @@ MLM_estimators <- function( formula,
                             suppress_warnings = TRUE,
                             include_disfavored = FALSE ) {
 
-    require( lme4 )
-    require( lmerTest )
 
     # If suppress warnings then wrap lmer so all messages and warnings
     # get buried.
@@ -96,7 +99,7 @@ MLM_estimators <- function( formula,
                          p_value = NA,
                          df = length(unique(data$clusterID)) - length( fixef(M1) ) - k )
     } else {
-        MLM_FI = clusterRCT:::generate_all_interacted_estimates( M1, data,
+        MLM_FI = generate_all_interacted_estimates( M1, data,
                                                                  use_full_vcov = TRUE,
                                                                  method = "MLM",
                                                                  weight = "Cluster",
@@ -149,7 +152,7 @@ if ( FALSE ) {
 
     formula =  Yobs ~ T.x | S.id | D.id
     control_formula = ~ X.jk + C.ijk
-    data = clusterRCT:::make_canonical_data(formula=formula, data=fakeCRT,
+    data = make_canonical_data(formula=formula, data=fakeCRT,
                                             control_formula = control_formula)
 
     MLM_estimators(formula, control_formula = control_formula,

@@ -47,10 +47,14 @@ two_sided_p <- function( ATE_hat, SE_hat, df ) {
 #' Take data with possibly categorical control variables and expand to
 #' dummy variables.
 #'
+#' @param data Dataframe holding the control variables.
+#' @param control_formula What variables to control for, in the form
+#'   of "~ X1 + X2".
+#'
 #' @return List of three objects: the revised data frame, revised
 #'   control_formula, and final list of names of control variables.
+#' @noRd
 expand_control_variables <- function( data, control_formula ) {
-    require( formula.tools )
 
     n = nrow(data)
     # Get control variables and expand control matrix with dummy variables, etc.
@@ -96,7 +100,6 @@ number_controls <- function( control_formula ) {
 
 
 center_controls <- function( data, control_formula, weights = NULL ) {
-    require( formula.tools )
 
     if ( is.null( control_formula ) ) {
         return( data )
@@ -177,6 +180,11 @@ if ( FALSE ) {
 #'
 #' @param data  Dataframe with 'clusterID' and 'Z' as columns.
 #'   'blockID' optional column.  This is data in the "canonical form".
+#' @param formula Notation for Y ~ Z | clusterID | blockID.  If NULL,
+#'   `data` is assumed to already be in canonical form.
+#' @param control_formula What variables to control for, in the form
+#'   of "~ X1 + X2".  These will be averaged (or dummy-expanded and
+#'   averaged, for categorical covariates) to the cluster level.
 #'
 #' @return tibble of cluster-aggregated data, including Ybar, n,
 #'   blockID, clusterID, and Z
@@ -202,7 +210,7 @@ aggregate_data <- function( data, formula = NULL, control_formula = NULL ) {
         datagg <-
             datagg <- data %>%
             group_by( across( any_of( c( "blockID", "clusterID", "Z" ) ) ) ) %>%
-            summarise( Ybar = mean( Yobs ),
+            summarise( Ybar = mean( .data$Yobs ),
                        n = n(),
                        across( all_of( my.vars ), mean ),
                        .groups = "drop" )
@@ -214,7 +222,7 @@ aggregate_data <- function( data, formula = NULL, control_formula = NULL ) {
         datagg <-
             datagg <- data %>%
             group_by( across( any_of( c( "blockID", "clusterID", "Z" ) ) ) ) %>%
-            summarise( Ybar = mean( Yobs ),
+            summarise( Ybar = mean( .data$Yobs ),
                        n = n(),
                        .groups = "drop" )
 
@@ -263,7 +271,6 @@ make_regression_formula = function( Yobs = "Yobs", Z = "Z",
                                     cluster_RE = FALSE,
                                     data = NULL ) {
 
-    require( formula.tools )
 
     if ( interacted ) {
         FE = TRUE
@@ -329,7 +336,11 @@ make_regression_formula = function( Yobs = "Yobs", Z = "Z",
 
 #' Process formula to get variable names
 #'
-#'
+#' @param formula Notation for Y ~ Z | clusterID | blockID (| blockID
+#'   is optional).
+#' @param data Dataframe holding the variables named in `formula`,
+#'   used only to validate that they exist.
+#' @noRd
 deconstruct_var_formula <- function( formula, data ) {
     formula <- as.formula(formula)
     rhs <- formula.tools::rhs.vars( formula )
@@ -363,7 +374,13 @@ deconstruct_var_formula <- function( formula, data ) {
 
 #' Get variables listed in control_formula formula.
 #'
+#' @param control_formula What variables to control for, in the form
+#'   of "~ X1 + X2".
+#' @param data Dataframe holding the variables named in
+#'   `control_formula`, used only to validate that they exist.
+#'
 #' @return list of variable names
+#' @noRd
 deconstruct_control_formula <- function( control_formula, data ) {
 
     if(length(formula.tools::lhs.vars(control_formula)) != 0 |
@@ -508,7 +525,7 @@ make_canonical_data <- function(formula, control_formula = NULL, data,
 #' @noRd
 has_singleton_clusters <- function( datagg ) {
     datagg <- datagg %>%
-        group_by( blockID, clusterID, Z ) %>%
+        group_by( .data$blockID, .data$clusterID, .data$Z ) %>%
         summarise( n = n(), .groups = "drop" )
 
     tb = table( datagg$blockID, datagg$Z )
@@ -523,6 +540,10 @@ has_singleton_clusters <- function( datagg ) {
 #' treatment indicators are dropped.  Rows with missing block
 #' identifiers are considered all unique blocks and thus put into the
 #' table of results.
+#'
+#' @param formula Notation for Y ~ Z | clusterID | blockID.  If NULL,
+#'   `data` is assumed to already be in canonical form.
+#' @param data Dataframe to check.
 #'
 #' @return Dataframe of block IDs corresponding to all tx or all co
 #'   blocks along with number of units and tx status.  Returns NULL if
@@ -619,6 +640,12 @@ is_nested <- function( clusterID, blockID ) {
 #'
 #' Ensure data has proper treatment variable, clusterIDs are defined,
 #' and so forth.
+#'
+#' @param formula Notation for Y ~ Z | clusterID | blockID (| blockID
+#'   is optional).  If NULL, `data` is assumed to already be in
+#'   canonical form.
+#' @param data Dataframe to check.
+#' @noRd
 check_data_integrity <- function( formula = NULL, data ) {
 
     if ( !is.null(formula) ) {
@@ -662,8 +689,8 @@ check_data_integrity <- function( formula = NULL, data ) {
     }
 
 
-    sts <- data %>% group_by( blockID ) %>%
-        summarise( ptx = mean( Z ) )
+    sts <- data %>% group_by( .data$blockID ) %>%
+        summarise( ptx = mean( .data$Z ) )
     if ( any( sts$ptx == 0 | sts$ptx == 1 ) ) {
         stop( "Some blocks have all treated or all control units", call.=FALSE )
     }
@@ -673,8 +700,8 @@ check_data_integrity <- function( formula = NULL, data ) {
         stop( "SiteID not fully nested in ClusterID", call.=FALSE )
     }
 
-    ptx = data %>% group_by( clusterID ) %>%
-        summarize( ptx = mean( Z ) )
+    ptx = data %>% group_by( .data$clusterID ) %>%
+        summarize( ptx = mean( .data$Z ) )
     if ( any( ptx$ptx != 0 & ptx$ptx != 1 ) ) {
         stop( "Treatment variation within clusters: not a cluster RCT", call.=FALSE )
     }

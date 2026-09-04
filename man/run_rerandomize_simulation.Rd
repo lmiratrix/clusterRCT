@@ -35,6 +35,12 @@ compare_methods call, FALSE return raw estimates.}
 one of the "simulation replicates".  This will be included in any
 summarization, so be warned.}
 
+\item{warn_missing}{If TRUE, warn when rows are dropped or
+covariates are imputed while canonicalizing/patching the data.}
+
+\item{patch_data}{If TRUE, impute missing covariates via
+`patch_data_set()` before simulating.}
+
 \item{parallel}{If TRUE, run simulations in parallel.}
 
 \item{...}{Additional arguments to pass to compare_methods.}

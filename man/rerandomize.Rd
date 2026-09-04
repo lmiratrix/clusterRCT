@@ -6,9 +6,20 @@
 \usage{
 rerandomize(Z, clusterID, blockID = NULL)
 }
+\arguments{
+\item{Z}{Vector of original treatment assignments (1 = treated, 0 =
+control), one entry per row/unit.}
+
+\item{clusterID}{Vector of cluster IDs, one entry per row/unit.}
+
+\item{blockID}{Vector of block IDs, one entry per row/unit. If
+NULL, rerandomization ignores blocking.}
+}
 \value{
 vector of 1s and 0s.
 }
 \description{
-Return new treatment assignment based on passed one.
+Rerandomizes treatment at the cluster level (within block, if
+`blockID` is given), preserving the original per-block (or
+overall) proportion of clusters treated.
 }

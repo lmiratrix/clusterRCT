@@ -8,7 +8,8 @@ count_covariates(
   data,
   control_formula,
   cluster_formula = NULL,
-  just_count = FALSE
+  just_count = FALSE,
+  pure = TRUE
 )
 }
 \arguments{
@@ -25,6 +26,10 @@ blockID column exist in the data.}
 
 \item{just_count}{If TRUE, return just counts of level 1 and level
 2 variables.}
+
+\item{pure}{TRUE means count level 2 covariates ONLY if they are
+ONLY level 2.  FALSE means covariates that are both level 1 and
+level 2 get counted twice, once for level 1 and once for level 2.}
 }
 \value{
 If just_count is FALSE (default), a tibble with columns:

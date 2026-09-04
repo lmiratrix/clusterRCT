@@ -28,6 +28,17 @@ lm_robust_quiet <- function( ... ) {
 #' @param formula Formula for outcome and treatment and nesting.  If
 #'   NULL, data is assumed to be in canonical form (see vignette for
 #'   further discussion).
+#' @param data Data frame holding the outcome, treatment, and
+#'   clustering/blocking columns referenced by `formula` (or already
+#'   in canonical form if `formula` is NULL).
+#' @param control_formula What variables to control for, in the form
+#'   of "~ X1 + X2".
+#' @param weight "Person" to weight the regression by individual
+#'   (unweighted OLS), "Cluster" to weight so each cluster
+#'   contributes equally (inverse cluster-size weights).
+#' @param blockCRVE If TRUE, cluster the robust standard errors at
+#'   the block level instead of the cluster level.  Requires blocks
+#'   to be present.
 #'
 #' @importFrom estimatr lm_robust
 #'
@@ -41,7 +52,6 @@ linear_model_estimators <- function( formula,
     weight = match.arg(weight)
     est_method = ifelse( weight == "Person", "LR", "LRcw" )
 
-    require( estimatr )
 
     if ( !is.null( formula ) ) {
         data = make_canonical_data( formula=formula, data=data, control_formula=control_formula )
@@ -53,7 +63,7 @@ linear_model_estimators <- function( formula,
         data$.weight <- 1
     } else {
         data <- data %>%
-            group_by( clusterID ) %>%
+            group_by( .data$clusterID ) %>%
             mutate( .weight = 1 / n() ) %>%
             ungroup()
     }
@@ -71,9 +81,9 @@ linear_model_estimators <- function( formula,
 
     M2 = NA
     if ( blockCRVE ) {
-        M2 <- lm_robust_quiet( form, data=data, clusters=blockID, weights = .weight )
+        M2 <- lm_robust_quiet( form, data=data, clusters=data$blockID, weights = data$.weight )
     } else {
-        M2 <- lm_robust_quiet( form, data=data, clusters=clusterID, weights = .weight )
+        M2 <- lm_robust_quiet( form, data=data, clusters=data$clusterID, weights = data$.weight )
     }
     est2 <- M2$coefficients[["Z"]]
     se2  <- M2$std.error[["Z"]]
@@ -115,12 +125,11 @@ interacted_linear_model_estimators <- function( formula,
                                                 weight = c( "Person", "Cluster" ),
                                                 use_full_vcov = FALSE ) {
 
-    require( estimatr )
     weight = match.arg(weight)
     est_method = ifelse( weight == "Person", "LR", "LRcw" )
 
     if ( !is.null( formula ) ) {
-        data = clusterRCT:::make_canonical_data( formula=formula, data=data,
+        data = make_canonical_data( formula=formula, data=data,
                                                  control_formula=control_formula )
     }
 
@@ -129,7 +138,7 @@ interacted_linear_model_estimators <- function( formula,
         data$.weight <- 1
     } else {
         data <- data %>%
-            group_by( clusterID ) %>%
+            group_by( .data$clusterID ) %>%
             mutate( .weight = 1 / n() ) %>%
             ungroup()
     }
@@ -151,7 +160,7 @@ interacted_linear_model_estimators <- function( formula,
     form = make_regression_formula( FE = TRUE, interacted = TRUE,
                                     control_formula = control_formula )
 
-    M0.int <- lm_robust_quiet( form, data=data, clusters=clusterID, weights = .weight )
+    M0.int <- lm_robust_quiet( form, data=data, clusters=data$clusterID, weights = data$.weight )
 
     ests <- generate_all_interacted_estimates( M0.int, data,
                                                method = est_method,

@@ -12,11 +12,20 @@ describe_clusterRCT(
 )
 }
 \arguments{
-\item{data}{frame holding Y, Z, B and (possibly a column with name
-specified by blockID).}
+\item{formula}{Formula of the form `Yobs ~ Z | clusterID` (or `Yobs
+~ Z | clusterID | blockID` if blocked).  If NULL, `data` is
+assumed to already be in canonical form (columns `Yobs`, `Z`,
+`clusterID`, and optionally `blockID`).}
+
+\item{data}{Data frame holding the outcome, treatment, and
+clustering/blocking columns referenced by `formula` (or already
+in canonical form if `formula` is NULL).}
 
 \item{control_formula}{What variables to control for, in the form
 of "~ X1 + X2".}
+
+\item{warn_missing}{If TRUE, warn when rows are dropped or imputed
+due to missing data.}
 }
 \value{
 A list with the following elements:

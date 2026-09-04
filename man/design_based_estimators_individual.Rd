@@ -16,6 +16,21 @@ design_based_estimators_individual(
 \item{formula}{Formula for outcome and treatment and nesting.  If
 NULL, data is assumed to be in canonical form (see vignette for
 further discussion).}
+
+\item{data}{Data frame holding the outcome, treatment, and
+clustering/blocking columns referenced by `formula` (or already
+in canonical form if `formula` is NULL).}
+
+\item{control_formula}{What variables to control for, in the form
+of "~ X1 + X2".}
+
+\item{weight}{"Person" to weight the regression by individual
+(unweighted OLS), "Cluster" to weight so each cluster
+contributes equally (inverse cluster-size weights).}
+
+\item{include_block_estimates}{If TRUE, also return the
+block-by-block estimates used to build the overall estimate, in
+addition to the aggregate estimate.}
 }
 \value{
 tibble of estimates using different varieties of the
@@ -24,4 +39,15 @@ tibble of estimates using different varieties of the
 \description{
 This function follows `design_based_estimators`, but runs the
 regression on the individual level data.
+}
+\details{
+Degrees of freedom: unlike \code{\link{design_based_estimators}()},
+this function works directly on individual-level data, so
+\code{control_formula} may mix level-1 (individual) and level-2
+(cluster) covariates.  The degrees of freedom adjustment here uses
+\code{number_level2_controls()}, which counts only the level-2
+covariates -- level-1 covariates do not cost the same degrees of
+freedom in this design-based framework (see the technical supplement's
+benchmark degrees of freedom of \code{J - K - g - 1}, where \code{g}
+is the number of level-2 covariates beyond the treatment indicator).
 }

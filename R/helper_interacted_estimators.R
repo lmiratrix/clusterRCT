@@ -113,10 +113,21 @@ make_weight_names <- function( regression_weight, block_weight ) {
 #'
 #' @inheritParams interacted_linear_model_estimators
 #' @param fitModel The model that has the interacted estimates in it.
+#' @param data Data frame the model was fit on (in canonical form).
+#' @param SE_table Optional precomputed table of block-level standard
+#'   errors to use instead of extracting them from `fitModel`.
 #' @param method Prefix of the method.  Will add the weighting to
 #'   stem.
+#' @param weight "Person" or "Cluster" weighting used when averaging
+#'   block-level estimates to an overall ATE.
+#' @param se_method Which standard error method the block-level
+#'   estimates in `fitModel`/`SE_table` were computed with (e.g.
+#'   "crve", "het", "db").  Used only for labeling.
 #' @param aggregated TRUE means data is summarized at the Block level.
 #'   False means it is not, and needs to be aggregated.
+#' @param include_block_estimates If TRUE, also return the
+#'   block-by-block estimates used to build the overall estimate, in
+#'   addition to the aggregate estimate.
 #' @export
 generate_all_interacted_estimates <- function( fitModel, data,
                                                use_full_vcov = FALSE,

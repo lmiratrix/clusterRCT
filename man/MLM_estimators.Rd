@@ -16,6 +16,20 @@ MLM_estimators(
 \item{formula}{Formula for outcome and treatment and nesting.  If
 NULL, data is assumed to be in canonical form (see vignette for
 further discussion).}
+
+\item{data}{Data frame holding the outcome, treatment, and
+clustering/blocking columns referenced by `formula` (or already
+in canonical form if `formula` is NULL).}
+
+\item{control_formula}{What variables to control for, in the form
+of "~ X1 + X2".}
+
+\item{suppress_warnings}{If TRUE, suppress the (typically benign)
+convergence/singularity warnings `lmer()` throws.}
+
+\item{include_disfavored}{Include the full random-intercept- and
+random-slope-by-block (RIRC/FIRC) MLM variants, which are
+considered disfavored due to instability with few blocks.}
 }
 \description{
 This uses the lmerTest package to get the p-values, and fits a

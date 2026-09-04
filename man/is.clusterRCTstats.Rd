@@ -2,7 +2,6 @@
 % Please edit documentation in R/describe_clusterRCT.R
 \name{is.clusterRCTstats}
 \alias{is.clusterRCTstats}
-\alias{clusterRCTstats}
 \title{Is object a clusterRCTstats object?}
 \usage{
 is.clusterRCTstats(x)

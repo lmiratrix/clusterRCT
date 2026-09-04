@@ -1,0 +1,17 @@
+# Future work
+
+Items deliberately deferred during the public-release cleanup (see `CLEANUP_CHECKLIST.md`) because they need a statistician's judgment call, a literature check, or more implementation work than a quick fix -- not because they're low priority.
+
+## Needs a look-up / statistical verification before touching
+
+- **`Welch_Satterthwaite_df()`** (`R/helper_interacted_estimators.R`, called from `calc_agg_estimate()`): passes the single pooled `SE_hat^2` rather than the vector of per-block variances (`SE2_hats`) that the Welch-Satterthwaite formula is defined over. Algebraically this makes the returned df collapse to `1/sum(weight^2/df_i)` regardless of the actual variances substituted -- i.e. it may not reflect cross-block variance heterogeneity the way the Satterthwaite approximation is supposed to. Need to check this against the Schochet et al. paper's actual formula (the Technical Supplement, Appendix D Section 5.2, documents a simpler conservative benchmark `df = J - 2K - g`, which suggests the intent here was a refinement beyond that -- but need to confirm the refinement is implemented correctly, not just approximately).
+- **`design_based_estimators()` vs. `design_based_estimators_individual()`'s covariate counting**: now documented (see their roxygen `@details`) as using `number_controls()` (all covariates, valid because the aggregate version's `control_formula` is already all level-2 post-aggregation) vs. `number_level2_controls()` (level-2 only, because the individual-level version's `control_formula` can mix levels). This looks like intentional, correct behavior on inspection, matching the Technical Supplement's `df = J - K - g - 1` formula where `g` = level-2 covariate count -- but worth a second pair of eyes to confirm before fully closing this out.
+
+## Kept as a skeleton for future implementation (not exported / not documented)
+
+- **`MRStdCRT_estimator()`** (`R/MDStdCRT_estimator.R`): standardization-based estimator wrapping the (non-CRAN) `MRStdCRT` package. Non-functional as written -- opens with `warning("This method does not yet work due to difficulties mapping to the call")`, and the function body past the `MRStdCRT_fit()` call contains leftover interactive-exploration code (references to an undefined `example`/`ppact` object) followed by an accidental copy-paste duplicate of `gee_estimators()`'s logic. Removed from the public API (`@export` -> `@noRd`) and `require(MRStdCRT)` removed, but the code itself was left in place as a starting point for finishing this estimator later. To finish: work out the correct call signature for `MRStdCRT_fit()`, remove the leftover exploratory/duplicate code, and re-add `@export` + real documentation + tests once it works.
+- **GEE cluster weighting** (`R/gee_estimators.R`): `weight = "Cluster"` is no longer a documented/selectable option (removed from the `weight` argument's allowed values), but the `stop("weighting not yet implemented for GEE approach")` branch and its unreachable weighting skeleton (`group_by(clusterID) %>% mutate(.weight = 1/n())`) were left in the code for whoever picks this up.
+
+## Structural note
+
+`canonical_weight_estimators()` (`R/canonical_weight_esimators.R`) was unexported (`@noRd`) since it's a diagnostic/validation-only tool (no real SEs), not a real estimator for end users -- but it's still tested (see `tests/testthat/test-canonical_weight_estimators.R`) and useful internally for verifying that the paper's canonical weight formulas reproduce the corresponding linear-model estimators' point estimates.
