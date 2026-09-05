@@ -58,18 +58,21 @@
 <div class="section level1">
 <h1 id="introduction">Introduction<a class="anchor" aria-label="anchor" href="#introduction"></a>
 </h1>
-<p>This is the companion codebase for a large-scale comparison of different estimators applied to a suite of cluster RCT experiments in Education and the social sciences.</p>
+<p><code>clusterRCT</code> provides an easy means to run a collection of different estimators to estimate average treatment effects in blocked, cluster randomized trials (trials where you have randomization blocks, and within each block clusters are randomized into treatment and control). It also provides some methods for exploring data with a blocked, clustered structure. The package also can be used for simple cluster-randomized trials with no blocking.</p>
 <p>Core methods are <code><a href="reference/compare_methods.html">compare_methods()</a></code> which compares the estimates from a collection of different estimation strategies on a given dataset, and <code><a href="reference/describe_clusterRCT.html">describe_clusterRCT()</a></code> which describes overall characteristics of a given dataset.</p>
+<p>The package was designed to support a paper, “An Applied Researcher’s Guide to Estimating Effects from Multisite Cluster Randomized Trials: Estimands, Estimators, and Estimates,” accepted to JREE in 2026. For the replication files of the paper, see <a href="https://github.com/lmiratrix/clusterRCTsim" class="external-link">the replication GitHub</a>. That set of code heavily uses this package in the implemented simulations and empirical data analyses.</p>
 </div>
 <div class="section level1">
 <h1 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h1>
+<p>Installation is simple:</p>
 <pre><code><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"lmiratrix/clusterRCT"</span><span class="op">)</span></span></code></pre>
 <div class="section level2">
 <h2 id="replicating-the-paper">Replicating the paper<a class="anchor" aria-label="anchor" href="#replicating-the-paper"></a>
 </h2>
-<p>This package is the companion to “An Applied Researcher’s Guide to Estimating Effects from Multisite Cluster Randomized Trials: Estimands, Estimators, and Estimates.” For the paper’s replication files, we used a slightly older, less cleaned-up version of the package than what is on the main branch today. Ongoing cleanup (dependency fixes, bug fixes, documentation) is not intended to change any reported estimates, but to install the exact version used to produce the paper’s results, use the tagged release instead of the latest version:</p>
-<pre><code><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"lmiratrix/clusterRCT"</span>, ref <span class="op">=</span> <span class="st">"jree-submission-snapshot-2025-11-20"</span><span class="op">)</span></span></code></pre>
+<p>The paper’s results were generated with a slightly older, less cleaned-up version of the package than what is on the main branch today. Ongoing cleanup (dependency fixes, bug fixes, documentation) is not intended to change any reported estimates, but to install the exact version used to produce the paper’s results, use the tagged release instead of the latest version:</p>
+<pre><code><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"lmiratrix/clusterRCT"</span>,</span>
+<span>            ref <span class="op">=</span> <span class="st">"jree-submission-snapshot-2025-11-20"</span><span class="op">)</span></span></code></pre>
 </div>
 <div class="section level2">
 <h2 id="acknowledgements">Acknowledgements<a class="anchor" aria-label="anchor" href="#acknowledgements"></a>
