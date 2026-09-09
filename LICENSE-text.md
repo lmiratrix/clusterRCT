@@ -1,4 +1,4 @@
 # License
 
     YEAR: 2022
-    COPYRIGHT HOLDER: Luke Miratrix
+    COPYRIGHT HOLDER: MDRC
